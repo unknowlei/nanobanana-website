@@ -3,7 +3,7 @@ import {
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
-  UploadCloud, Sparkles, MessageSquareQuote, FileText
+  CloudUpload, Sparkles, MessageSquareQuote, FileText
 } from 'lucide-react';
 
 /**
@@ -11,7 +11,7 @@ import {
  * 👇👇👇 请再次将你的 RAW 链接粘贴到下面的引号里 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "在此处粘贴你的GitHub Raw链接"; 
+const DATA_SOURCE_URL = ""; 
 
 // --- 初始演示数据 ---
 const INITIAL_TAGS = ["示例标签"];
@@ -23,7 +23,38 @@ const INITIAL_SECTIONS = [
     prompts: []
   }
 ];
-const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。\n点击右上角锁图标开启编辑模式。";
+const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
+
+// --- 内部样式注入 (保证动画生效) ---
+const AnimationStyles = () => (
+  <style>{`
+    @keyframes blob {
+      0% { transform: translate(0px, 0px) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0px, 0px) scale(1); }
+    }
+    .animate-blob {
+      animation: blob 7s infinite;
+    }
+    .animation-delay-2000 {
+      animation-delay: 2s;
+    }
+    .animation-delay-4000 {
+      animation-delay: 4s;
+    }
+    .custom-scrollbar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .custom-scrollbar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .custom-scrollbar::-webkit-scrollbar-thumb {
+      background-color: rgba(156, 163, 175, 0.5);
+      border-radius: 20px;
+    }
+  `}</style>
+);
 
 // --- 组件：高级感标签 ---
 const Tag = ({ label, onClick, isActive }) => (
@@ -42,9 +73,11 @@ const Tag = ({ label, onClick, isActive }) => (
 
 export default function PromptBoxApp() {
   const [isAdmin, setIsAdmin] = useState(false); // 默认访客模式
+  const [clickCount, setClickCount] = useState(0); // 点击计数器 (隐形)
+  
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
-  const [siteNotes, setSiteNotes] = useState(INITIAL_NOTES); // 新增：网站备注
+  const [siteNotes, setSiteNotes] = useState(INITIAL_NOTES); 
   
   // 界面状态
   const [isLoading, setIsLoading] = useState(false);
@@ -59,7 +92,7 @@ export default function PromptBoxApp() {
   // 弹窗状态
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
-  const [isNotesEditing, setIsNotesEditing] = useState(false); // 备注编辑状态
+  const [isNotesEditing, setIsNotesEditing] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
@@ -68,7 +101,7 @@ export default function PromptBoxApp() {
   useEffect(() => {
     const localSections = localStorage.getItem('nanobanana_sections');
     const localTags = localStorage.getItem('nanobanana_tags');
-    const localNotes = localStorage.getItem('nanobanana_notes'); // 读取备注
+    const localNotes = localStorage.getItem('nanobanana_notes');
 
     if (localSections) {
       setSections(JSON.parse(localSections));
@@ -104,6 +137,25 @@ export default function PromptBoxApp() {
     }
   };
 
+  // --- 核心功能：隐形5连击解锁 ---
+  const handleModeToggle = () => {
+    if (isAdmin) {
+      // 管理员模式下，点击一次立刻锁定
+      setIsAdmin(false);
+      setClickCount(0);
+    } else {
+      // 访客模式下，累积点击，无视觉反馈
+      const newCount = clickCount + 1;
+      setClickCount(newCount);
+      if (newCount >= 5) {
+        setIsAdmin(true);
+        setClickCount(0);
+        // 轻微震动反馈 (仅手机端有效，增加一点“解锁成功”的感觉)
+        if (navigator.vibrate) navigator.vibrate(50);
+      }
+    }
+  };
+
   // --- 智能搜索 ---
   const filteredSections = sections.map(section => ({
     ...section,
@@ -117,7 +169,7 @@ export default function PromptBoxApp() {
     })
   })).filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0));
 
-  // --- 拖拽核心逻辑 (保持不变) ---
+  // --- 拖拽核心逻辑 ---
   const handleDragStart = (e, type, item, sourceSecId = null) => {
     if (!isAdmin) { e.preventDefault(); return; }
     setDraggedItem({ type, data: item, sourceSecId });
@@ -147,9 +199,11 @@ export default function PromptBoxApp() {
        }
     } else if (draggedItem.type === 'PROMPT') {
        const sSec = newSections.find(s => s.id === draggedItem.sourceSecId);
+       if (!sSec) return;
        const pIdx = sSec.prompts.findIndex(p => p.id === draggedItem.data.id);
        if (pIdx === -1) return;
        const [moved] = sSec.prompts.splice(pIdx, 1);
+       
        if (targetType === 'PROMPT') {
           const tSec = newSections.find(s => s.id === targetSecId);
           const tPIdx = tSec.prompts.findIndex(p => p.id === targetId);
@@ -175,12 +229,11 @@ export default function PromptBoxApp() {
     setIsPromptModalOpen(false); setEditingPrompt(null);
   };
 
-  // 导出时增加 siteNotes
   const handleExport = () => {
     const blob = new Blob([JSON.stringify({ sections, commonTags, siteNotes }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click();
   };
-  // 导入时增加 siteNotes
+  
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -200,18 +253,17 @@ export default function PromptBoxApp() {
   };
 
   return (
-    // 🔴 整体背景设置：极光渐变 + 噪点
     <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 relative overflow-x-hidden">
-      {/* 极光背景装饰 */}
+      <AnimationStyles />
+      {/* 极光背景 */}
       <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-200/40 blur-[120px] mix-blend-multiply animate-blob pointer-events-none z-0"></div>
       <div className="fixed top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-200/40 blur-[120px] mix-blend-multiply animate-blob animation-delay-2000 pointer-events-none z-0"></div>
       <div className="fixed bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-pink-200/40 blur-[120px] mix-blend-multiply animate-blob animation-delay-4000 pointer-events-none z-0"></div>
 
-      {/* 顶部导航：强效毛玻璃 */}
+      {/* 顶部导航 */}
       <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-3 group cursor-default">
-            {/* 品牌 Logo 动画 */}
             <div className="w-10 h-10 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-2xl shadow-lg shadow-orange-500/20 flex items-center justify-center text-white font-bold transform transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
               🍌
             </div>
@@ -226,7 +278,12 @@ export default function PromptBoxApp() {
           <div className="flex items-center space-x-3">
             {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center bg-indigo-50 px-2 py-1 rounded-full"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
             
-            <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 border shadow-sm hover:shadow-md active:scale-95 ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}>
+            {/* 🔴 隐形模式切换按钮：无视觉提示 */}
+            <button 
+              onClick={handleModeToggle} 
+              className={`relative flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 border shadow-sm hover:shadow-md active:scale-95 select-none ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}
+              title="Mode Switch"
+            >
               {isAdmin ? <Unlock size={12} className="mr-1"/> : <Lock size={12} className="mr-1"/>}
               <span>{isAdmin ? '管理员' : '访客'}</span>
             </button>
@@ -244,7 +301,7 @@ export default function PromptBoxApp() {
           </div>
         </div>
         
-        {/* 搜索栏：悬浮玻璃感 */}
+        {/* 搜索栏 */}
         <div className="border-t border-white/20 bg-white/40 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4 backdrop-blur-md">
            <div className="relative w-full sm:w-80 group">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
@@ -263,7 +320,7 @@ export default function PromptBoxApp() {
       <main className="max-w-7xl mx-auto px-4 py-8 pb-24 relative z-10">
         {loadError && !isAdmin && <div className="mb-6 p-3 bg-red-50/80 backdrop-blur border border-red-100 text-red-600 text-sm rounded-xl flex items-center shadow-sm"><Cloud size={16} className="mr-2"/> {loadError}</div>}
 
-        {/* --- 新增：网站备注/公告板 --- */}
+        {/* 公告板 */}
         <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
            <div className="flex items-start gap-4 relative z-10">
               <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500">
@@ -298,7 +355,6 @@ export default function PromptBoxApp() {
                  )}
               </div>
            </div>
-           {/* 装饰图标 */}
            <FileText className="absolute right-[-20px] bottom-[-20px] text-indigo-100 rotate-12" size={120} />
         </div>
 
@@ -316,7 +372,6 @@ export default function PromptBoxApp() {
                 : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}
             `}
           >
-            {/* 分区标题栏 */}
             <div className="flex justify-between items-center mb-6 select-none">
               <div className="flex items-center flex-1">
                 {isAdmin && (
@@ -372,7 +427,6 @@ export default function PromptBoxApp() {
                            <span className="text-[10px]">No Image</span>
                         </div>
                       )}
-                      {/* 悬浮遮罩 */}
                       <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
                     <div className="p-4 bg-white h-20 flex flex-col justify-center border-t border-slate-50 pointer-events-none relative z-10">
@@ -384,10 +438,9 @@ export default function PromptBoxApp() {
                   </div>
                 ))}
                 
-                {/* 空状态 */}
                 {section.prompts.length === 0 && (
                   <div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                    <UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/>
+                    <CloudUpload size={32} className="mb-2 opacity-50 text-indigo-300"/>
                     <span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span>
                   </div>
                 )}
@@ -468,7 +521,7 @@ export default function PromptBoxApp() {
   );
 }
 
-// --- 表单组件 (样式优化) ---
+// --- 表单组件 ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const [formData, setFormData] = useState(initialData || { title: '', content: '', image: '', tags: [] });
    const [tagInput, setTagInput] = useState('');
