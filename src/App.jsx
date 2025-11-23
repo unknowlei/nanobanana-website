@@ -358,23 +358,54 @@ export default function PromptBoxApp() {
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const [formData, setFormData] = useState(initialData || { title: '', content: '', image: '', tags: [] });
    const [tagInput, setTagInput] = useState('');
+   const [isCompressing, setIsCompressing] = useState(false); // 新增压缩状态
 
-   // 处理本地图片上传 (转 Base64)
+   // --- 核心修复：图片自动压缩黑科技 ---
    const handleImageUpload = (e) => {
      const file = e.target.files[0];
-     if (file) {
-       // 限制大小提示
-       if (file.size > 1024 * 1024) {
-         if (!confirm("这张图片超过了 1MB，可能会导致数据文件变得很大，是否继续？")) return;
-       }
+     if (!file) return;
+
+     setIsCompressing(true); // 开始压缩，显示加载中
+
+     const reader = new FileReader();
+     reader.readAsDataURL(file);
+     
+     reader.onload = (event) => {
+       const img = new Image();
+       img.src = event.target.result;
        
-       const reader = new FileReader();
-       reader.onloadend = () => {
-         // 将图片转换为字符串存入 formData
-         setFormData(prev => ({ ...prev, image: reader.result }));
+       img.onload = () => {
+         // 1. 创建画布
+         const canvas = document.createElement('canvas');
+         const ctx = canvas.getContext('2d');
+
+         // 2. 计算压缩后的尺寸 (限制最大宽度为 800px，高度按比例缩放)
+         const MAX_WIDTH = 800; 
+         let width = img.width;
+         let height = img.height;
+
+         if (width > MAX_WIDTH) {
+           height *= MAX_WIDTH / width;
+           width = MAX_WIDTH;
+         }
+
+         canvas.width = width;
+         canvas.height = height;
+
+         // 3. 把图片画上去
+         ctx.drawImage(img, 0, 0, width, height);
+
+         // 4. 导出压缩后的 Base64 (使用 JPEG 格式，质量 0.7)
+         // 这里的 0.7 是压缩质量，范围 0-1。0.7 性价比最高。
+         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
+
+         // 5. 保存数据
+         setFormData(prev => ({ ...prev, image: compressedDataUrl }));
+         setIsCompressing(false); // 压缩结束
+         console.log(`原图大小: ${(file.size/1024).toFixed(2)}KB`);
+         console.log(`压缩后约: ${(compressedDataUrl.length/1024).toFixed(2)}KB`);
        };
-       reader.readAsDataURL(file);
-     }
+     };
    };
 
    return (
@@ -391,9 +422,9 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
             <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} placeholder="输入英文 Prompt..." rows={4} className="w-full border border-slate-200 p-2 rounded-lg font-mono text-sm outline-none focus:border-indigo-500" />
          </div>
          
-         {/* 图片上传区域 (重大更新) */}
+         {/* 图片上传区域 (带压缩状态) */}
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">配图 (支持本地上传)</label>
+            <label className="text-xs font-bold text-slate-500 block mb-1">配图 (自动压缩)</label>
             
             <div className="flex flex-col gap-3">
               {/* 预览区域 */}
@@ -405,30 +436,32 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
                     className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
                     title="移除图片"
                   >
-                    <X size={16} />
+                    <Trash2 size={16} />
                   </button>
                 </div>
               ) : (
                 <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-sm bg-slate-50">
-                  暂无图片
+                  {isCompressing ? '正在处理图片...' : '暂无图片'}
                 </div>
               )}
 
               {/* 上传按钮 */}
               <div className="flex gap-2">
-                <label className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-colors border border-indigo-200">
+                <label className={`flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-colors border border-indigo-200 ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <Upload size={18} />
-                  <span className="text-sm font-medium">点击上传本地图片</span>
-                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  <span className="text-sm font-medium">{isCompressing ? '压缩中...' : '点击上传本地图片'}</span>
+                  <input type="file" className="hidden" accept="image/*" disabled={isCompressing} onChange={handleImageUpload} />
                 </label>
                 
-                {/* 仍保留链接输入框，作为备用 */}
                 <input 
                   value={formData.image} 
                   onChange={e => setFormData({...formData, image: e.target.value})} 
                   placeholder="或粘贴图片链接..." 
                   className="flex-1 border border-slate-200 px-3 rounded-lg text-sm outline-none focus:border-indigo-500" 
                 />
+              </div>
+              <div className="text-[10px] text-slate-400">
+                 提示：本地上传的图片会被自动压缩以保证网站流畅度。
               </div>
             </div>
          </div>
@@ -445,11 +478,13 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
          {/* 底部保存栏 */}
          <div className="flex justify-between pt-4 mt-4 border-t border-slate-100">
             {initialData && initialData.id && <button onClick={() => onDelete(initialData.id)} className="text-red-500 text-sm hover:underline">删除此卡片</button>}
-            <button onClick={() => {
+            <button 
+              disabled={isCompressing}
+              onClick={() => {
                 if(!formData.title) return alert("请至少填写标题！");
                 onSave(formData);
-            }} className="bg-indigo-600 text-white px-8 py-2 rounded-lg text-sm ml-auto hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
-              <Check size={16} /> 保存
+            }} className={`bg-indigo-600 text-white px-8 py-2 rounded-lg text-sm ml-auto hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <Save size={16} /> 保存
             </button>
          </div>
       </div>
