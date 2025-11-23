@@ -362,7 +362,7 @@ export default function PromptBoxApp() {
             onDragEnter={(e) => handleDragEnter(e, section.id)}
             onDrop={(e) => handleDrop(e, section.id, 'SECTION')}
             className={`
-              mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out
+              group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out
               ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' 
                 ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' 
                 : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}
