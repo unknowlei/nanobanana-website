@@ -2,36 +2,28 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
-  Download, Upload, RefreshCw, Cloud, Github
+  Download, Upload, RefreshCw, Cloud, Github, Check
 } from 'lucide-react';
 
 /**
  * ==============================================================================
- * 👇👇👇 请将你在第一阶段获取的 RAW 链接粘贴到下面的引号里 👇👇👇
+ * 👇👇👇 请再次将你的 RAW 链接粘贴到下面的引号里 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data.json"; 
-// 例如: "https://raw.githubusercontent.com/zhangsan/nanobanana-data/main/data.json"
+const DATA_SOURCE_URL = "在此处粘贴你的GitHub Raw链接"; 
 
 // --- 初始演示数据 ---
 const INITIAL_TAGS = ["示例标签"];
 const INITIAL_SECTIONS = [
   {
     id: 'demo',
-    title: '👋 欢迎使用',
+    title: '默认分区',
     isCollapsed: false,
-    prompts: [
-      {
-        id: 'p1',
-        title: '请配置数据源',
-        content: '请按照教程将 GitHub data.json 的 Raw 链接填入 App.jsx 代码中。',
-        image: '',
-        tags: ['必读']
-      }
-    ]
+    prompts: []
   }
 ];
 
+// 标签组件
 const Tag = ({ label, onClick, isActive }) => (
   <span onClick={onClick} className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer select-none ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
     {label}
@@ -39,52 +31,110 @@ const Tag = ({ label, onClick, isActive }) => (
 );
 
 export default function PromptBoxApp() {
-  // 默认开启管理员模式，方便你本地第一次使用
+  // 默认开启管理员模式，方便你直接编辑
   const [isAdmin, setIsAdmin] = useState(true); 
+  
+  // 数据状态
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
+  
+  // 界面状态
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   
-  // 模态框状态
+  // 弹窗控制
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
 
-  // --- 1. 读取云端数据 ---
+  // --- 1. 初始化：优先读取本地缓存，如果没有则读取云端 ---
   useEffect(() => {
-    // 只有当配置了有效链接，且当前不是刚刷新页面的瞬间，才尝试拉取
-    if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) {
-      fetchCloudData();
-    }
-  }, []); // 只在页面加载时拉取一次
+    // 尝试读取浏览器缓存（防止刷新丢失）
+    const localSections = localStorage.getItem('nanobanana_sections');
+    const localTags = localStorage.getItem('nanobanana_tags');
 
+    if (localSections) {
+      console.log("读取到本地缓存数据");
+      setSections(JSON.parse(localSections));
+      if (localTags) setCommonTags(JSON.parse(localTags));
+    } else {
+      // 如果本地没数据，尝试拉取云端
+      if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) {
+        fetchCloudData();
+      }
+    }
+  }, []);
+
+  // --- 2. 自动保存：当 state 变化时，自动存入浏览器缓存 ---
+  useEffect(() => {
+    if (isAdmin) {
+      localStorage.setItem('nanobanana_sections', JSON.stringify(sections));
+      localStorage.setItem('nanobanana_tags', JSON.stringify(commonTags));
+    }
+  }, [sections, commonTags, isAdmin]);
+
+  // 拉取云端数据
   const fetchCloudData = async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      // 加上时间戳 ?t=... 强制浏览器不读取缓存，获取最新数据
       const response = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`);
       if (!response.ok) throw new Error("连接失败");
       const data = await response.json();
       
-      if (data.sections) setSections(data.sections);
-      if (data.commonTags) setCommonTags(data.commonTags);
-      
+      // 只有当本地没有在编辑时，才覆盖（或者手动点击同步时）
+      setSections(data.sections || []);
+      setCommonTags(data.commonTags || []);
       console.log("云端数据同步成功");
     } catch (err) {
       console.error(err);
-      setLoadError("无法同步云端数据，正在使用本地/缓存数据");
+      setLoadError("无法连接云端，当前为离线模式");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- 2. 导出数据 (生成 JSON 供上传) ---
+  // --- 核心修复：保存提示词逻辑 ---
+  const handleSavePrompt = (promptData) => {
+    console.log("正在保存:", promptData); // 调试日志
+    
+    // 1. 确保有 ID
+    const newPrompt = { 
+      ...promptData, 
+      id: promptData.id || Date.now().toString() // 如果是新建，生成新 ID
+    };
+
+    setSections(prevSections => {
+      // 情况 A: 编辑已存在的提示词
+      if (editingPrompt && editingPrompt.id) {
+        return prevSections.map(sec => ({
+          ...sec,
+          prompts: sec.prompts.map(p => p.id === newPrompt.id ? newPrompt : p)
+        }));
+      }
+      
+      // 情况 B: 新建提示词
+      // 找到目标分区，如果没有指定，默认放到第一个分区
+      const targetId = targetSectionId || prevSections[0].id;
+      
+      return prevSections.map(sec => {
+        if (sec.id === targetId) {
+          return { ...sec, prompts: [...sec.prompts, newPrompt] };
+        }
+        return sec;
+      });
+    });
+
+    // 关闭弹窗
+    setIsPromptModalOpen(false);
+    setEditingPrompt(null);
+  };
+
+  // --- 导出功能 ---
   const handleExport = () => {
     const data = { sections, commonTags };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
@@ -95,10 +145,9 @@ export default function PromptBoxApp() {
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
-    alert("数据已导出！\n请将下载的 data.json 上传到你的 GitHub 'nanobanana-data' 仓库中覆盖原文件，即可完成更新。");
   };
 
-  // --- 3. 导入数据 (本地读取备份) ---
+  // --- 导入功能 ---
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -106,7 +155,7 @@ export default function PromptBoxApp() {
       reader.onload = (event) => {
         try {
           const data = JSON.parse(event.target.result);
-          if(confirm("确定要导入这份备份数据吗？当前页面内容将被覆盖。")) {
+          if(confirm("导入将覆盖当前屏幕上的内容，确定吗？")) {
             setSections(data.sections || []);
             setCommonTags(data.commonTags || []);
           }
@@ -154,18 +203,23 @@ export default function PromptBoxApp() {
             {isAdmin && (
               <>
                 <div className="h-4 w-px bg-slate-200"></div>
-                <button onClick={handleExport} title="第一步：导出数据" className="flex items-center gap-1 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
+                <button onClick={handleExport} title="导出数据" className="flex items-center gap-1 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
                   <Download size={14} /> <span>导出</span>
                 </button>
-                <label title="从备份恢复" className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer">
+                <label title="导入备份" className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer">
                   <Upload size={16} />
                   <input type="file" accept=".json" className="hidden" onChange={handleImport} />
                 </label>
                 <button 
-                  onClick={() => { setEditingPrompt(null); setTargetSectionId(sections[0]?.id || 'default'); setIsPromptModalOpen(true); }}
+                  onClick={() => { 
+                    setEditingPrompt(null); 
+                    // 确保有一个目标分区，默认选第一个
+                    setTargetSectionId(sections.length > 0 ? sections[0].id : null); 
+                    setIsPromptModalOpen(true); 
+                  }}
                   className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 shadow-md shadow-indigo-200"
                 >
-                  <Plus size={14} /> <span>新建</span>
+                  <Plus size={14} /> <span>新建提示词</span>
                 </button>
               </>
             )}
@@ -225,7 +279,7 @@ export default function PromptBoxApp() {
                     </div>
                   </div>
                 ))}
-                {section.prompts.length === 0 && <div className="col-span-full py-8 text-center text-slate-400 text-sm border-2 border-dashed rounded-xl">暂无内容，请新建</div>}
+                {section.prompts.length === 0 && <div className="col-span-full py-8 text-center text-slate-400 text-sm border-2 border-dashed rounded-xl">暂无内容</div>}
               </div>
             )}
           </div>
@@ -238,7 +292,7 @@ export default function PromptBoxApp() {
         )}
       </main>
 
-      {/* 编辑弹窗 */}
+      {/* 提示词 编辑弹窗 */}
       {isPromptModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col p-6 shadow-2xl">
@@ -252,23 +306,7 @@ export default function PromptBoxApp() {
                   initialData={editingPrompt} 
                   commonTags={commonTags} 
                   setCommonTags={setCommonTags}
-                  onSave={(data) => {
-                     const newP = { ...data, id: data.id || Date.now().toString() };
-                     setSections(prev => {
-                        // 如果是编辑现有
-                        if (editingPrompt && editingPrompt.id) {
-                           return prev.map(s => ({ ...s, prompts: s.prompts.map(p => p.id === editingPrompt.id ? newP : p) }));
-                        }
-                        // 如果是新建
-                        return prev.map(s => {
-                           if(s.id === (targetSectionId || prev[0].id)) {
-                              return { ...s, prompts: [...s.prompts, newP] };
-                           }
-                           return s;
-                        });
-                     });
-                     setIsPromptModalOpen(false);
-                  }} 
+                  onSave={handleSavePrompt} 
                   onDelete={(id) => {
                      setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) })));
                      setIsPromptModalOpen(false);
@@ -289,7 +327,7 @@ export default function PromptBoxApp() {
         </div>
       )}
 
-      {/* 分区名称编辑弹窗 */}
+      {/* 分区名称 编辑弹窗 */}
       {isSectionModalOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
             <div className="bg-white p-6 rounded-xl w-80 shadow-xl animate-fade-in-up">
@@ -316,27 +354,86 @@ export default function PromptBoxApp() {
   );
 }
 
+// --- 重点优化：带有图片上传的表单 ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const [formData, setFormData] = useState(initialData || { title: '', content: '', image: '', tags: [] });
    const [tagInput, setTagInput] = useState('');
+
+   // 处理本地图片上传 (转 Base64)
+   const handleImageUpload = (e) => {
+     const file = e.target.files[0];
+     if (file) {
+       // 限制大小提示
+       if (file.size > 1024 * 1024) {
+         if (!confirm("这张图片超过了 1MB，可能会导致数据文件变得很大，是否继续？")) return;
+       }
+       
+       const reader = new FileReader();
+       reader.onloadend = () => {
+         // 将图片转换为字符串存入 formData
+         setFormData(prev => ({ ...prev, image: reader.result }));
+       };
+       reader.readAsDataURL(file);
+     }
+   };
+
    return (
       <div className="space-y-4">
+         {/* 标题 */}
          <div>
             <label className="text-xs font-bold text-slate-500 block mb-1">标题</label>
             <input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-indigo-500" placeholder="例如: 赛博朋克少女" />
          </div>
+         
+         {/* 内容 */}
          <div>
             <label className="text-xs font-bold text-slate-500 block mb-1">提示词内容</label>
             <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} placeholder="输入英文 Prompt..." rows={4} className="w-full border border-slate-200 p-2 rounded-lg font-mono text-sm outline-none focus:border-indigo-500" />
          </div>
+         
+         {/* 图片上传区域 (重大更新) */}
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">配图链接</label>
-            <div className="flex gap-2">
-              <input value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="推荐使用图片链接 (更稳定)" className="flex-1 border border-slate-200 p-2 rounded-lg text-sm outline-none focus:border-indigo-500" />
+            <label className="text-xs font-bold text-slate-500 block mb-1">配图 (支持本地上传)</label>
+            
+            <div className="flex flex-col gap-3">
+              {/* 预览区域 */}
+              {formData.image ? (
+                <div className="relative w-full h-48 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
+                  <img src={formData.image} className="w-full h-full object-contain" alt="Preview" />
+                  <button 
+                    onClick={() => setFormData({...formData, image: ''})}
+                    className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"
+                    title="移除图片"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ) : (
+                <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-sm bg-slate-50">
+                  暂无图片
+                </div>
+              )}
+
+              {/* 上传按钮 */}
+              <div className="flex gap-2">
+                <label className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-colors border border-indigo-200">
+                  <Upload size={18} />
+                  <span className="text-sm font-medium">点击上传本地图片</span>
+                  <input type="file" className="hidden" accept="image/*" onChange={handleImageUpload} />
+                </label>
+                
+                {/* 仍保留链接输入框，作为备用 */}
+                <input 
+                  value={formData.image} 
+                  onChange={e => setFormData({...formData, image: e.target.value})} 
+                  placeholder="或粘贴图片链接..." 
+                  className="flex-1 border border-slate-200 px-3 rounded-lg text-sm outline-none focus:border-indigo-500" 
+                />
+              </div>
             </div>
-            {/* 警告：直接上传大图可能导致 JSON 文件过大，建议用外链 */}
-            <div className="mt-1 text-[10px] text-slate-400">为了保持数据轻便，建议填写图片网址。</div>
          </div>
+         
+         {/* 标签 */}
          <div>
             <label className="text-xs font-bold text-slate-500 block mb-1">标签</label>
             <div className="flex flex-wrap gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
@@ -344,9 +441,16 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
                <input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="+新建标签" className="w-20 text-xs bg-transparent border-b border-slate-300 outline-none focus:border-indigo-500 px-1" onKeyDown={e=>{if(e.key==='Enter'&&tagInput){setCommonTags([...commonTags, tagInput]); setTagInput('');}}}/>
             </div>
          </div>
+
+         {/* 底部保存栏 */}
          <div className="flex justify-between pt-4 mt-4 border-t border-slate-100">
             {initialData && initialData.id && <button onClick={() => onDelete(initialData.id)} className="text-red-500 text-sm hover:underline">删除此卡片</button>}
-            <button onClick={() => onSave(formData)} className="bg-indigo-600 text-white px-8 py-2 rounded-lg text-sm ml-auto hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all">保存</button>
+            <button onClick={() => {
+                if(!formData.title) return alert("请至少填写标题！");
+                onSave(formData);
+            }} className="bg-indigo-600 text-white px-8 py-2 rounded-lg text-sm ml-auto hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2">
+              <Check size={16} /> 保存
+            </button>
          </div>
       </div>
    );
