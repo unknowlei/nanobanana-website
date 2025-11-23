@@ -5,7 +5,7 @@ import {
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
   UploadCloud, Sparkles, MessageSquare, FileText, ChevronLeft, ChevronRight,
   Layers, Play, Pause, Grid, Scissors, MousePointer2, ArrowUp, ArrowDown, MoveRight, Film,
-  CheckSquare, Square, Settings, CloudDownload
+  CheckSquare, Square, Settings
 } from 'lucide-react';
 
 /**
@@ -51,7 +51,7 @@ const Tag = ({ label, onClick, isActive }) => (
   <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-300 border ${isActive ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30 border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm'}`}>{label}</span>
 );
 
-// --- 模块一：GIF 制作工具 (保持原布局+美化) ---
+// --- 模块一：GIF 制作工具 (保持原布局) ---
 
 const GifMakerModule = () => {
   const gifshotLoaded = useGifshot();
@@ -234,9 +234,7 @@ const GifMakerModule = () => {
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-        {/* Left Column */}
         <div className="lg:col-span-4 space-y-6">
-            {/* 1. Source Input */}
             <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm">
                 <h2 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center justify-between">
                     <span className="flex items-center"><ImageIcon className="w-4 h-4 mr-2 text-blue-500" /> 模式 A: 角色素材处理</span>
@@ -286,7 +284,6 @@ const GifMakerModule = () => {
                         </button>
                     </div>
                     <div className="relative flex items-center py-1"><div className="flex-grow border-t border-slate-200"></div><span className="flex-shrink-0 mx-4 text-slate-400 text-[10px] font-bold">OR</span><div className="flex-grow border-t border-slate-200"></div></div>
-                    {/* 2. Multi Upload */}
                     <div>
                         <h2 className="text-xs font-bold text-slate-500 mb-2 flex items-center justify-between"><span>模式 B: 直接导入素材</span></h2>
                         <label className="flex items-center justify-center w-full py-2.5 bg-white hover:bg-slate-50 text-indigo-500 font-bold rounded-xl cursor-pointer transition-all border border-indigo-100 shadow-sm">
@@ -296,7 +293,6 @@ const GifMakerModule = () => {
                     </div>
                 </div>
             </div>
-            {/* 3. Preview */}
             <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl p-6 shadow-sm sticky top-24">
                 <h2 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center"><Film className="w-4 h-4 mr-2 text-pink-500" /> 预览与导出</h2>
                 <div className="flex flex-col items-center justify-center bg-slate-100/80 rounded-2xl p-4 mb-4 border border-slate-200 min-h-[180px] relative overflow-hidden">
@@ -329,9 +325,7 @@ const GifMakerModule = () => {
             </div>
         </div>
 
-        {/* Right Column */}
         <div className="lg:col-span-8 flex flex-col gap-6">
-            {/* 4. Frame Pool */}
             <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl overflow-hidden shadow-sm flex flex-col min-h-[350px]">
                 <div className="p-4 border-b border-slate-100 bg-white/40 flex justify-between items-center sticky top-0 z-20">
                     <div className="flex items-center space-x-4">
@@ -380,7 +374,6 @@ const GifMakerModule = () => {
                 </div>
             </div>
 
-            {/* 5. Timeline */}
             <div className="bg-white/70 backdrop-blur-xl border border-white/50 rounded-3xl overflow-hidden shadow-sm flex flex-col flex-1">
                  <div className="p-4 border-b border-slate-100 bg-white/40 flex justify-between items-center">
                     <h2 className="text-sm font-bold text-slate-500 flex items-center"><MoveRight className="w-4 h-4 mr-2 text-green-500" /> 时间轴 <span className="ml-2 text-[10px] bg-white px-2 py-0.5 rounded-full border border-slate-100 text-slate-400">{timeline.length} 帧</span></h2>
@@ -637,10 +630,9 @@ export default function App() {
       <div className="fixed bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-pink-200/40 blur-[120px] mix-blend-multiply animate-blob animation-delay-4000 pointer-events-none z-0"></div>
 
       {/* Header */}
-      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all duration-300">
+      <header className="sticky top-0 z-50 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-6">
-            {/* 🔴 修复：点击香蕉图标返回首页 */}
             <div 
               className="flex items-center space-x-3 cursor-pointer group" 
               onClick={() => setCurrentView('PROMPTS')}
@@ -658,19 +650,26 @@ export default function App() {
 
           <div className="flex items-center space-x-3">
             {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center bg-indigo-50 px-2 py-1 rounded-full"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
-            <button onClick={handleModeToggle} className={`relative flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm hover:shadow-md active:scale-95 select-none ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}>
-              {isAdmin ? <Unlock size={12} className="mr-1"/> : <Lock size={12} className="mr-1"/>}<span>{isAdmin ? '管理员' : '访客'}</span>
+            
+            <button 
+              onClick={handleModeToggle} 
+              className={`relative flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all border shadow-sm hover:shadow-md active:scale-95 select-none ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}
+              title="Mode Switch"
+            >
+              {isAdmin ? <Unlock size={12} className="mr-1"/> : <Lock size={12} className="mr-1"/>}
+              <span>{isAdmin ? '管理员' : '访客'}</span>
             </button>
+
             {isAdmin && (
               <>
                 <div className="h-5 w-px bg-slate-300/50 mx-1"></div>
-                {/* 🔴 修复：云端同步按钮 */}
+                {/* 🔴 修复：强制云端同步按钮 (换成了 RefreshCw 图标，确保 100% 兼容) */}
                 <button 
                   onClick={() => fetchCloudData(true)} 
-                  title="强制从云端同步最新数据" 
-                  className="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors"
+                  title="强制从云端同步最新数据 (覆盖本地)" 
+                  className="p-2 text-blue-500 hover:text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-full transition-colors shadow-sm"
                 >
-                  <CloudDownload size={18}/>
+                  <RefreshCw size={18} className="text-blue-600" />
                 </button>
                 <button onClick={handleExport} title="导出" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"><Download size={18}/></button>
                 <label title="导入" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 cursor-pointer transition-colors"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label>
