@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
-  Download, Upload, RefreshCw, Cloud, Move, GripVertical, Check
+  Download, Upload, RefreshCw, Cloud, GripVertical, Check, UploadCloud
 } from 'lucide-react';
 
 /**
@@ -31,10 +31,7 @@ const Tag = ({ label, onClick, isActive }) => (
 );
 
 export default function PromptBoxApp() {
-  // 默认开启管理员模式
   const [isAdmin, setIsAdmin] = useState(true); 
-  
-  // 数据状态
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
   
@@ -44,31 +41,24 @@ export default function PromptBoxApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   
-  // 拖拽状态 (新增核心)
-  const [draggedItem, setDraggedItem] = useState(null);
-  const [draggedType, setDraggedType] = useState(null); // 'SECTION' | 'PROMPT'
-  const [dragSourceSectionId, setDragSourceSectionId] = useState(null);
+  // --- 拖拽核心状态 ---
+  const [draggedItem, setDraggedItem] = useState(null); // 当前被拖拽的对象 { type: 'PROMPT'|'SECTION', data: ... }
+  const [dragOverTarget, setDragOverTarget] = useState(null); // 当前鼠标悬停的目标 ID (用于高亮显示)
   
-  // 弹窗控制
+  // 弹窗状态
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
 
-  // --- 初始化与自动保存 ---
+  // --- 初始化与数据加载 ---
   useEffect(() => {
     const localSections = localStorage.getItem('nanobanana_sections');
     const localTags = localStorage.getItem('nanobanana_tags');
-
-    if (localSections) {
-      setSections(JSON.parse(localSections));
-      if (localTags) setCommonTags(JSON.parse(localTags));
-    } else {
-      if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) {
-        fetchCloudData();
-      }
-    }
+    if (localSections) setSections(JSON.parse(localSections));
+    if (localTags) setCommonTags(JSON.parse(localTags));
+    else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData();
   }, []);
 
   useEffect(() => {
@@ -80,7 +70,6 @@ export default function PromptBoxApp() {
 
   const fetchCloudData = async () => {
     setIsLoading(true);
-    setLoadError(null);
     try {
       const response = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`);
       if (!response.ok) throw new Error("连接失败");
@@ -89,121 +78,122 @@ export default function PromptBoxApp() {
       setCommonTags(data.commonTags || []);
     } catch (err) {
       console.error(err);
-      setLoadError("无法连接云端，当前为离线模式");
+      setLoadError("离线模式");
     } finally {
       setIsLoading(false);
     }
   };
 
-  // --- 核心修复：更智能的搜索逻辑 ---
-  // 现在会同时搜索：标题、内容、以及标签名
+  // --- 智能搜索 ---
   const filteredSections = sections.map(section => ({
     ...section,
     prompts: section.prompts.filter(p => {
       const query = searchQuery.toLowerCase();
-      // 1. 关键字匹配 (标题 OR 内容 OR 标签包含关键字)
       const matchesSearch = p.title.toLowerCase().includes(query) || 
                             p.content.toLowerCase().includes(query) ||
                             p.tags.some(t => t.toLowerCase().includes(query));
-      
-      // 2. 标签按钮筛选
       const matchesTags = selectedTags.length === 0 || selectedTags.every(t => p.tags.includes(t));
-      
       return matchesSearch && matchesTags;
     })
   })).filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0));
 
-  // --- 拖拽逻辑：提示词排序 + 分区排序 ---
+  // --- 核心拖拽逻辑 (Mobile Style) ---
 
   // 1. 开始拖拽
   const handleDragStart = (e, type, item, sourceSecId = null) => {
-    if (!isAdmin) return;
-    setDraggedItem(item);
-    setDraggedType(type);
-    if (sourceSecId) setDragSourceSectionId(sourceSecId);
+    if (!isAdmin) {
+      e.preventDefault();
+      return;
+    }
+    setDraggedItem({ type, data: item, sourceSecId });
     e.dataTransfer.effectAllowed = "move";
-    // 拖拽时稍微降低透明度
-    e.target.style.opacity = '0.5';
+    // 稍微延迟一点设置透明度，防止拖拽预览图也变透明
+    setTimeout(() => {
+      if(e.target) e.target.style.opacity = '0.4';
+    }, 0);
   };
 
+  // 2. 拖拽结束 (重置样式)
   const handleDragEnd = (e) => {
     e.target.style.opacity = '1';
     setDraggedItem(null);
-    setDraggedType(null);
-    setDragSourceSectionId(null);
+    setDragOverTarget(null);
+  };
+
+  // 3. 拖拽悬停 (高亮反馈)
+  const handleDragEnter = (e, targetId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    // 只有类型匹配时才高亮 (防止把提示词拖到分区标题上产生误导)
+    if (draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) {
+       setDragOverTarget(targetId);
+    } else if (draggedItem?.type === 'PROMPT') {
+       setDragOverTarget(targetId);
+    }
   };
 
   const handleDragOver = (e) => {
-    e.preventDefault(); // 允许放置
+    e.preventDefault(); // 必须阻止默认行为才能 Drop
+    e.dataTransfer.dropEffect = "move";
   };
 
-  // 2. 放置处理 (最复杂的逻辑)
-  
-  // A. 放置在【分区标题】上 (用于分区重排 或 提示词跨区移动)
-  const handleDropOnSection = (e, targetSecId) => {
+  // 4. 放置 (Drop) - 核心逻辑
+  const handleDrop = (e, targetId, targetType, targetSecId = null) => {
     e.preventDefault();
     e.stopPropagation();
+    setDragOverTarget(null);
 
-    // 情况1：拖拽的是分区 -> 进行分区排序
-    if (draggedType === 'SECTION') {
-       if (draggedItem.id === targetSecId) return;
-       const newSections = [...sections];
-       const sourceIndex = newSections.findIndex(s => s.id === draggedItem.id);
-       const targetIndex = newSections.findIndex(s => s.id === targetSecId);
-       // 移动元素
+    if (!draggedItem) return;
+
+    const newSections = JSON.parse(JSON.stringify(sections));
+
+    // A. 拖拽分区 (Section Reorder)
+    if (draggedItem.type === 'SECTION' && targetType === 'SECTION') {
+       const sourceIndex = newSections.findIndex(s => s.id === draggedItem.data.id);
+       const targetIndex = newSections.findIndex(s => s.id === targetId);
+       if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
+
+       // 移动数组元素
        const [moved] = newSections.splice(sourceIndex, 1);
        newSections.splice(targetIndex, 0, moved);
        setSections(newSections);
-    } 
-    // 情况2：拖拽的是提示词 -> 移动到该分区末尾
-    else if (draggedType === 'PROMPT') {
-       movePrompt(draggedItem, dragSourceSectionId, targetSecId, null);
+    }
+
+    // B. 拖拽提示词 (Prompt Reorder & Move)
+    else if (draggedItem.type === 'PROMPT') {
+       // 1. 先从源分区里把它拿出来
+       const sourceSec = newSections.find(s => s.id === draggedItem.sourceSecId);
+       const pIndex = sourceSec.prompts.findIndex(p => p.id === draggedItem.data.id);
+       if (pIndex === -1) return;
+       const [movedPrompt] = sourceSec.prompts.splice(pIndex, 1);
+
+       // 2. 决定插入哪里
+       if (targetType === 'PROMPT') {
+          // 插到目标提示词所在的分区，目标提示词的前面
+          const targetSec = newSections.find(s => s.id === targetSecId);
+          const targetPIndex = targetSec.prompts.findIndex(p => p.id === targetId);
+          // 如果拖到自己身上，或者找不到，就放回原处（或不做操作）
+          // 这里我们简单处理：插入到目标位置
+          targetSec.prompts.splice(targetPIndex, 0, movedPrompt);
+       } else if (targetType === 'SECTION_AREA') {
+          // 拖到了分区的空白处 -> 放到该分区最后
+          const targetSec = newSections.find(s => s.id === targetId); // targetId 这里就是 sectionId
+          targetSec.prompts.push(movedPrompt);
+       }
+
+       setSections(newSections);
     }
   };
 
-  // B. 放置在【提示词卡片】上 (用于提示词插队排序)
-  const handleDropOnPrompt = (e, targetSecId, targetPromptId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    
-    if (draggedType === 'PROMPT') {
-      if (draggedItem.id === targetPromptId) return;
-      movePrompt(draggedItem, dragSourceSectionId, targetSecId, targetPromptId);
-    }
-  };
-
-  // 通用函数：移动提示词
-  const movePrompt = (promptItem, sourceSecId, targetSecId, targetPromptId) => {
-    const newSections = JSON.parse(JSON.stringify(sections));
-    
-    // 1. 从旧分区移除
-    const sourceSec = newSections.find(s => s.id === sourceSecId);
-    const itemIndex = sourceSec.prompts.findIndex(p => p.id === promptItem.id);
-    if (itemIndex === -1) return; // 没找到，中止
-    const [movedPrompt] = sourceSec.prompts.splice(itemIndex, 1);
-
-    // 2. 插入新分区
-    const targetSec = newSections.find(s => s.id === targetSecId);
-    
-    if (targetPromptId) {
-      // 插在目标提示词前面
-      const targetIndex = targetSec.prompts.findIndex(p => p.id === targetPromptId);
-      targetSec.prompts.splice(targetIndex, 0, movedPrompt);
-    } else {
-      // 没指定目标，直接放到最后
-      targetSec.prompts.push(movedPrompt);
-    }
-
-    setSections(newSections);
-  };
-
-  // --- 增删改查逻辑 ---
+  // --- CRUD 操作 ---
   const handleSavePrompt = (promptData) => {
     const newPrompt = { ...promptData, id: promptData.id || Date.now().toString() };
     setSections(prev => {
+      // 编辑
       if (editingPrompt && editingPrompt.id) {
         return prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => p.id === newPrompt.id ? newPrompt : p) }));
       }
+      // 新建
       const targetId = targetSectionId || prev[0].id;
       return prev.map(sec => {
         if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] };
@@ -214,39 +204,27 @@ export default function PromptBoxApp() {
     setEditingPrompt(null);
   };
 
+  // 导出/导入/删除 (保持不变)
   const handleExport = () => {
-    const data = { sections, commonTags };
-    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `data.json`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
+    const blob = new Blob([JSON.stringify({ sections, commonTags }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click();
   };
-
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (file) {
       const reader = new FileReader();
-      reader.onload = (event) => {
-        try {
-          const data = JSON.parse(event.target.result);
-          if(confirm("导入将覆盖当前屏幕上的内容，确定吗？")) {
-            setSections(data.sections || []);
-            setCommonTags(data.commonTags || []);
-          }
-        } catch (error) {
-          alert("文件解析失败");
-        }
+      reader.onload = (ev) => {
+         try {
+            const d = JSON.parse(ev.target.result);
+            if(confirm("确定覆盖当前数据?")) { setSections(d.sections||[]); setCommonTags(d.commonTags||[]); }
+         } catch(err){ alert("文件无效"); }
       };
       reader.readAsText(file);
     }
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800 selection:bg-indigo-100">
+    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
       
       {/* 顶部导航 */}
       <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
@@ -259,10 +237,7 @@ export default function PromptBoxApp() {
           <div className="flex items-center space-x-3">
             {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
             
-            <button 
-              onClick={() => setIsAdmin(!isAdmin)}
-              className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium border ${isAdmin ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'}`}
-            >
+            <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium border ${isAdmin ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'}`}>
               {isAdmin ? <Unlock size={12} className="mr-1"/> : <Lock size={12} className="mr-1"/>}
               <span>{isAdmin ? '编辑模式' : '访客模式'}</span>
             </button>
@@ -270,39 +245,21 @@ export default function PromptBoxApp() {
             {isAdmin && (
               <>
                 <div className="h-4 w-px bg-slate-200"></div>
-                <button onClick={handleExport} title="导出数据" className="flex items-center gap-1 text-slate-600 hover:text-indigo-600 bg-slate-100 hover:bg-indigo-50 px-3 py-1.5 rounded-lg text-xs font-medium transition-colors">
-                  <Download size={14} /> <span>导出</span>
-                </button>
-                <label title="导入备份" className="p-2 text-slate-400 hover:text-indigo-600 cursor-pointer">
-                  <Upload size={16} />
-                  <input type="file" accept=".json" className="hidden" onChange={handleImport} />
-                </label>
-                <button 
-                  onClick={() => { 
-                    setEditingPrompt(null); 
-                    setTargetSectionId(sections.length > 0 ? sections[0].id : null); 
-                    setIsPromptModalOpen(true); 
-                  }}
-                  className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 shadow-md shadow-indigo-200"
-                >
+                <button onClick={handleExport} className="p-2 text-slate-500 hover:text-indigo-600 rounded-full hover:bg-slate-100"><Download size={18}/></button>
+                <label className="p-2 text-slate-500 hover:text-indigo-600 rounded-full hover:bg-slate-100 cursor-pointer"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label>
+                <button onClick={() => { setEditingPrompt(null); setTargetSectionId(sections[0]?.id || 'default'); setIsPromptModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 shadow-md">
                   <Plus size={14} /> <span>新建</span>
                 </button>
               </>
             )}
           </div>
         </div>
-
+        
         {/* 搜索栏 */}
         <div className="border-t border-slate-100 bg-white/50 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4">
            <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" size={16} />
-              <input 
-                type="text" 
-                placeholder="搜索标题、内容或标签..." 
-                value={searchQuery} 
-                onChange={e => setSearchQuery(e.target.value)} 
-                className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-200 transition-all" 
-              />
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+              <input type="text" placeholder="搜索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-200" />
            </div>
            <div className="flex gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar py-1">
               {commonTags.map(tag => (
@@ -312,57 +269,71 @@ export default function PromptBoxApp() {
         </div>
       </header>
 
-      {/* 主体内容 */}
+      {/* 主体 */}
       <main className="max-w-7xl mx-auto px-4 py-8 pb-24">
-        {loadError && !isAdmin && (
-           <div className="mb-4 p-3 bg-amber-50 text-amber-600 text-sm rounded-lg border border-amber-100 flex items-center">
-             <Cloud size={16} className="mr-2"/> {loadError}
-           </div>
-        )}
+        {loadError && !isAdmin && <div className="mb-4 p-3 bg-amber-50 text-amber-600 text-sm rounded-lg flex items-center"><Cloud size={16} className="mr-2"/> {loadError}</div>}
 
         {filteredSections.map(section => (
           <div 
             key={section.id} 
-            className={`mb-8 bg-white rounded-2xl p-6 shadow-sm border border-slate-100 transition-all ${draggedItem?.id === section.id ? 'opacity-50 scale-95 border-indigo-300 border-dashed' : ''}`}
-            // --- 分区拖拽属性 ---
-            draggable={isAdmin} 
-            onDragStart={(e) => handleDragStart(e, 'SECTION', section)}
-            onDragEnd={handleDragEnd}
+            // 只有当拖拽对象是 SECTION 时，这里才是有效的 Drop 区域
             onDragOver={handleDragOver}
-            onDrop={(e) => handleDropOnSection(e, section.id)}
+            onDragEnter={(e) => handleDragEnter(e, section.id)}
+            onDrop={(e) => handleDrop(e, section.id, 'SECTION')}
+            className={`mb-8 bg-white rounded-2xl p-6 shadow-sm border transition-all duration-200 ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-500 ring-2 ring-indigo-100 transform scale-[1.01]' : 'border-slate-100'}`}
           >
             {/* 分区标题栏 */}
-            <div className="flex justify-between items-center mb-4 cursor-pointer select-none">
-              <div 
-                className="flex items-center flex-1"
-                onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s))}
-              >
-                {isAdmin && <GripVertical size={16} className="text-slate-300 mr-2 cursor-grab active:cursor-grabbing" />}
-                <ChevronDown size={16} className={`text-slate-500 mr-2 transition-transform ${section.isCollapsed ? '-rotate-90' : ''}`} />
-                <h2 className="text-lg font-bold text-slate-800">{section.title}</h2>
-                <span className="ml-2 bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">{section.prompts.length}</span>
+            <div className="flex justify-between items-center mb-4 select-none">
+              <div className="flex items-center flex-1">
+                {/* 🔴 只有按住这个把手才能拖动分区 */}
+                {isAdmin && (
+                  <div 
+                    draggable
+                    onDragStart={(e) => handleDragStart(e, 'SECTION', section)}
+                    onDragEnd={handleDragEnd}
+                    className="mr-2 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing p-1"
+                  >
+                    <GripVertical size={20} />
+                  </div>
+                )}
+                <div onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s))} className="flex items-center cursor-pointer">
+                   <ChevronDown size={16} className={`text-slate-500 mr-2 transition-transform ${section.isCollapsed ? '-rotate-90' : ''}`} />
+                   <h2 className="text-lg font-bold text-slate-800">{section.title}</h2>
+                   <span className="ml-2 bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">{section.prompts.length}</span>
+                </div>
               </div>
               {isAdmin && (
                 <div className="flex gap-2">
-                   <button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-500 p-1"><Edit2 size={14}/></button>
-                   <button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={14}/></button>
+                   <button onClick={() => { setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-500 p-1"><Edit2 size={14}/></button>
+                   <button onClick={() => { if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={14}/></button>
                 </div>
               )}
             </div>
             
+            {/* 提示词列表区域 */}
             {!section.isCollapsed && (
-              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[100px]">
+              <div 
+                // 整个列表区域也是一个 Drop Zone，用于接收拖到空白处的提示词
+                onDragOver={handleDragOver}
+                onDragEnter={(e) => handleDragEnter(e, section.id)} // 复用ID，但在 Drop 中通过 Type 区分
+                onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')}
+                className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[120px] transition-all rounded-xl p-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 border-dashed border-2 border-indigo-300' : ''}`}
+              >
                 {section.prompts.map(prompt => (
                   <div 
                     key={prompt.id} 
-                    onClick={(e) => { e.stopPropagation(); setEditingPrompt(prompt); setIsPromptModalOpen(true); }} 
-                    className={`group bg-slate-50 border border-slate-200 rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-all aspect-[3/4] flex flex-col relative ${draggedItem?.id === prompt.id ? 'opacity-30' : ''}`}
-                    // --- 提示词拖拽属性 ---
                     draggable={isAdmin}
                     onDragStart={(e) => handleDragStart(e, 'PROMPT', prompt, section.id)}
                     onDragEnd={handleDragEnd}
                     onDragOver={handleDragOver}
-                    onDrop={(e) => handleDropOnPrompt(e, section.id, prompt.id)}
+                    onDragEnter={(e) => handleDragEnter(e, prompt.id)}
+                    onDrop={(e) => handleDrop(e, prompt.id, 'PROMPT', section.id)}
+                    onClick={(e) => { e.stopPropagation(); setEditingPrompt(prompt); setIsPromptModalOpen(true); }} 
+                    className={`
+                      group bg-slate-50 border rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-all aspect-[3/4] flex flex-col relative
+                      ${dragOverTarget === prompt.id && draggedItem?.type === 'PROMPT' ? 'border-indigo-500 ring-2 ring-indigo-200 transform -translate-y-1 z-10' : 'border-slate-200'}
+                      ${draggedItem?.data?.id === prompt.id ? 'opacity-30' : ''}
+                    `}
                   >
                     <div className="flex-1 bg-slate-200 relative overflow-hidden pointer-events-none">
                       {prompt.image ? <img src={prompt.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24}/></div>}
@@ -373,9 +344,12 @@ export default function PromptBoxApp() {
                     </div>
                   </div>
                 ))}
+                
+                {/* 空状态占位 */}
                 {section.prompts.length === 0 && (
-                  <div className="col-span-full py-8 text-center text-slate-400 text-sm border-2 border-dashed rounded-xl flex items-center justify-center">
-                    {isAdmin ? '拖拽提示词到这里' : '暂无内容'}
+                  <div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none">
+                    <UploadCloud size={24} className="mb-2 opacity-50"/>
+                    <span>{isAdmin ? '拖拽提示词到这里' : '暂无内容'}</span>
                   </div>
                 )}
               </div>
@@ -390,13 +364,13 @@ export default function PromptBoxApp() {
         )}
       </main>
 
-      {/* 提示词 编辑弹窗 (带压缩功能) */}
+      {/* 弹窗：提示词编辑 */}
       {isPromptModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
           <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col p-6 shadow-2xl">
             <div className="flex justify-between mb-4 border-b border-slate-100 pb-2">
-               <h3 className="font-bold text-lg">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑提示词' : '新建提示词')}</h3>
-               <button onClick={() => setIsPromptModalOpen(false)}><X size={20} className="text-slate-400 hover:text-red-500"/></button>
+               <h3 className="font-bold text-lg">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑' : '新建')}</h3>
+               <button onClick={() => setIsPromptModalOpen(false)}><X size={20} className="text-slate-400"/></button>
             </div>
             <div className="flex-1 overflow-y-auto custom-scrollbar">
               {isAdmin ? (
@@ -413,11 +387,8 @@ export default function PromptBoxApp() {
               ) : (
                 <div className="space-y-4">
                   {editingPrompt.image && <img src={editingPrompt.image} className="w-full max-h-80 object-contain bg-slate-100 rounded-lg"/>}
-                  <div>
-                    <div className="text-xs font-bold text-slate-400 mb-1">PROMPT</div>
-                    <div className="p-4 bg-slate-50 rounded-lg font-mono text-sm border border-slate-200 select-all">{editingPrompt.content}</div>
-                  </div>
-                  <div className="flex gap-2">{editingPrompt.tags.map(t => <span key={t} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs rounded font-medium">#{t}</span>)}</div>
+                  <div className="p-4 bg-slate-50 rounded-lg font-mono text-sm border border-slate-200 select-all">{editingPrompt.content}</div>
+                  <div className="flex gap-2">{editingPrompt.tags.map(t => <span key={t} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs rounded">#{t}</span>)}</div>
                 </div>
               )}
             </div>
@@ -425,14 +396,14 @@ export default function PromptBoxApp() {
         </div>
       )}
 
-      {/* 分区名称 编辑弹窗 */}
+      {/* 弹窗：分区编辑 */}
       {isSectionModalOpen && (
          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-xl w-80 shadow-xl animate-fade-in-up">
-               <h3 className="font-bold mb-4 text-slate-700">分区名称</h3>
-               <input id="sec-input" autoFocus defaultValue={editingSection?.title} className="w-full border p-2 rounded-lg mb-4 outline-none focus:border-indigo-500 ring-2 ring-transparent focus:ring-indigo-100 transition-all" />
+            <div className="bg-white p-6 rounded-xl w-80 shadow-xl">
+               <h3 className="font-bold mb-4">分区名称</h3>
+               <input id="sec-input" autoFocus defaultValue={editingSection?.title} className="w-full border p-2 rounded mb-4 outline-none focus:border-indigo-500" />
                <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsSectionModalOpen(false)} className="px-3 py-1.5 text-sm text-slate-500 hover:bg-slate-100 rounded-lg">取消</button>
+                  <button onClick={() => setIsSectionModalOpen(false)} className="px-3 py-1 text-sm text-slate-500">取消</button>
                   <button onClick={() => {
                      const val = document.getElementById('sec-input').value;
                      if(val) {
@@ -443,7 +414,7 @@ export default function PromptBoxApp() {
                         }
                         setIsSectionModalOpen(false);
                      }
-                  }} className="px-4 py-1.5 text-sm bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">确定</button>
+                  }} className="px-3 py-1 text-sm bg-indigo-600 text-white rounded">确定</button>
                </div>
             </div>
          </div>
@@ -469,25 +440,16 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
      reader.onload = (event) => {
        const img = new Image();
        img.src = event.target.result;
-       
        img.onload = () => {
          const canvas = document.createElement('canvas');
          const ctx = canvas.getContext('2d');
          const MAX_WIDTH = 800; 
          let width = img.width;
          let height = img.height;
-
-         if (width > MAX_WIDTH) {
-           height *= MAX_WIDTH / width;
-           width = MAX_WIDTH;
-         }
-
-         canvas.width = width;
-         canvas.height = height;
+         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+         canvas.width = width; canvas.height = height;
          ctx.drawImage(img, 0, 0, width, height);
-         const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.7);
-
-         setFormData(prev => ({ ...prev, image: compressedDataUrl }));
+         setFormData(prev => ({ ...prev, image: canvas.toDataURL('image/jpeg', 0.7) }));
          setIsCompressing(false);
        };
      };
