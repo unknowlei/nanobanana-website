@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
-  Download, Upload, RefreshCw, Cloud, GripVertical, Check, UploadCloud
+  Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
+  UploadCloud, Sparkles, MessageSquareQuote, FileText
 } from 'lucide-react';
 
 /**
@@ -22,18 +23,28 @@ const INITIAL_SECTIONS = [
     prompts: []
   }
 ];
+const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。\n点击右上角锁图标开启编辑模式。";
 
-// 标签组件
+// --- 组件：高级感标签 ---
 const Tag = ({ label, onClick, isActive }) => (
-  <span onClick={onClick} className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium transition-all cursor-pointer select-none ${isActive ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+  <span 
+    onClick={onClick} 
+    className={`
+      inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-300 border
+      ${isActive 
+        ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30 border-indigo-400 scale-105' 
+        : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm'}
+    `}
+  >
     {label}
   </span>
 );
 
 export default function PromptBoxApp() {
-  const [isAdmin, setIsAdmin] = useState(true); 
+  const [isAdmin, setIsAdmin] = useState(false); // 默认访客模式
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
+  const [siteNotes, setSiteNotes] = useState(INITIAL_NOTES); // 新增：网站备注
   
   // 界面状态
   const [isLoading, setIsLoading] = useState(false);
@@ -41,13 +52,14 @@ export default function PromptBoxApp() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
   
-  // --- 拖拽核心状态 ---
-  const [draggedItem, setDraggedItem] = useState(null); // 当前被拖拽的对象 { type: 'PROMPT'|'SECTION', data: ... }
-  const [dragOverTarget, setDragOverTarget] = useState(null); // 当前鼠标悬停的目标 ID (用于高亮显示)
+  // 拖拽状态
+  const [draggedItem, setDraggedItem] = useState(null);
+  const [dragOverTarget, setDragOverTarget] = useState(null);
   
   // 弹窗状态
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  const [isNotesEditing, setIsNotesEditing] = useState(false); // 备注编辑状态
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
@@ -56,17 +68,24 @@ export default function PromptBoxApp() {
   useEffect(() => {
     const localSections = localStorage.getItem('nanobanana_sections');
     const localTags = localStorage.getItem('nanobanana_tags');
-    if (localSections) setSections(JSON.parse(localSections));
-    if (localTags) setCommonTags(JSON.parse(localTags));
-    else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData();
+    const localNotes = localStorage.getItem('nanobanana_notes'); // 读取备注
+
+    if (localSections) {
+      setSections(JSON.parse(localSections));
+      if (localTags) setCommonTags(JSON.parse(localTags));
+      if (localNotes) setSiteNotes(JSON.parse(localNotes));
+    } else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) {
+      fetchCloudData();
+    }
   }, []);
 
   useEffect(() => {
     if (isAdmin) {
       localStorage.setItem('nanobanana_sections', JSON.stringify(sections));
       localStorage.setItem('nanobanana_tags', JSON.stringify(commonTags));
+      localStorage.setItem('nanobanana_notes', JSON.stringify(siteNotes));
     }
-  }, [sections, commonTags, isAdmin]);
+  }, [sections, commonTags, siteNotes, isAdmin]);
 
   const fetchCloudData = async () => {
     setIsLoading(true);
@@ -76,6 +95,7 @@ export default function PromptBoxApp() {
       const data = await response.json();
       setSections(data.sections || []);
       setCommonTags(data.commonTags || []);
+      if (data.siteNotes) setSiteNotes(data.siteNotes);
     } catch (err) {
       console.error(err);
       setLoadError("离线模式");
@@ -97,90 +117,47 @@ export default function PromptBoxApp() {
     })
   })).filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0));
 
-  // --- 核心拖拽逻辑 (Mobile Style) ---
-
-  // 1. 开始拖拽
+  // --- 拖拽核心逻辑 (保持不变) ---
   const handleDragStart = (e, type, item, sourceSecId = null) => {
-    if (!isAdmin) {
-      e.preventDefault();
-      return;
-    }
+    if (!isAdmin) { e.preventDefault(); return; }
     setDraggedItem({ type, data: item, sourceSecId });
     e.dataTransfer.effectAllowed = "move";
-    // 稍微延迟一点设置透明度，防止拖拽预览图也变透明
-    setTimeout(() => {
-      if(e.target) e.target.style.opacity = '0.4';
-    }, 0);
+    setTimeout(() => { if(e.target) e.target.style.opacity = '0.4'; }, 0);
   };
-
-  // 2. 拖拽结束 (重置样式)
-  const handleDragEnd = (e) => {
-    e.target.style.opacity = '1';
-    setDraggedItem(null);
-    setDragOverTarget(null);
-  };
-
-  // 3. 拖拽悬停 (高亮反馈)
+  const handleDragEnd = (e) => { e.target.style.opacity = '1'; setDraggedItem(null); setDragOverTarget(null); };
   const handleDragEnter = (e, targetId) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // 只有类型匹配时才高亮 (防止把提示词拖到分区标题上产生误导)
-    if (draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) {
-       setDragOverTarget(targetId);
-    } else if (draggedItem?.type === 'PROMPT') {
+    e.preventDefault(); e.stopPropagation();
+    if ((draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) || draggedItem?.type === 'PROMPT') {
        setDragOverTarget(targetId);
     }
   };
-
-  const handleDragOver = (e) => {
-    e.preventDefault(); // 必须阻止默认行为才能 Drop
-    e.dataTransfer.dropEffect = "move";
-  };
-
-  // 4. 放置 (Drop) - 核心逻辑
+  const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; };
   const handleDrop = (e, targetId, targetType, targetSecId = null) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragOverTarget(null);
-
+    e.preventDefault(); e.stopPropagation(); setDragOverTarget(null);
     if (!draggedItem) return;
-
     const newSections = JSON.parse(JSON.stringify(sections));
 
-    // A. 拖拽分区 (Section Reorder)
     if (draggedItem.type === 'SECTION' && targetType === 'SECTION') {
-       const sourceIndex = newSections.findIndex(s => s.id === draggedItem.data.id);
-       const targetIndex = newSections.findIndex(s => s.id === targetId);
-       if (sourceIndex === -1 || targetIndex === -1 || sourceIndex === targetIndex) return;
-
-       // 移动数组元素
-       const [moved] = newSections.splice(sourceIndex, 1);
-       newSections.splice(targetIndex, 0, moved);
-       setSections(newSections);
-    }
-
-    // B. 拖拽提示词 (Prompt Reorder & Move)
-    else if (draggedItem.type === 'PROMPT') {
-       // 1. 先从源分区里把它拿出来
-       const sourceSec = newSections.find(s => s.id === draggedItem.sourceSecId);
-       const pIndex = sourceSec.prompts.findIndex(p => p.id === draggedItem.data.id);
-       if (pIndex === -1) return;
-       const [movedPrompt] = sourceSec.prompts.splice(pIndex, 1);
-
-       // 2. 决定插入哪里
-       if (targetType === 'PROMPT') {
-          // 插到目标提示词所在的分区，目标提示词的前面
-          const targetSec = newSections.find(s => s.id === targetSecId);
-          const targetPIndex = targetSec.prompts.findIndex(p => p.id === targetId);
-          // 如果拖到自己身上，或者找不到，就放回原处（或不做操作）
-          // 这里我们简单处理：插入到目标位置
-          targetSec.prompts.splice(targetPIndex, 0, movedPrompt);
-       } else if (targetType === 'SECTION_AREA') {
-          // 拖到了分区的空白处 -> 放到该分区最后
-          const targetSec = newSections.find(s => s.id === targetId); // targetId 这里就是 sectionId
-          targetSec.prompts.push(movedPrompt);
+       const sIdx = newSections.findIndex(s => s.id === draggedItem.data.id);
+       const tIdx = newSections.findIndex(s => s.id === targetId);
+       if (sIdx !== -1 && tIdx !== -1 && sIdx !== tIdx) {
+         const [moved] = newSections.splice(sIdx, 1);
+         newSections.splice(tIdx, 0, moved);
+         setSections(newSections);
        }
-
+    } else if (draggedItem.type === 'PROMPT') {
+       const sSec = newSections.find(s => s.id === draggedItem.sourceSecId);
+       const pIdx = sSec.prompts.findIndex(p => p.id === draggedItem.data.id);
+       if (pIdx === -1) return;
+       const [moved] = sSec.prompts.splice(pIdx, 1);
+       if (targetType === 'PROMPT') {
+          const tSec = newSections.find(s => s.id === targetSecId);
+          const tPIdx = tSec.prompts.findIndex(p => p.id === targetId);
+          tSec.prompts.splice(tPIdx, 0, moved);
+       } else if (targetType === 'SECTION_AREA') {
+          const tSec = newSections.find(s => s.id === targetId);
+          tSec.prompts.push(moved);
+       }
        setSections(newSections);
     }
   };
@@ -189,26 +166,21 @@ export default function PromptBoxApp() {
   const handleSavePrompt = (promptData) => {
     const newPrompt = { ...promptData, id: promptData.id || Date.now().toString() };
     setSections(prev => {
-      // 编辑
       if (editingPrompt && editingPrompt.id) {
         return prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => p.id === newPrompt.id ? newPrompt : p) }));
       }
-      // 新建
       const targetId = targetSectionId || prev[0].id;
-      return prev.map(sec => {
-        if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] };
-        return sec;
-      });
+      return prev.map(sec => { if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] }; return sec; });
     });
-    setIsPromptModalOpen(false);
-    setEditingPrompt(null);
+    setIsPromptModalOpen(false); setEditingPrompt(null);
   };
 
-  // 导出/导入/删除 (保持不变)
+  // 导出时增加 siteNotes
   const handleExport = () => {
-    const blob = new Blob([JSON.stringify({ sections, commonTags }, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify({ sections, commonTags, siteNotes }, null, 2)], { type: 'application/json' });
     const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click();
   };
+  // 导入时增加 siteNotes
   const handleImport = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -216,7 +188,11 @@ export default function PromptBoxApp() {
       reader.onload = (ev) => {
          try {
             const d = JSON.parse(ev.target.result);
-            if(confirm("确定覆盖当前数据?")) { setSections(d.sections||[]); setCommonTags(d.commonTags||[]); }
+            if(confirm("覆盖当前数据?")) { 
+              setSections(d.sections||[]); 
+              setCommonTags(d.commonTags||[]); 
+              if(d.siteNotes) setSiteNotes(d.siteNotes);
+            }
          } catch(err){ alert("文件无效"); }
       };
       reader.readAsText(file);
@@ -224,44 +200,58 @@ export default function PromptBoxApp() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 font-sans text-slate-800">
-      
-      {/* 顶部导航 */}
-      <header className="sticky top-0 z-30 bg-white/90 backdrop-blur-md border-b border-slate-200 shadow-sm">
+    // 🔴 整体背景设置：极光渐变 + 噪点
+    <div className="min-h-screen bg-[#f8fafc] font-sans text-slate-800 relative overflow-x-hidden">
+      {/* 极光背景装饰 */}
+      <div className="fixed top-[-20%] left-[-10%] w-[60%] h-[60%] rounded-full bg-indigo-200/40 blur-[120px] mix-blend-multiply animate-blob pointer-events-none z-0"></div>
+      <div className="fixed top-[-20%] right-[-10%] w-[60%] h-[60%] rounded-full bg-purple-200/40 blur-[120px] mix-blend-multiply animate-blob animation-delay-2000 pointer-events-none z-0"></div>
+      <div className="fixed bottom-[-20%] left-[20%] w-[60%] h-[60%] rounded-full bg-pink-200/40 blur-[120px] mix-blend-multiply animate-blob animation-delay-4000 pointer-events-none z-0"></div>
+
+      {/* 顶部导航：强效毛玻璃 */}
+      <header className="sticky top-0 z-40 bg-white/70 backdrop-blur-xl border-b border-white/40 shadow-sm transition-all duration-300">
         <div className="max-w-7xl mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-9 h-9 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg flex items-center justify-center text-white font-bold">N</div>
-            <h1 className="text-xl font-bold tracking-tight text-slate-800 hidden sm:block">Nanobanana</h1>
+          <div className="flex items-center space-x-3 group cursor-default">
+            {/* 品牌 Logo 动画 */}
+            <div className="w-10 h-10 bg-gradient-to-br from-yellow-300 to-orange-400 rounded-2xl shadow-lg shadow-orange-500/20 flex items-center justify-center text-white font-bold transform transition-transform duration-500 group-hover:rotate-12 group-hover:scale-110">
+              🍌
+            </div>
+            <div>
+               <h1 className="text-xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-slate-800 to-slate-600">
+                 大香蕉
+               </h1>
+               <span className="text-[10px] text-slate-500 font-medium tracking-widest uppercase">Prompt Box</span>
+            </div>
           </div>
 
           <div className="flex items-center space-x-3">
-            {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
+            {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center bg-indigo-50 px-2 py-1 rounded-full"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
             
-            <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-medium border ${isAdmin ? 'bg-indigo-50 border-indigo-200 text-indigo-700' : 'bg-white border-slate-200 text-slate-500'}`}>
+            <button onClick={() => setIsAdmin(!isAdmin)} className={`flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 border shadow-sm hover:shadow-md active:scale-95 ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}>
               {isAdmin ? <Unlock size={12} className="mr-1"/> : <Lock size={12} className="mr-1"/>}
-              <span>{isAdmin ? '编辑模式' : '访客模式'}</span>
+              <span>{isAdmin ? '管理员' : '访客'}</span>
             </button>
 
             {isAdmin && (
               <>
-                <div className="h-4 w-px bg-slate-200"></div>
-                <button onClick={handleExport} className="p-2 text-slate-500 hover:text-indigo-600 rounded-full hover:bg-slate-100"><Download size={18}/></button>
-                <label className="p-2 text-slate-500 hover:text-indigo-600 rounded-full hover:bg-slate-100 cursor-pointer"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label>
-                <button onClick={() => { setEditingPrompt(null); setTargetSectionId(sections[0]?.id || 'default'); setIsPromptModalOpen(true); }} className="bg-indigo-600 hover:bg-indigo-700 text-white px-3 py-1.5 rounded-lg text-xs font-medium flex items-center gap-1 shadow-md">
-                  <Plus size={14} /> <span>新建</span>
+                <div className="h-5 w-px bg-slate-300/50 mx-1"></div>
+                <button onClick={handleExport} title="导出" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors"><Download size={18}/></button>
+                <label title="导入" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 cursor-pointer transition-colors"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label>
+                <button onClick={() => { setEditingPrompt(null); setTargetSectionId(sections.length>0?sections[0].id:null); setIsPromptModalOpen(true); }} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                  <Plus size={14} /> <span>新建提示词</span>
                 </button>
               </>
             )}
           </div>
         </div>
         
-        {/* 搜索栏 */}
-        <div className="border-t border-slate-100 bg-white/50 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4">
-           <div className="relative w-full sm:w-80">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-              <input type="text" placeholder="搜索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-slate-100 rounded-lg text-sm outline-none focus:ring-2 focus:ring-indigo-200" />
+        {/* 搜索栏：悬浮玻璃感 */}
+        <div className="border-t border-white/20 bg-white/40 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4 backdrop-blur-md">
+           <div className="relative w-full sm:w-80 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
+              <input type="text" placeholder="搜索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all shadow-sm" />
            </div>
-           <div className="flex gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar py-1">
+           <div className="flex gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar py-1 items-center">
+              <Sparkles size={14} className="text-yellow-500 mr-1 flex-shrink-0" />
               {commonTags.map(tag => (
                 <Tag key={tag} label={tag} isActive={selectedTags.includes(tag)} onClick={() => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} />
               ))}
@@ -270,86 +260,135 @@ export default function PromptBoxApp() {
       </header>
 
       {/* 主体 */}
-      <main className="max-w-7xl mx-auto px-4 py-8 pb-24">
-        {loadError && !isAdmin && <div className="mb-4 p-3 bg-amber-50 text-amber-600 text-sm rounded-lg flex items-center"><Cloud size={16} className="mr-2"/> {loadError}</div>}
+      <main className="max-w-7xl mx-auto px-4 py-8 pb-24 relative z-10">
+        {loadError && !isAdmin && <div className="mb-6 p-3 bg-red-50/80 backdrop-blur border border-red-100 text-red-600 text-sm rounded-xl flex items-center shadow-sm"><Cloud size={16} className="mr-2"/> {loadError}</div>}
 
+        {/* --- 新增：网站备注/公告板 --- */}
+        <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
+           <div className="flex items-start gap-4 relative z-10">
+              <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500">
+                <MessageSquareQuote size={24} />
+              </div>
+              <div className="flex-1">
+                 <div className="flex justify-between items-center mb-2">
+                    <h3 className="font-bold text-slate-700 text-lg">关于本站</h3>
+                    {isAdmin && !isNotesEditing && (
+                      <button onClick={() => setIsNotesEditing(true)} className="text-xs text-indigo-600 hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                        <Edit2 size={12}/> 编辑公告
+                      </button>
+                    )}
+                 </div>
+                 
+                 {isNotesEditing ? (
+                   <div className="animate-fade-in-up">
+                      <textarea 
+                        className="w-full bg-white/80 border border-indigo-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none"
+                        rows={3}
+                        value={siteNotes}
+                        onChange={(e) => setSiteNotes(e.target.value)}
+                      />
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button onClick={() => setIsNotesEditing(false)} className="px-3 py-1 text-xs text-slate-500 hover:bg-white rounded-lg">完成</button>
+                      </div>
+                   </div>
+                 ) : (
+                   <div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">
+                     {siteNotes || "暂无公告..."}
+                   </div>
+                 )}
+              </div>
+           </div>
+           {/* 装饰图标 */}
+           <FileText className="absolute right-[-20px] bottom-[-20px] text-indigo-100 rotate-12" size={120} />
+        </div>
+
+        {/* 分区列表 */}
         {filteredSections.map(section => (
           <div 
             key={section.id} 
-            // 只有当拖拽对象是 SECTION 时，这里才是有效的 Drop 区域
             onDragOver={handleDragOver}
             onDragEnter={(e) => handleDragEnter(e, section.id)}
             onDrop={(e) => handleDrop(e, section.id, 'SECTION')}
-            className={`mb-8 bg-white rounded-2xl p-6 shadow-sm border transition-all duration-200 ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-500 ring-2 ring-indigo-100 transform scale-[1.01]' : 'border-slate-100'}`}
+            className={`
+              mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out
+              ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' 
+                ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' 
+                : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}
+            `}
           >
             {/* 分区标题栏 */}
-            <div className="flex justify-between items-center mb-4 select-none">
+            <div className="flex justify-between items-center mb-6 select-none">
               <div className="flex items-center flex-1">
-                {/* 🔴 只有按住这个把手才能拖动分区 */}
                 {isAdmin && (
                   <div 
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, 'SECTION', section)}
-                    onDragEnd={handleDragEnd}
-                    className="mr-2 text-slate-300 hover:text-slate-600 cursor-grab active:cursor-grabbing p-1"
+                    draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd}
+                    className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"
                   >
                     <GripVertical size={20} />
                   </div>
                 )}
-                <div onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s))} className="flex items-center cursor-pointer">
-                   <ChevronDown size={16} className={`text-slate-500 mr-2 transition-transform ${section.isCollapsed ? '-rotate-90' : ''}`} />
-                   <h2 className="text-lg font-bold text-slate-800">{section.title}</h2>
-                   <span className="ml-2 bg-slate-100 text-slate-500 text-xs px-2 py-0.5 rounded-full">{section.prompts.length}</span>
+                <div onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s))} className="flex items-center cursor-pointer group/title">
+                   <div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}>
+                      <ChevronDown size={14} />
+                   </div>
+                   <h2 className="text-lg font-bold text-slate-800 tracking-tight">{section.title}</h2>
+                   <span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span>
                 </div>
               </div>
               {isAdmin && (
-                <div className="flex gap-2">
-                   <button onClick={() => { setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-500 p-1"><Edit2 size={14}/></button>
-                   <button onClick={() => { if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1"><Trash2 size={14}/></button>
+                <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                   <button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button>
+                   <button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button>
                 </div>
               )}
             </div>
             
-            {/* 提示词列表区域 */}
             {!section.isCollapsed && (
               <div 
-                // 整个列表区域也是一个 Drop Zone，用于接收拖到空白处的提示词
                 onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, section.id)} // 复用ID，但在 Drop 中通过 Type 区分
+                onDragEnter={(e) => handleDragEnter(e, section.id)}
                 onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')}
-                className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-4 min-h-[120px] transition-all rounded-xl p-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 border-dashed border-2 border-indigo-300' : ''}`}
+                className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}
               >
                 {section.prompts.map(prompt => (
                   <div 
                     key={prompt.id} 
                     draggable={isAdmin}
                     onDragStart={(e) => handleDragStart(e, 'PROMPT', prompt, section.id)}
-                    onDragEnd={handleDragEnd}
-                    onDragOver={handleDragOver}
-                    onDragEnter={(e) => handleDragEnter(e, prompt.id)}
-                    onDrop={(e) => handleDrop(e, prompt.id, 'PROMPT', section.id)}
+                    onDragEnd={handleDragEnd} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, prompt.id)} onDrop={(e) => handleDrop(e, prompt.id, 'PROMPT', section.id)}
                     onClick={(e) => { e.stopPropagation(); setEditingPrompt(prompt); setIsPromptModalOpen(true); }} 
                     className={`
-                      group bg-slate-50 border rounded-xl overflow-hidden hover:shadow-md cursor-pointer transition-all aspect-[3/4] flex flex-col relative
-                      ${dragOverTarget === prompt.id && draggedItem?.type === 'PROMPT' ? 'border-indigo-500 ring-2 ring-indigo-200 transform -translate-y-1 z-10' : 'border-slate-200'}
-                      ${draggedItem?.data?.id === prompt.id ? 'opacity-30' : ''}
+                      group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ease-out aspect-[3/4] flex flex-col relative
+                      ${dragOverTarget === prompt.id && draggedItem?.type === 'PROMPT' ? 'ring-2 ring-indigo-500 transform scale-105 z-20 shadow-xl' : 'shadow-sm hover:shadow-xl hover:-translate-y-1 hover:ring-2 hover:ring-indigo-100'}
+                      ${draggedItem?.data?.id === prompt.id ? 'opacity-30 grayscale' : ''}
                     `}
                   >
-                    <div className="flex-1 bg-slate-200 relative overflow-hidden pointer-events-none">
-                      {prompt.image ? <img src={prompt.image} className="w-full h-full object-cover" /> : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={24}/></div>}
+                    <div className="flex-1 bg-slate-100 relative overflow-hidden pointer-events-none">
+                      {prompt.image ? (
+                        <img src={prompt.image} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" />
+                      ) : (
+                        <div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50">
+                           <div className="p-3 bg-white rounded-full shadow-sm mb-2"><ImageIcon size={20}/></div>
+                           <span className="text-[10px]">No Image</span>
+                        </div>
+                      )}
+                      {/* 悬浮遮罩 */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
                     </div>
-                    <div className="p-3 bg-white h-16 pointer-events-none">
-                      <h3 className="font-bold text-sm truncate text-slate-800">{prompt.title}</h3>
-                      <p className="text-[10px] text-slate-400 truncate mt-1">{prompt.tags.join(' ')}</p>
+                    <div className="p-4 bg-white h-20 flex flex-col justify-center border-t border-slate-50 pointer-events-none relative z-10">
+                      <h3 className="font-bold text-sm truncate text-slate-800 mb-1.5">{prompt.title}</h3>
+                      <div className="flex gap-1 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">
+                        {prompt.tags.slice(0, 2).map(t => <span key={t} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{t}</span>)}
+                      </div>
                     </div>
                   </div>
                 ))}
                 
-                {/* 空状态占位 */}
+                {/* 空状态 */}
                 {section.prompts.length === 0 && (
-                  <div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none">
-                    <UploadCloud size={24} className="mb-2 opacity-50"/>
-                    <span>{isAdmin ? '拖拽提示词到这里' : '暂无内容'}</span>
+                  <div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
+                    <UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/>
+                    <span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span>
                   </div>
                 )}
               </div>
@@ -358,37 +397,43 @@ export default function PromptBoxApp() {
         ))}
         
         {isAdmin && (
-          <button onClick={() => { setEditingSection({title: ''}); setIsSectionModalOpen(true); }} className="w-full py-4 border-2 border-dashed border-slate-200 rounded-xl text-slate-400 hover:text-indigo-500 hover:bg-indigo-50 flex items-center justify-center gap-2 transition-all">
-            <FolderPlus size={18}/> 新建分区
+          <button onClick={() => { setEditingSection({title: ''}); setIsSectionModalOpen(true); }} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group">
+            <div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div>
+            <span className="font-medium">新建一个分区</span>
           </button>
         )}
       </main>
 
       {/* 弹窗：提示词编辑 */}
       {isPromptModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/30 backdrop-blur-sm">
-          <div className="bg-white w-full max-w-3xl max-h-[90vh] rounded-2xl overflow-hidden flex flex-col p-6 shadow-2xl">
-            <div className="flex justify-between mb-4 border-b border-slate-100 pb-2">
-               <h3 className="font-bold text-lg">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑' : '新建')}</h3>
-               <button onClick={() => setIsPromptModalOpen(false)}><X size={20} className="text-slate-400"/></button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300">
+          <div className="bg-white/95 backdrop-blur-xl w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col p-8 shadow-2xl ring-1 ring-white/50 animate-fade-in-up">
+            <div className="flex justify-between mb-6 border-b border-slate-100 pb-4">
+               <div className="flex items-center gap-3">
+                 <div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={20}/></div>
+                 <h3 className="font-bold text-xl text-slate-800">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}</h3>
+               </div>
+               <button onClick={() => setIsPromptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button>
             </div>
-            <div className="flex-1 overflow-y-auto custom-scrollbar">
+            <div className="flex-1 overflow-y-auto custom-scrollbar pr-2">
               {isAdmin ? (
-                <PromptForm 
-                  initialData={editingPrompt} 
-                  commonTags={commonTags} 
-                  setCommonTags={setCommonTags}
-                  onSave={handleSavePrompt} 
-                  onDelete={(id) => {
-                     setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) })));
-                     setIsPromptModalOpen(false);
-                  }}
+                <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} 
+                  onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}
                 />
               ) : (
-                <div className="space-y-4">
-                  {editingPrompt.image && <img src={editingPrompt.image} className="w-full max-h-80 object-contain bg-slate-100 rounded-lg"/>}
-                  <div className="p-4 bg-slate-50 rounded-lg font-mono text-sm border border-slate-200 select-all">{editingPrompt.content}</div>
-                  <div className="flex gap-2">{editingPrompt.tags.map(t => <span key={t} className="px-2 py-1 bg-indigo-50 text-indigo-600 text-xs rounded">#{t}</span>)}</div>
+                <div className="space-y-6">
+                  {editingPrompt.image && (
+                     <div className="w-full max-h-[400px] bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 shadow-inner flex items-center justify-center">
+                        <img src={editingPrompt.image} className="h-full object-contain" />
+                     </div>
+                  )}
+                  <div>
+                    <div className="text-xs font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1"><FileText size={12}/> PROMPT CONTENT</div>
+                    <div className="p-5 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm">{editingPrompt.content}</div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                     {editingPrompt.tags.map(t => <span key={t} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">#{t}</span>)}
+                  </div>
                 </div>
               )}
             </div>
@@ -398,12 +443,12 @@ export default function PromptBoxApp() {
 
       {/* 弹窗：分区编辑 */}
       {isSectionModalOpen && (
-         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/20 backdrop-blur-sm">
-            <div className="bg-white p-6 rounded-xl w-80 shadow-xl">
-               <h3 className="font-bold mb-4">分区名称</h3>
-               <input id="sec-input" autoFocus defaultValue={editingSection?.title} className="w-full border p-2 rounded mb-4 outline-none focus:border-indigo-500" />
-               <div className="flex justify-end gap-2">
-                  <button onClick={() => setIsSectionModalOpen(false)} className="px-3 py-1 text-sm text-slate-500">取消</button>
+         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm">
+            <div className="bg-white p-8 rounded-3xl w-96 shadow-2xl animate-fade-in-up ring-1 ring-white/50">
+               <h3 className="font-bold mb-6 text-xl text-slate-800">分区名称</h3>
+               <input id="sec-input" autoFocus defaultValue={editingSection?.title} className="w-full border-2 border-slate-100 p-3 rounded-xl mb-6 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-700" placeholder="给分区起个名字..." />
+               <div className="flex justify-end gap-3">
+                  <button onClick={() => setIsSectionModalOpen(false)} className="px-5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">取消</button>
                   <button onClick={() => {
                      const val = document.getElementById('sec-input').value;
                      if(val) {
@@ -414,7 +459,7 @@ export default function PromptBoxApp() {
                         }
                         setIsSectionModalOpen(false);
                      }
-                  }} className="px-3 py-1 text-sm bg-indigo-600 text-white rounded">确定</button>
+                  }} className="px-6 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transform hover:-translate-y-0.5 transition-all">确定</button>
                </div>
             </div>
          </div>
@@ -423,7 +468,7 @@ export default function PromptBoxApp() {
   );
 }
 
-// --- 表单组件 (含图片压缩) ---
+// --- 表单组件 (样式优化) ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const [formData, setFormData] = useState(initialData || { title: '', content: '', image: '', tags: [] });
    const [tagInput, setTagInput] = useState('');
@@ -432,11 +477,9 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    const handleImageUpload = (e) => {
      const file = e.target.files[0];
      if (!file) return;
-
      setIsCompressing(true);
      const reader = new FileReader();
      reader.readAsDataURL(file);
-     
      reader.onload = (event) => {
        const img = new Image();
        img.src = event.target.result;
@@ -444,8 +487,7 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
          const canvas = document.createElement('canvas');
          const ctx = canvas.getContext('2d');
          const MAX_WIDTH = 800; 
-         let width = img.width;
-         let height = img.height;
+         let width = img.width; let height = img.height;
          if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
          canvas.width = width; canvas.height = height;
          ctx.drawImage(img, 0, 0, width, height);
@@ -456,47 +498,50 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    };
 
    return (
-      <div className="space-y-4">
+      <div className="space-y-6">
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">标题</label>
-            <input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full border border-slate-200 p-2 rounded-lg outline-none focus:border-indigo-500" placeholder="例如: 赛博朋克少女" />
+            <label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标题</label>
+            <input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all font-bold text-slate-700" placeholder="例如: 赛博朋克少女" />
          </div>
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">提示词内容</label>
-            <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} placeholder="输入英文 Prompt..." rows={4} className="w-full border border-slate-200 p-2 rounded-lg font-mono text-sm outline-none focus:border-indigo-500" />
+            <label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词</label>
+            <textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} placeholder="输入英文 Prompt..." rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" />
          </div>
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">配图 (自动压缩)</label>
-            <div className="flex flex-col gap-3">
+            <label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图</label>
+            <div className="flex flex-col gap-4">
               {formData.image ? (
-                <div className="relative w-full h-48 bg-slate-100 rounded-lg overflow-hidden border border-slate-200 group">
-                  <img src={formData.image} className="w-full h-full object-contain" alt="Preview" />
-                  <button onClick={() => setFormData({...formData, image: ''})} className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full opacity-0 group-hover:opacity-100 transition-opacity shadow-lg"><Trash2 size={16} /></button>
+                <div className="relative w-full h-56 bg-slate-50 rounded-2xl overflow-hidden border border-slate-200 group shadow-inner flex items-center justify-center">
+                  <img src={formData.image} className="h-full object-contain" alt="Preview" />
+                  <button onClick={() => setFormData({...formData, image: ''})} className="absolute top-3 right-3 bg-white/90 backdrop-blur text-red-500 p-2 rounded-xl shadow-lg hover:scale-110 transition-transform"><Trash2 size={18} /></button>
                 </div>
               ) : (
-                <div className="w-full h-24 border-2 border-dashed border-slate-200 rounded-lg flex items-center justify-center text-slate-400 text-sm bg-slate-50">{isCompressing ? '处理中...' : '暂无图片'}</div>
+                <div className="w-full h-32 border-2 border-dashed border-slate-200 rounded-2xl flex flex-col items-center justify-center text-slate-400 text-sm bg-slate-50/50">
+                   {isCompressing ? <RefreshCw className="animate-spin mb-2 text-indigo-500"/> : <ImageIcon className="mb-2 opacity-50" size={24} />}
+                   {isCompressing ? '正在压缩处理...' : '暂无图片'}
+                </div>
               )}
-              <div className="flex gap-2">
-                <label className={`flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 px-4 py-2 rounded-lg cursor-pointer flex items-center justify-center gap-2 transition-colors border border-indigo-200 ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
+              <div className="flex gap-3">
+                <label className={`flex-1 bg-white hover:bg-indigo-50 text-indigo-600 px-4 py-3 rounded-xl cursor-pointer flex items-center justify-center gap-2 transition-all border border-indigo-100 shadow-sm hover:shadow-md hover:-translate-y-0.5 ${isCompressing ? 'opacity-50 cursor-not-allowed' : ''}`}>
                   <Upload size={18} />
-                  <span className="text-sm font-medium">{isCompressing ? '压缩中...' : '上传本地图片'}</span>
+                  <span className="text-sm font-bold">{isCompressing ? '处理中...' : '上传本地图片'}</span>
                   <input type="file" className="hidden" accept="image/*" disabled={isCompressing} onChange={handleImageUpload} />
                 </label>
-                <input value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="或粘贴链接" className="flex-1 border border-slate-200 px-3 rounded-lg text-sm outline-none focus:border-indigo-500" />
+                <input value={formData.image} onChange={e => setFormData({...formData, image: e.target.value})} placeholder="或粘贴图片链接" className="flex-1 bg-slate-50 border border-slate-200 px-4 rounded-xl text-sm outline-none focus:bg-white focus:border-indigo-500 transition-all" />
               </div>
             </div>
          </div>
          <div>
-            <label className="text-xs font-bold text-slate-500 block mb-1">标签</label>
-            <div className="flex flex-wrap gap-2 p-2 bg-slate-50 rounded-lg border border-slate-100">
-               {commonTags.map(t => <button key={t} onClick={() => setFormData(p => ({...p, tags: p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags, t]}))} className={`text-xs px-2 py-1 rounded transition-colors ${formData.tags.includes(t)?'bg-indigo-500 text-white shadow-md':'bg-white text-slate-600 border border-slate-200'}`}>{t}</button>)}
-               <input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="+新建" className="w-20 text-xs bg-transparent border-b border-slate-300 outline-none focus:border-indigo-500 px-1" onKeyDown={e=>{if(e.key==='Enter'&&tagInput){setCommonTags([...commonTags, tagInput]); setTagInput('');}}}/>
+            <label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标签</label>
+            <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
+               {commonTags.map(t => <button key={t} onClick={() => setFormData(p => ({...p, tags: p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags, t]}))} className={`text-xs px-3 py-1.5 rounded-lg transition-all font-medium ${formData.tags.includes(t)?'bg-indigo-500 text-white shadow-md':'bg-white text-slate-600 border border-slate-200 hover:bg-white/80'}`}>{t}</button>)}
+               <input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="+新建" className="w-24 text-xs bg-transparent border-b-2 border-slate-200 outline-none focus:border-indigo-500 px-2 py-1 transition-colors" onKeyDown={e=>{if(e.key==='Enter'&&tagInput){setCommonTags([...commonTags, tagInput]); setTagInput('');}}}/>
             </div>
          </div>
-         <div className="flex justify-between pt-4 mt-4 border-t border-slate-100">
-            {initialData && initialData.id && <button onClick={() => onDelete(initialData.id)} className="text-red-500 text-sm hover:underline">删除</button>}
-            <button disabled={isCompressing} onClick={() => { if(!formData.title) return alert("请至少填写标题！"); onSave(formData); }} className={`bg-indigo-600 text-white px-8 py-2 rounded-lg text-sm ml-auto hover:bg-indigo-700 shadow-lg shadow-indigo-200 transition-all flex items-center gap-2 ${isCompressing ? 'opacity-50' : ''}`}>
-              <Check size={16} /> 保存
+         <div className="flex justify-between pt-6 mt-2 border-t border-slate-100">
+            {initialData && initialData.id && <button onClick={() => onDelete(initialData.id)} className="text-red-500 text-sm font-medium hover:bg-red-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-1"><Trash2 size={16}/> 删除</button>}
+            <button disabled={isCompressing} onClick={() => { if(!formData.title) return alert("请至少填写标题！"); onSave(formData); }} className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold ml-auto hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 ${isCompressing ? 'opacity-50' : ''}`}>
+              <Check size={18} /> 保存盒子
             </button>
          </div>
       </div>
