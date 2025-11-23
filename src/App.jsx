@@ -10,7 +10,7 @@ import {
  * 👇👇👇 请将你在第一阶段获取的 RAW 链接粘贴到下面的引号里 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "在此处粘贴你的链接"; 
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data.json"; 
 // 例如: "https://raw.githubusercontent.com/zhangsan/nanobanana-data/main/data.json"
 
 // --- 初始演示数据 ---
