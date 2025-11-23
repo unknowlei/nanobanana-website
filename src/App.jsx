@@ -3,7 +3,7 @@ import {
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
-  CloudUpload, Sparkles, MessageSquareQuote, FileText
+  UploadCloud, Sparkles, MessageSquareQuote, FileText
 } from 'lucide-react';
 
 /**
@@ -440,7 +440,7 @@ export default function PromptBoxApp() {
                 
                 {section.prompts.length === 0 && (
                   <div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50">
-                    <CloudUpload size={32} className="mb-2 opacity-50 text-indigo-300"/>
+                    <UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/>
                     <span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span>
                   </div>
                 )}
