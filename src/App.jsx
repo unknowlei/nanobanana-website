@@ -13,7 +13,7 @@ import {
  * 👇👇👇 请再次将你的 RAW 链接粘贴到下面的引号里 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = ""; 
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(10).json"; 
 
 // --- 全局工具与样式 ---
 
