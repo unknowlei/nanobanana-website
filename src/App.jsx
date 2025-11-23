@@ -3,7 +3,7 @@ import {
   Plus, Search, X, Edit2, Trash2, ChevronDown, 
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
-  UploadCloud, Sparkles, MessageSquareQuote, FileText
+  UploadCloud, Sparkles, MessageSquare, FileText 
 } from 'lucide-react';
 
 /**
@@ -140,17 +140,14 @@ export default function PromptBoxApp() {
   // --- 核心功能：隐形5连击解锁 ---
   const handleModeToggle = () => {
     if (isAdmin) {
-      // 管理员模式下，点击一次立刻锁定
       setIsAdmin(false);
       setClickCount(0);
     } else {
-      // 访客模式下，累积点击，无视觉反馈
       const newCount = clickCount + 1;
       setClickCount(newCount);
       if (newCount >= 5) {
         setIsAdmin(true);
         setClickCount(0);
-        // 轻微震动反馈 (仅手机端有效，增加一点“解锁成功”的感觉)
         if (navigator.vibrate) navigator.vibrate(50);
       }
     }
@@ -278,7 +275,6 @@ export default function PromptBoxApp() {
           <div className="flex items-center space-x-3">
             {isLoading && <span className="text-xs text-indigo-500 animate-pulse flex items-center bg-indigo-50 px-2 py-1 rounded-full"><RefreshCw size={10} className="animate-spin mr-1"/>同步中</span>}
             
-            {/* 🔴 隐形模式切换按钮：无视觉提示 */}
             <button 
               onClick={handleModeToggle} 
               className={`relative flex items-center space-x-1 px-4 py-1.5 rounded-full text-xs font-bold transition-all duration-300 border shadow-sm hover:shadow-md active:scale-95 select-none ${isAdmin ? 'bg-indigo-500 border-indigo-500 text-white' : 'bg-white/80 border-slate-200 text-slate-600 hover:bg-white'}`}
@@ -324,7 +320,7 @@ export default function PromptBoxApp() {
         <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300">
            <div className="flex items-start gap-4 relative z-10">
               <div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500">
-                <MessageSquareQuote size={24} />
+                <MessageSquare size={24} /> 
               </div>
               <div className="flex-1">
                  <div className="flex justify-between items-center mb-2">
@@ -521,7 +517,7 @@ export default function PromptBoxApp() {
   );
 }
 
-// --- 表单组件 ---
+// --- 表单组件 (新增标签删除功能) ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const [formData, setFormData] = useState(initialData || { title: '', content: '', image: '', tags: [] });
    const [tagInput, setTagInput] = useState('');
@@ -548,6 +544,13 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
          setIsCompressing(false);
        };
      };
+   };
+
+   // 🔴 新增：删除常驻标签功能
+   const removeCommonTag = (tagToDelete) => {
+     if (window.confirm(`确定要永久删除标签 "${tagToDelete}" 吗？`)) {
+       setCommonTags(prev => prev.filter(t => t !== tagToDelete));
+     }
    };
 
    return (
@@ -587,7 +590,21 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
          <div>
             <label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标签</label>
             <div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">
-               {commonTags.map(t => <button key={t} onClick={() => setFormData(p => ({...p, tags: p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags, t]}))} className={`text-xs px-3 py-1.5 rounded-lg transition-all font-medium ${formData.tags.includes(t)?'bg-indigo-500 text-white shadow-md':'bg-white text-slate-600 border border-slate-200 hover:bg-white/80'}`}>{t}</button>)}
+               {commonTags.map(t => (
+                 <span key={t} className={`group inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-all font-medium cursor-pointer border ${formData.tags.includes(t)?'bg-indigo-500 text-white shadow-md border-indigo-500':'bg-white text-slate-600 border-slate-200 hover:bg-white/80'}`}>
+                    {/* 标签文字区域：点击切换选中 */}
+                    <span onClick={() => setFormData(p => ({...p, tags: p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags, t]}))}>{t}</span>
+                    {/* 🔴 删除按钮：鼠标悬停时显示 */}
+                    <button 
+                      type="button" 
+                      onClick={(e) => { e.stopPropagation(); removeCommonTag(t); }} 
+                      className={`p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white ${formData.tags.includes(t) ? 'text-indigo-200' : 'text-slate-400'}`}
+                      title="删除此标签"
+                    >
+                      <X size={10} />
+                    </button>
+                 </span>
+               ))}
                <input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="+新建" className="w-24 text-xs bg-transparent border-b-2 border-slate-200 outline-none focus:border-indigo-500 px-2 py-1 transition-colors" onKeyDown={e=>{if(e.key==='Enter'&&tagInput){setCommonTags([...commonTags, tagInput]); setTagInput('');}}}/>
             </div>
          </div>
