@@ -5,7 +5,7 @@ import {
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
   UploadCloud, Sparkles, MessageSquare, FileText, ChevronLeft, ChevronRight,
   Layers, Play, Pause, Grid, Scissors, MousePointer2, ArrowUp, ArrowDown, MoveRight, Film,
-  CheckSquare, Square, Settings
+  CheckSquare, Square, Settings, Link as LinkIcon
 } from 'lucide-react';
 
 /**
@@ -13,7 +13,7 @@ import {
  * 👇👇👇 请再次将你的 RAW 链接粘贴到下面的引号里 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(10).json"; 
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(14).json"; 
 
 // --- 全局工具与样式 ---
 
@@ -51,7 +51,7 @@ const Tag = ({ label, onClick, isActive }) => (
   <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-300 border ${isActive ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30 border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm'}`}>{label}</span>
 );
 
-// --- 模块一：GIF 制作工具 (保持原布局) ---
+// --- 模块一：GIF 制作工具 ---
 
 const GifMakerModule = () => {
   const gifshotLoaded = useGifshot();
@@ -464,14 +464,23 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    const [formData, setFormData] = useState({ id: initialData?.id || '', title: initialData?.title || '', content: initialData?.content || '', images: getInitialImages(), tags: initialData?.tags || [] });
    const [tagInput, setTagInput] = useState('');
    const [isCompressing, setIsCompressing] = useState(false);
+   const [urlInput, setUrlInput] = useState(''); // 🔴 新增 URL 输入状态
 
    const handleImageUpload = (e) => {
      const file = e.target.files[0]; if (!file) return;
      setIsCompressing(true); const reader = new FileReader(); reader.readAsDataURL(file);
      reader.onload = (event) => { const img = new Image(); img.src = event.target.result;
-       img.onload = () => { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const MAX_WIDTH = 800; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height); setFormData(prev => ({ ...prev, images: [...prev.images, canvas.toDataURL('image/jpeg', 0.7)] })); setIsCompressing(false); };
+       img.onload = () => { const canvas = document.createElement('canvas'); const ctx = canvas.getContext('2d'); const MAX_WIDTH = 600; let width = img.width; let height = img.height; if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; } canvas.width = width; canvas.height = height; ctx.drawImage(img, 0, 0, width, height); setFormData(prev => ({ ...prev, images: [...prev.images, canvas.toDataURL('image/jpeg', 0.6)] })); setIsCompressing(false); };
      };
    };
+   
+   // 🔴 新增：添加 URL 图片
+   const handleAddUrl = () => {
+     if (!urlInput.trim()) return;
+     setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] }));
+     setUrlInput('');
+   };
+
    const removeImage = (idxToRemove) => { setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idxToRemove) })); };
    const removeCommonTag = (t) => { if(confirm(`删除标签 "${t}"?`)) setCommonTags(p => p.filter(x => x !== t)); };
 
@@ -490,8 +499,29 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
                   </div>
                 ))}
                 <label className={`aspect-square bg-white hover:bg-indigo-50 text-indigo-400 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1 transition-all border-2 border-dashed border-indigo-200 hover:border-indigo-400 ${isCompressing ? 'opacity-50' : ''}`}>
-                  {isCompressing ? <RefreshCw className="animate-spin" size={20}/> : <Plus size={24} />}<span className="text-[10px] font-bold">{isCompressing ? '处理中' : '添加'}</span><input type="file" className="hidden" accept="image/*" disabled={isCompressing} onChange={handleImageUpload} />
+                  {isCompressing ? <RefreshCw className="animate-spin" size={20}/> : <Plus size={24} />}<span className="text-[10px] font-bold">{isCompressing ? '处理中' : '上传本地'}</span><input type="file" className="hidden" accept="image/*" disabled={isCompressing} onChange={handleImageUpload} />
                 </label>
+              </div>
+              
+              {/* 🔴 新增：URL 粘贴区域 */}
+              <div className="flex gap-2 items-center">
+                 <div className="flex-1 relative">
+                    <LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+                    <input 
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()}
+                      placeholder="粘贴图片链接 (推荐，不占缓存)" 
+                      className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 outline-none transition-all"
+                    />
+                 </div>
+                 <button 
+                   onClick={handleAddUrl} 
+                   disabled={!urlInput.trim()}
+                   className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition-colors"
+                 >
+                   添加链接
+                 </button>
               </div>
             </div>
          </div>
@@ -517,9 +547,10 @@ const INITIAL_SECTIONS = [{ id: 'demo', title: '默认分区', isCollapsed: fals
 const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
 
 export default function App() {
-  const [currentView, setCurrentView] = useState('PROMPTS'); // 'PROMPTS' | 'GIF_MAKER'
+  const [currentView, setCurrentView] = useState('PROMPTS'); 
   const [isAdmin, setIsAdmin] = useState(false); 
   const [clickCount, setClickCount] = useState(0);
+  const [storageError, setStorageError] = useState(false);
   
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
@@ -545,14 +576,22 @@ export default function App() {
     const localTags = localStorage.getItem('nanobanana_tags');
     const localNotes = localStorage.getItem('nanobanana_notes');
     if (localSections) { setSections(JSON.parse(localSections)); if (localTags) setCommonTags(JSON.parse(localTags)); if (localNotes) setSiteNotes(JSON.parse(localNotes)); } 
-    else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData(false); // Auto fetch if no local
+    else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData(false); 
   }, []);
 
   useEffect(() => {
     if (isAdmin) {
-      localStorage.setItem('nanobanana_sections', JSON.stringify(sections));
-      localStorage.setItem('nanobanana_tags', JSON.stringify(commonTags));
-      localStorage.setItem('nanobanana_notes', JSON.stringify(siteNotes));
+      try {
+        localStorage.setItem('nanobanana_sections', JSON.stringify(sections));
+        localStorage.setItem('nanobanana_tags', JSON.stringify(commonTags));
+        localStorage.setItem('nanobanana_notes', JSON.stringify(siteNotes));
+        setStorageError(false);
+      } catch (e) {
+        if (e.name === 'QuotaExceededError') {
+           setStorageError(true);
+           console.error("Local storage full");
+        }
+      }
     }
   }, [sections, commonTags, siteNotes, isAdmin]);
 
@@ -562,16 +601,16 @@ export default function App() {
       const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); 
       if(!res.ok) throw new Error(); 
       const d = await res.json(); 
-      // 如果是强制同步，或者本地没有数据时，才覆盖
       setSections(d.sections||[]); 
       setCommonTags(d.commonTags||[]); 
       if(d.siteNotes) setSiteNotes(d.siteNotes); 
       if(force) {
-         // 强制同步时，也要更新本地缓存，防止刷新后又变回旧的
-         localStorage.setItem('nanobanana_sections', JSON.stringify(d.sections||[]));
-         localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[]));
-         localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||""));
-         alert("已强制从云端同步最新数据！");
+         try {
+           localStorage.setItem('nanobanana_sections', JSON.stringify(d.sections||[]));
+           localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[]));
+           localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||""));
+           alert("已强制从云端同步最新数据！");
+         } catch(e) { alert("云端数据太大，无法存入本地缓存，但已在当前页面显示。"); }
       }
     } 
     catch (err) { if(force) alert("同步失败，请检查网络或GitHub链接配置"); setLoadError("离线模式"); } 
@@ -702,6 +741,12 @@ export default function App() {
       {/* Main Content Switcher */}
       <main className="max-w-7xl mx-auto px-4 py-8 pb-24 relative z-10">
         {loadError && !isAdmin && <div className="mb-6 p-3 bg-red-50/80 backdrop-blur border border-red-100 text-red-600 text-sm rounded-xl flex items-center shadow-sm"><Cloud size={16} className="mr-2"/> {loadError}</div>}
+        {storageError && (
+          <div className="mb-6 p-3 bg-amber-50/80 backdrop-blur border border-amber-200 text-amber-700 text-sm rounded-xl flex items-center shadow-sm animate-pulse">
+            <CheckSquare size={16} className="mr-2"/> 
+            <span>本地缓存已满！请尽快点击右上角【导出按钮】保存数据，否则新内容可能会丢失。</span>
+          </div>
+        )}
 
         {currentView === 'GIF_MAKER' ? (
           <GifMakerModule />
