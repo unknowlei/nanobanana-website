@@ -10,18 +10,17 @@ import {
 
 /**
  * ==============================================================================
- * 👇👇👇 核心配置区 (已自动填好) 👇👇👇
+ * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(19).json"; // 你的 GitHub RAW 链接
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(19).json"; // 你的 GitHub RAW 链接 (如果配置了自动同步请填入)
 
-// 1. 🔑 ImgBB API Key
-const IMGBB_API_KEY = "d24f035fac70f7c113badcb1f800b248"; 
-
-// 2. 📧 EmailJS 配置
+// 1. 📧 EmailJS 配置 (已预填)
 const EMAILJS_SERVICE_ID = "service_4y3xdta";    
 const EMAILJS_TEMPLATE_ID = "template_jufrgz5";  
 const EMAILJS_PUBLIC_KEY = "tIMRXTgG9c23yYOKk";  
+
+// (Catbox 不需要前端 Key，通过 /api/catbox 中转)
 
 
 // --- 全局工具 ---
@@ -37,36 +36,30 @@ const useGifshot = () => {
   return loaded;
 };
 
-// 🟢 智能图片处理 (小于1MB不压缩，大于1MB才压缩)
+// 🟢 智能图片处理 (压缩后再传给 Catbox)
 const compressImage = (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
-    
     reader.onload = (event) => {
-      if (file.size < 1024 * 1024) {
-        resolve(event.target.result);
+      // 如果图片小于 1.5MB，直接返回原图 Base64
+      if (file.size < 1.5 * 1024 * 1024) {
+        resolve(event.target.result); 
         return;
       }
-
       const img = new Image();
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const MAX_WIDTH = 1200; 
+        const MAX_WIDTH = 1600; // Catbox 支持大图，放宽限制
         let width = img.width;
         let height = img.height;
-        
-        if (width > MAX_WIDTH) {
-          height *= MAX_WIDTH / width;
-          width = MAX_WIDTH;
-        }
-        
-        canvas.width = width;
-        canvas.height = height;
+        if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
+        canvas.width = width; canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.8));
+        // 输出 JPEG 0.85 质量
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
     };
   });
@@ -80,6 +73,7 @@ const AnimationStyles = () => (
     .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
     .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
     .pixelated { image-rendering: pixelated; }
+    .cursor-zoom-in { cursor: zoom-in; }
   `}</style>
 );
 
@@ -87,7 +81,7 @@ const Tag = ({ label, onClick, isActive }) => (
   <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-300 border ${isActive ? 'bg-indigo-500/90 text-white shadow-lg shadow-indigo-500/30 border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-md hover:-translate-y-0.5 backdrop-blur-sm'}`}>{label}</span>
 );
 
-// --- 模块：游客投稿弹窗 (API Mode) ---
+// --- 模块：游客投稿弹窗 (Catbox Mode) ---
 const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '' });
   const [isUploading, setIsUploading] = useState(false);
@@ -95,43 +89,43 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const [urlInput, setUrlInput] = useState(''); 
   const [isDragOver, setIsDragOver] = useState(false);
 
+  // 🟢 Catbox 上传逻辑
   const processFiles = async (files) => {
     if (!files || files.length === 0) return;
-    if (!IMGBB_API_KEY) return alert("管理员未配置图床 Key");
-
     setIsUploading(true);
     
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
+        // 1. 压缩/转码
         const processedBase64 = await compressImage(file);
-        const base64Data = processedBase64.split(',')[1];
+        // 2. 去掉 data:image 头
+        const base64Data = processedBase64.split(',')[1]; 
         
-        const data = new FormData();
-        data.append('image', base64Data);
-
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: data });
+        // 3. 发送给本地 API 中转 (/api/catbox)
+        const res = await fetch('/api/catbox', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Data }) 
+        });
+        
         const json = await res.json();
         
         if (json.success) {
-          setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
+          setFormData(prev => ({ ...prev, images: [...prev.images, json.url] }));
         } else {
-          console.error("ImgBB Error:", json);
+          console.error("Catbox Error:", json);
+          alert(`上传失败: ${json.error || "请确认已使用 vercel dev 启动"}`);
         }
-      } catch (err) { console.error("Upload Error:", err); }
+      } catch (err) { console.error("Upload Error:", err); alert("网络错误，上传被中断"); }
     }
     setIsUploading(false);
   };
 
   const handleFileSelect = (e) => processFiles(e.target.files);
-
   const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
-  const handleDrop = (e) => { 
-    e.preventDefault(); 
-    setIsDragOver(false);
-    processFiles(e.dataTransfer.files); 
-  };
+  const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(e.dataTransfer.files); };
 
   const handleAddUrl = () => {
      if(!urlInput.trim()) return;
@@ -157,12 +151,13 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
     setIsSending(true);
 
     const previewImageStr = formData.images.length > 0 ? formData.images[0] : "无图片";
-    const contributorInfo = formData.contributor ? `(投稿人: ${formData.contributor})` : "";
+    const contributorInfo = formData.contributor || "匿名";
 
     const templateParams = {
       title: `${formData.title || "未命名"} ${contributorInfo}`, 
       content: formData.content,
       image: previewImageStr, 
+      contributor: contributorInfo,
       tags: formData.tags.length > 0 ? formData.tags.join(", ") : "无标签",
       json_data: JSON.stringify(formData) 
     };
@@ -222,7 +217,7 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
                onDrop={handleDrop}
                className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'}`}
              >
-                <label className="text-xs font-bold text-slate-500 block mb-1 px-1">配图 ({formData.images.length}) - 可直接拖入多张</label>
+                <label className="text-xs font-bold text-slate-500 block mb-1 px-1">配图 ({formData.images.length}) - 自动上传至 Catbox</label>
                 <div className="grid grid-cols-3 gap-2 mb-2">
                    {formData.images.map((img, idx) => (
                       <div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group bg-slate-100">
@@ -426,20 +421,33 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    const [urlInput, setUrlInput] = useState(''); 
    const [isDragOver, setIsDragOver] = useState(false);
 
-  // 处理文件上传 (核心逻辑：压缩 -> ImgBB)
+  // 🟢 ImgBB 上传逻辑 (本地/线上通用)
   const processFiles = async (files) => {
     if (!files || files.length === 0) return;
+    if (!IMGBB_API_KEY) return alert("管理员未配置图床 Key");
+
     setIsCompressing(true);
     
-    // 依次处理每个文件
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
-        // 1. 先压缩
-        const compressedBase64 = await compressImage(file);
-        // 2. 添加到表单
-        setFormData(prev => ({ ...prev, images: [...prev.images, compressedBase64] }));
-      } catch (err) { console.error("Process Error:", err); }
+        // 1. 压缩
+        const processedBase64 = await compressImage(file);
+        const base64Data = processedBase64.split(',')[1]; // 去掉头
+        
+        const data = new FormData();
+        data.append('image', base64Data);
+
+        // 2. 直接请求 ImgBB (跨域友好)
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: data });
+        const json = await res.json();
+        
+        if (json.success) {
+          setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
+        } else {
+          alert("上传失败: " + (json.error?.message || "ImgBB Error"));
+        }
+      } catch (err) { console.error("Upload Error:", err); alert("网络错误，上传被中断"); }
     }
     setIsCompressing(false);
   };
@@ -567,12 +575,21 @@ export default function App() {
       const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); 
       if(!res.ok) throw new Error(); 
       const d = await res.json(); 
-      setSections(d.sections||[]); 
+      // 🔴 修复：数据清理 (防白屏核心)
+      const cleanSections = (d.sections || []).map(s => ({
+          ...s,
+          prompts: s.prompts.map(p => ({
+              ...p,
+              tags: Array.isArray(p.tags) ? p.tags : [] // 强制修复标签为数组
+          }))
+      }));
+      
+      setSections(cleanSections); 
       setCommonTags(d.commonTags||[]); 
       if(d.siteNotes) setSiteNotes(d.siteNotes); 
       if(force) {
          try {
-           localStorage.setItem('nanobanana_sections', JSON.stringify(d.sections||[]));
+           localStorage.setItem('nanobanana_sections', JSON.stringify(cleanSections));
            localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[]));
            localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||""));
            alert("已强制从云端同步最新数据！");
@@ -588,7 +605,7 @@ export default function App() {
     else { const n = clickCount + 1; setClickCount(n); if (n >= 5) { setIsAdmin(true); setClickCount(0); if (navigator.vibrate) navigator.vibrate(50); } }
   };
   
-  // 🟢 剪贴板一键导入 (修正版：直接读取 JSON 并保存 contributor)
+  // 🟢 剪贴板一键导入 (增强容错性)
   const handleClipboardImport = async () => {
      try {
        const text = await navigator.clipboard.readText();
