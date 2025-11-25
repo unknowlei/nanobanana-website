@@ -13,7 +13,7 @@ import {
  * 👇👇👇 核心配置区 (已自动填好) 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(18).json"; // 你的 GitHub RAW 链接
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(19).json"; // 你的 GitHub RAW 链接
 
 // 1. 🔑 ImgBB API Key
 const IMGBB_API_KEY = "d24f035fac70f7c113badcb1f800b248"; 
