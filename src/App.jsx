@@ -13,7 +13,7 @@ import {
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(22).json";
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(23).json";
 
 // 1. 📧 EmailJS 配置 (已预填)
 const EMAILJS_SERVICE_ID = "service_4y3xdta";    
