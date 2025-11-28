@@ -20,7 +20,7 @@ const EMAILJS_SERVICE_ID = "service_4y3xdta";
 const EMAILJS_TEMPLATE_ID = "template_jufrgz5";  
 const EMAILJS_PUBLIC_KEY = "tIMRXTgG9c23yYOKk";  
 
-// --- 全局工具 ---
+// --- 全局工具与样式 ---
 
 const useGifshot = () => {
   const [loaded, setLoaded] = useState(false);
@@ -34,13 +34,12 @@ const useGifshot = () => {
   return loaded;
 };
 
-// 🟢 智能图片处理 (上传前预处理 - 仅针对超大图)
+// 🟢 智能图片处理 (上传前预处理)
 const compressImage = (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
     reader.readAsDataURL(file);
     reader.onload = (event) => {
-      // 如果图片小于 1.5MB，直接返回原图 Base64，保留画质
       if (file.size < 1.5 * 1024 * 1024) {
         resolve(event.target.result); 
         return;
@@ -50,25 +49,23 @@ const compressImage = (file) => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        // 限制最大宽度 1600，保证大图也有较高清晰度
-        const MAX_WIDTH = 1600; 
+        const MAX_WIDTH = 1200; 
         let width = img.width;
         let height = img.height;
         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
         canvas.width = width; canvas.height = height;
         ctx.drawImage(img, 0, 0, width, height);
-        resolve(canvas.toDataURL('image/jpeg', 0.9)); // 质量设为 0.9
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
       };
     };
   });
 };
 
-// 🟢 全球 CDN 图片加速 (画质升级版)
-const getOptimizedUrl = (url, width = 800) => {
+// 🟢 全球 CDN 图片加速
+const getOptimizedUrl = (url, width = 400) => {
   if (!url || typeof url !== 'string') return "";
   if (!url.startsWith('http')) return null; 
   if (url.includes('wsrv.nl')) return url;
-  // 🟢 提升：默认请求 800px 宽度，质量 90，WebP 格式
   return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${width}&q=90&output=webp`;
 };
 
@@ -79,7 +76,9 @@ const AnimationStyles = () => (
     .custom-scrollbar::-webkit-scrollbar-thumb { background-color: rgba(156, 163, 175, 0.5); border-radius: 20px; }
     .pixelated { image-rendering: pixelated; }
     .cursor-zoom-in { cursor: zoom-in; }
-    .gpu-accelerated { transform: translateZ(0); backface-visibility: hidden; }
+    /* 强制硬件加速，减少重绘 */
+    .gpu-accelerated { transform: translateZ(0); backface-visibility: hidden; perspective: 1000px; }
+    .static-gradient { background: linear-gradient(135deg, #e0e7ff 0%, #f3e8ff 100%); }
   `}</style>
 );
 
@@ -88,7 +87,7 @@ const Tag = memo(({ label, onClick, isActive }) => (
 ));
 
 // 🟢 极致优化的图片组件 (Memo)
-const LazyImage = memo(({ src, alt, className, width = 600, ...props }) => {
+const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const optimizedSrc = useMemo(() => getOptimizedUrl(src, width), [src, width]);
   
@@ -103,7 +102,6 @@ const LazyImage = memo(({ src, alt, className, width = 600, ...props }) => {
         loading="lazy" 
         decoding="async" 
         onLoad={() => setIsLoaded(true)} 
-        onError={() => setIsLoaded(true)} 
         className={`w-full h-full object-cover transition-opacity duration-300 ${isLoaded ? 'opacity-100' : 'opacity-0'}`} 
         {...props} 
       />
@@ -111,7 +109,78 @@ const LazyImage = memo(({ src, alt, className, width = 600, ...props }) => {
   );
 });
 
-// --- 🟢 动图工坊 (GifMaker) - 完整代码 ---
+// --- 🟢 [修复] 之前丢失的 SubmissionModal 组件 ---
+const SubmissionModal = ({ onClose, commonTags = [] }) => {
+  const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '' });
+  const [isUploading, setIsUploading] = useState(false);
+  const [isSending, setIsSending] = useState(false);
+  const [urlInput, setUrlInput] = useState(''); 
+  const [isDragOver, setIsDragOver] = useState(false);
+
+  const processFiles = async (files) => {
+    if (!files || files.length === 0) return;
+    setIsUploading(true);
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      try {
+        const fullBase64 = await compressImage(file);
+        const base64Data = fullBase64.split(',')[1];
+        // 尝试上传到 Catbox (需后端支持)
+        const res = await fetch('/api/catbox', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Data }) 
+        });
+        const json = await res.json();
+        if (json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.url] }));
+        else alert(`上传失败: ${json.error || "请检查本地是否用 vercel dev 启动"}`);
+      } catch (err) { alert("网络错误"); }
+    }
+    setIsUploading(false);
+  };
+
+  const handleFileSelect = (e) => processFiles(e.target.files);
+  const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
+  const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
+  const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(e.dataTransfer.files); };
+  const handleAddUrl = () => { if(!urlInput.trim()) return; setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] })); setUrlInput(''); };
+  const removeImage = (idx) => { setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) })); };
+  const toggleTag = (tag) => { setFormData(prev => { const tags = prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag]; return { ...prev, tags }; }); };
+
+  const handleDirectSubmit = async () => {
+    if (!formData.content) return alert("请至少填写【Prompt 内容】");
+    if (!EMAILJS_SERVICE_ID) return alert("管理员未配置邮件服务");
+    setIsSending(true);
+    const previewImageStr = formData.images.length > 0 ? formData.images[0] : "无图片";
+    const contributorInfo = formData.contributor || "匿名";
+    const templateParams = { title: `${formData.title || "未命名"} ${contributorInfo}`, content: formData.content, image: previewImageStr, contributor: contributorInfo, tags: formData.tags.join(", "), json_data: JSON.stringify(formData) };
+    try {
+      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: EMAILJS_SERVICE_ID, template_id: EMAILJS_TEMPLATE_ID, user_id: EMAILJS_PUBLIC_KEY, template_params: templateParams }) });
+      if (response.ok) { alert("🎉 投稿成功！"); onClose(); } else { throw new Error("发送失败"); }
+    } catch (error) { alert("投稿失败，请稍后重试。"); } finally { setIsSending(false); }
+  };
+
+  // 🛡️ 安全过滤 commonTags
+  const safeCommonTags = Array.isArray(commonTags) ? commonTags.filter(t => typeof t === 'string') : [];
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up">
+       <div className="bg-white w-full max-w-lg max-h-[90vh] overflow-y-auto custom-scrollbar rounded-3xl p-8 shadow-2xl border border-white/50">
+          <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800 flex items-center"><Send className="w-5 h-5 mr-2 text-indigo-500"/> 投稿提示词</h3><button onClick={onClose}><X className="text-slate-400 hover:text-slate-600"/></button></div>
+          <div className="space-y-5">
+             <div><label className="text-xs font-bold text-slate-500 block mb-1">标题 (选填)</label><input value={formData.title} onChange={e=>setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500" placeholder="给你的灵感起个名"/></div>
+             <div><label className="text-xs font-bold text-slate-500 block mb-1">投稿人 ID (选填)</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/><input value={formData.contributor} onChange={e=>setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="无投稿人"/></div></div>
+             <div><label className="text-xs font-bold text-slate-500 block mb-1">Prompt 内容 <span className="text-red-500">*</span></label><textarea value={formData.content} onChange={e=>setFormData({...formData, content: e.target.value})} rows={4} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 font-mono text-sm" placeholder="必填..."/></div>
+             <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'}`}><label className="text-xs font-bold text-slate-500 block mb-1 px-1">配图 ({formData.images.length}) - 拖拽/多选</label><div className="grid grid-cols-3 gap-2 mb-2">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group bg-slate-100"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button></div>))}<label className={`aspect-square bg-indigo-50 text-indigo-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100 transition-all border-2 border-dashed border-indigo-200 ${isUploading ? 'opacity-50' : ''}`}>{isUploading ? <Loader2 className="animate-spin w-5 h-5"/> : <Plus className="w-6 h-6"/>}<span className="text-[10px] font-bold mt-1 text-center px-1">{isUploading ? '上传中' : '点击/拖入'}</span><input type="file" accept="image/*" multiple className="hidden" disabled={isUploading} onChange={handleFileSelect}/></label></div><div className="flex gap-2"><input value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAddUrl()} placeholder="粘贴链接" className="flex-1 bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs outline-none"/><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg disabled:opacity-50">添加</button></div></div>
+             <div><label className="text-xs font-bold text-slate-500 block mb-2">标签 (选填)</label>{safeCommonTags.length > 0 ? (<div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 max-h-32 overflow-y-auto custom-scrollbar">{safeCommonTags.map(t => (<span key={t} onClick={() => toggleTag(t)} className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-all select-none border ${formData.tags.includes(t) ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>{t}</span>))}</div>) : (<div className="text-xs text-slate-400 p-2 bg-slate-50 rounded-xl text-center">暂无可用标签</div>)}</div>
+             <button onClick={handleDirectSubmit} disabled={isUploading || isSending} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all disabled:opacity-50 flex items-center justify-center">{isSending ? <Loader2 className="animate-spin mr-2 w-4 h-4"/> : <Send className="mr-2 w-4 h-4"/>} {isSending ? '投递中...' : '立即投稿'}</button>
+          </div>
+       </div>
+    </div>
+  );
+};
+
+// --- 🟢 动图工坊 (GifMaker) 完整功能 ---
 const GifMakerModule = () => {
   const gifshotLoaded = useGifshot();
   const [sourceImages, setSourceImages] = useState([]); 
@@ -221,13 +290,14 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       onClick={(e) => { e.stopPropagation(); onClick(prompt); }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
+      // 🟢 性能优化：移除了复杂的 backdrop-filter，改用 shadow 和 transform
       className={`group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out aspect-[3/4] flex flex-col relative ${isDragTarget ? 'ring-2 ring-indigo-500 transform scale-105 z-20 shadow-xl' : 'shadow-sm hover:shadow-lg hover:-translate-y-0.5'} ${isBeingDragged ? 'opacity-30 grayscale' : ''} gpu-accelerated`}
     >
       <div className="flex-1 bg-slate-100 relative overflow-hidden pointer-events-none">
         {images.length > 0 ? (
           <>
-             {/* 🟢 列表页使用 600px 宽度 (清晰度平衡) */}
-             <LazyImage src={images[currentImgIdx]} width={600} alt={prompt.title} className="absolute inset-0 w-full h-full" />
+             {/* 列表页只渲染当前图，减小DOM压力 */}
+             <LazyImage src={images[currentImgIdx]} width={400} alt={prompt.title} className="absolute inset-0 w-full h-full" />
              {images.length > 1 && (
                <div className={`absolute bottom-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-opacity duration-300 ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
                  <Layers size={10}/> {currentImgIdx + 1}/{images.length}
@@ -238,7 +308,6 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       </div>
       <div className="p-4 bg-white h-20 flex flex-col justify-center border-t border-slate-50 pointer-events-none relative z-10">
         <h3 className="font-bold text-sm truncate text-slate-800 mb-1.5">{prompt.title}</h3>
-        {/* 🟢 修复：确保 tags 是数组且元素是字符串 */}
         <div className="flex gap-1 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">{tags.slice(0, 2).map(t => (typeof t === 'string' ? <span key={t} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{t}</span> : null))}</div>
       </div>
     </div>
@@ -258,7 +327,7 @@ const PromptViewer = memo(({ prompt }) => {
          <div className="relative w-full bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-200/60 shadow-inner flex items-center justify-center group min-h-[300px]">
             <LazyImage 
               src={images[idx]} 
-              width={1200} 
+              width={800} 
               className="w-auto h-auto max-w-full max-h-[75vh] object-contain cursor-zoom-in transition-transform duration-300" 
               onDoubleClick={handleDoubleClick}
               title="双击查看原图"
@@ -328,7 +397,6 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
          <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">投稿人 ID</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/> <input value={formData.contributor} onChange={e => setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-sm" placeholder="无投稿人"/></div></div>
          <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词</label><textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" /></div>
          
-         {/* 🟢 管理员图片拖拽区域 (修复) */}
          <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-200 hover:border-indigo-400'}`}><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图 ({formData.images.length})</label>
             <div className="flex flex-col gap-4">
               <div className="grid grid-cols-3 gap-3">
@@ -352,7 +420,6 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
 const INITIAL_TAGS = ["示例标签"];
 const INITIAL_SECTIONS = [{ id: 'demo', title: '默认分区', isCollapsed: false, prompts: [] }];
 const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
-// 分页加载
 const ITEMS_PER_PAGE = 24;
 
 export default function App() {
@@ -378,7 +445,7 @@ export default function App() {
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isNotesEditing, setIsNotesEditing] = useState(false);
-  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false); // 投稿弹窗
+  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false); 
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
@@ -420,7 +487,6 @@ export default function App() {
       const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); 
       if(!res.ok) throw new Error(); 
       const d = await res.json(); 
-      // 🛡️ 数据清洗：移除潜在的 Base64 大图 (超过 5000 字符视为乱码)
       const cleanSections = (d.sections || []).map(s => ({
           ...s,
           prompts: s.prompts.map(p => ({
