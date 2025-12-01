@@ -13,14 +13,14 @@ import {
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(33).json";
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(39).json";
 
 // 📧 EmailJS 配置
 const EMAILJS_SERVICE_ID = "service_4y3xdta";    
 const EMAILJS_TEMPLATE_ID = "template_jufrgz5";  
 const EMAILJS_PUBLIC_KEY = "tIMRXTgG9c23yYOKk";  
 
-// --- 全局工具 ---
+// --- 全局工具与样式 ---
 
 const useGifshot = () => {
   const [loaded, setLoaded] = useState(false);
@@ -49,7 +49,7 @@ const compressImage = (file) => {
       img.onload = () => {
         const canvas = document.createElement('canvas');
         const ctx = canvas.getContext('2d');
-        const MAX_WIDTH = 1200; 
+        const MAX_WIDTH = 1600; 
         let width = img.width;
         let height = img.height;
         if (width > MAX_WIDTH) { height *= MAX_WIDTH / width; width = MAX_WIDTH; }
@@ -82,10 +82,10 @@ const AnimationStyles = () => (
 );
 
 const Tag = memo(({ label, onClick, isActive }) => (
-  <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-200 border ${isActive ? 'bg-indigo-500/90 text-white shadow-md border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-sm'}`}>{label}</span>
+  <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-200 border ${isActive ? 'bg-indigo-500/90 text-white shadow-md border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-sm'}`}>{typeof label === 'string' ? label : 'Tag'}</span>
 ));
 
-// 🟢 极致优化的图片组件
+// 🟢 极致优化的图片组件 (Memo)
 const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const optimizedSrc = useMemo(() => getOptimizedUrl(src, width), [src, width]);
@@ -94,7 +94,7 @@ const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
 
   return (
     <div className={`relative overflow-hidden bg-slate-50 ${className}`}>
-      {!isLoaded && <div className="absolute inset-0 bg-slate-100 animate-pulse flex items-center justify-center z-10"><ImageIcon className="text-slate-300 w-6 h-6 opacity-50" /></div>}
+      {!isLoaded && <div className="absolute inset-0 bg-slate-100 animate-pulse z-10" />}
       <img 
         src={optimizedSrc} 
         alt={alt} 
@@ -136,160 +136,33 @@ const GifMakerModule = () => {
 
   return (
     <div className="animate-fade-in-up">
-      {cropTarget && (
-        <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4">
-            <div className="bg-white rounded-2xl p-2 shadow-2xl max-w-4xl w-full border border-white/20 relative">
-                <div className="absolute top-4 right-4 z-20 flex gap-2">
-                    <button onClick={confirmCropSelection} disabled={!selection || selection.w < 5} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 flex items-center"><Check size={16} className="mr-1"/> 确认裁剪</button>
-                    <button onClick={() => {setCropTarget(null); setSelection(null);}} className="p-2 bg-white/80 hover:bg-slate-100 rounded-xl text-slate-600 transition-all"><X size={20}/></button>
-                </div>
-                <div className="relative overflow-hidden rounded-xl bg-slate-100 select-none flex items-center justify-center min-h-[400px]" ref={cropContainerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={() => setIsSelecting(false)} onMouseLeave={() => setIsSelecting(false)}>
-                    <img ref={cropImgRef} src={cropTarget} className="max-h-[70vh] object-contain pointer-events-none pixelated" />
-                    {selection && <div className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none" style={{ left: selection.x, top: selection.y, width: selection.w, height: selection.h }} />}
-                    {!selection && !isSelecting && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="bg-black/50 text-white px-4 py-2 rounded-full flex items-center backdrop-blur-md"><MousePointer2 size={16} className="mr-2"/> 拖拽框选</div></div>}
-                </div>
-            </div>
-        </div>
-      )}
-
+      {cropTarget && <div className="fixed inset-0 z-[100] bg-slate-900/80 backdrop-blur-sm flex flex-col items-center justify-center p-4"><div className="bg-white rounded-2xl p-2 shadow-2xl max-w-4xl w-full border border-white/20 relative"><div className="absolute top-4 right-4 z-20 flex gap-2"><button onClick={confirmCropSelection} disabled={!selection || selection.w < 5} className="px-4 py-2 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold shadow-lg transition-all disabled:opacity-50 flex items-center"><Check size={16} className="mr-1"/> 确认裁剪</button><button onClick={() => {setCropTarget(null); setSelection(null);}} className="p-2 bg-white/80 hover:bg-slate-100 rounded-xl text-slate-600 transition-all"><X size={20}/></button></div><div className="relative overflow-hidden rounded-xl bg-slate-100 select-none flex items-center justify-center min-h-[400px]" ref={cropContainerRef} onMouseDown={handleMouseDown} onMouseMove={handleMouseMove} onMouseUp={() => setIsSelecting(false)} onMouseLeave={() => setIsSelecting(false)}><img ref={cropImgRef} src={cropTarget} className="max-h-[70vh] object-contain pointer-events-none pixelated" />{selection && <div className="absolute border-2 border-green-500 bg-green-500/20 pointer-events-none" style={{ left: selection.x, top: selection.y, width: selection.w, height: selection.h }} />}{!selection && !isSelecting && <div className="absolute inset-0 flex items-center justify-center pointer-events-none"><div className="bg-black/50 text-white px-4 py-2 rounded-full flex items-center backdrop-blur-md"><MousePointer2 size={16} className="mr-2"/> 拖拽框选</div></div>}</div></div></div>}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         <div className="lg:col-span-4 space-y-6">
             <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl p-6 shadow-sm">
-                <h2 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center justify-between">
-                    <span className="flex items-center"><ImageIcon className="w-4 h-4 mr-2 text-blue-500" /> 模式 A: 角色素材处理</span>
-                </h2>
+                <h2 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center justify-between"><span className="flex items-center"><ImageIcon className="w-4 h-4 mr-2 text-blue-500" /> 模式 A: 角色素材处理</span></h2>
                 <div className="space-y-4">
-                    <div className="relative group">
-                        <input type="file" accept="image/*" multiple onChange={handleSourceUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/>
-                        <div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-2xl p-6 text-center hover:border-indigo-400 transition-all">
-                            <div className="flex flex-col items-center text-indigo-400"><Upload className="w-8 h-8 mb-2" /><span className="text-xs font-bold">上传大图 (支持多选)</span></div>
-                        </div>
-                    </div>
-                    {sourceImages.length > 0 && (
-                        <div className="bg-white/50 rounded-xl border border-indigo-100 overflow-hidden">
-                            <div className="px-3 py-2 bg-indigo-50/50 border-b border-indigo-100 text-xs font-bold text-indigo-400 flex justify-between"><span>待处理列表 ({sourceImages.length})</span></div>
-                            <div className="max-h-[150px] overflow-y-auto p-2 space-y-2 custom-scrollbar">
-                                {sourceImages.map((img, idx) => (
-                                    <div key={img.id} className="flex items-center bg-white p-2 rounded-lg border border-slate-100 group shadow-sm">
-                                        <img src={img.src} className="w-8 h-8 object-cover rounded bg-slate-100 mr-3 pixelated"/>
-                                        <div className="flex-1 min-w-0"><div className="text-xs text-slate-600 truncate font-medium">{img.name}</div></div>
-                                        <div className="flex items-center space-x-1">
-                                            <button onClick={() => {setCropTarget(img.src); setSelection(null);}} className="p-1.5 bg-indigo-100 hover:bg-indigo-500 text-indigo-600 hover:text-white rounded transition-colors mr-1" title="手动切片"><Scissors className="w-3 h-3"/></button>
-                                            <div className="flex items-center space-x-0.5 opacity-60 group-hover:opacity-100 transition-opacity">
-                                                <button onClick={() => moveSourceImage(idx, -1)} disabled={idx === 0} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"><ArrowUp className="w-3 h-3"/></button>
-                                                <button onClick={() => moveSourceImage(idx, 1)} disabled={idx === sourceImages.length - 1} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"><ArrowDown className="w-3 h-3"/></button>
-                                                <button onClick={() => setSourceImages(p => p.filter(i => i.id !== img.id))} className="p-1 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 ml-1"><Trash2 className="w-3 h-3"/></button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-                    <div className="bg-white/50 p-3 rounded-xl border border-indigo-100">
-                        <div className="flex justify-between items-center mb-2">
-                            <span className="text-xs font-bold text-slate-500">网格切片设置</span>
-                            <label className="flex items-center space-x-2 cursor-pointer select-none group">
-                                <div onClick={() => setAutoAddToTimeline(!autoAddToTimeline)} className={`w-3 h-3 rounded border flex items-center justify-center transition-colors ${autoAddToTimeline ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300 bg-white'}`}>{autoAddToTimeline && <Check className="w-2.5 h-2.5 text-white" />}</div>
-                                <span className="text-[10px] text-slate-400">自动加入序列</span>
-                            </label>
-                        </div>
-                        <div className="grid grid-cols-2 gap-3 mb-3">
-                            <div><label className="text-[10px] text-slate-400 mb-1 block">列 (Cols)</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, Number(e.target.value)))} className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:border-indigo-500 outline-none"/></div>
-                            <div><label className="text-[10px] text-slate-400 mb-1 block">行 (Rows)</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, Number(e.target.value)))} className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:border-indigo-500 outline-none"/></div>
-                        </div>
-                        <button onClick={handleBatchSlice} disabled={sourceImages.length === 0 || isSlicing} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 text-xs font-bold rounded-lg flex items-center justify-center transition-all shadow-md shadow-indigo-200">
-                            {isSlicing ? <><RefreshCw className="w-3 h-3 mr-2 animate-spin" /> 切割中...</> : <><Grid className="w-3 h-3 mr-2" /> 自动网格切割</>}
-                        </button>
-                    </div>
+                    <div className="relative group"><input type="file" accept="image/*" multiple onChange={handleSourceUpload} className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"/><div className="border-2 border-dashed border-indigo-200 bg-indigo-50/30 rounded-2xl p-6 text-center hover:border-indigo-400 transition-all"><div className="flex flex-col items-center text-indigo-400"><Upload className="w-8 h-8 mb-2" /><span className="text-xs font-bold">上传大图 (支持多选)</span></div></div></div>
+                    {sourceImages.length > 0 && (<div className="bg-white/50 rounded-xl border border-indigo-100 overflow-hidden"><div className="px-3 py-2 bg-indigo-50/50 border-b border-indigo-100 text-xs font-bold text-indigo-400 flex justify-between"><span>待处理列表 ({sourceImages.length})</span></div><div className="max-h-[150px] overflow-y-auto p-2 space-y-2 custom-scrollbar">{sourceImages.map((img, idx) => (<div key={img.id} className="flex items-center bg-white p-2 rounded-lg border border-slate-100 group shadow-sm"><img src={img.src} className="w-8 h-8 object-cover rounded bg-slate-100 mr-3 pixelated"/><div className="flex-1 min-w-0"><div className="text-xs text-slate-600 truncate font-medium">{img.name}</div></div><div className="flex items-center space-x-1"><button onClick={() => {setCropTarget(img.src); setSelection(null);}} className="p-1.5 bg-indigo-100 hover:bg-indigo-500 text-indigo-600 hover:text-white rounded transition-colors mr-1" title="手动切片"><Scissors className="w-3 h-3"/></button><div className="flex items-center space-x-0.5 opacity-60 group-hover:opacity-100 transition-opacity"><button onClick={() => moveSourceImage(idx, -1)} disabled={idx === 0} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"><ArrowUp className="w-3 h-3"/></button><button onClick={() => moveSourceImage(idx, 1)} disabled={idx === sourceImages.length - 1} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 disabled:opacity-30"><ArrowDown className="w-3 h-3"/></button><button onClick={() => setSourceImages(p => p.filter(i => i.id !== img.id))} className="p-1 hover:bg-red-100 rounded text-slate-400 hover:text-red-500 ml-1"><Trash2 className="w-3 h-3"/></button></div></div></div>))}</div></div>)}
+                    <div className="bg-white/50 p-3 rounded-xl border border-indigo-100"><div className="flex justify-between items-center mb-2"><span className="text-xs font-bold text-slate-500">网格切片设置</span><label className="flex items-center space-x-2 cursor-pointer select-none group"><div onClick={() => setAutoAddToTimeline(!autoAddToTimeline)} className={`w-3 h-3 rounded border flex items-center justify-center transition-colors ${autoAddToTimeline ? 'bg-indigo-500 border-indigo-500' : 'border-slate-300 bg-white'}`}>{autoAddToTimeline && <Check className="w-2.5 h-2.5 text-white" />}</div><span className="text-[10px] text-slate-400">自动加入序列</span></label></div><div className="grid grid-cols-2 gap-3 mb-3"><div><label className="text-[10px] text-slate-400 mb-1 block">列 (Cols)</label><input type="number" value={cols} onChange={(e) => setCols(Math.max(1, Number(e.target.value)))} className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:border-indigo-500 outline-none"/></div><div><label className="text-[10px] text-slate-400 mb-1 block">行 (Rows)</label><input type="number" value={rows} onChange={(e) => setRows(Math.max(1, Number(e.target.value)))} className="w-full bg-white border border-slate-200 rounded px-2 py-1 text-xs focus:border-indigo-500 outline-none"/></div></div><button onClick={handleBatchSlice} disabled={sourceImages.length === 0 || isSlicing} className="w-full py-2 bg-indigo-500 hover:bg-indigo-600 text-white disabled:opacity-50 text-xs font-bold rounded-lg flex items-center justify-center transition-all shadow-md shadow-indigo-200">{isSlicing ? <><RefreshCw className="w-3 h-3 mr-2 animate-spin" /> 切割中...</> : <><Grid className="w-3 h-3 mr-2" /> 自动网格切割</>}</button></div>
                     <div className="relative flex items-center py-1"><div className="flex-grow border-t border-slate-200"></div><span className="flex-shrink-0 mx-4 text-slate-400 text-[10px] font-bold">OR</span><div className="flex-grow border-t border-slate-200"></div></div>
-                    <div>
-                        <h2 className="text-xs font-bold text-slate-500 mb-2 flex items-center justify-between"><span>模式 B: 直接导入素材</span></h2>
-                        <label className="flex items-center justify-center w-full py-2.5 bg-white hover:bg-slate-50 text-indigo-500 font-bold rounded-xl cursor-pointer transition-all border border-indigo-100 shadow-sm">
-                            <Plus className="w-4 h-4 mr-2" /><span className="text-xs">导入单张图片 (可多选)</span>
-                            <input type="file" multiple accept="image/*" onChange={handleMultiUpload} className="hidden"/>
-                        </label>
-                    </div>
+                    <div><h2 className="text-xs font-bold text-slate-500 mb-2 flex items-center justify-between"><span>模式 B: 直接导入素材</span></h2><label className="flex items-center justify-center w-full py-2.5 bg-white hover:bg-slate-50 text-indigo-500 font-bold rounded-xl cursor-pointer transition-all border border-indigo-100 shadow-sm"><Plus className="w-4 h-4 mr-2" /><span className="text-xs">导入单张图片 (可多选)</span><input type="file" multiple accept="image/*" onChange={handleMultiUpload} className="hidden"/></label></div>
                 </div>
             </div>
             <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl p-6 shadow-sm sticky top-24">
                 <h2 className="text-sm font-bold text-slate-500 uppercase mb-4 flex items-center"><Film className="w-4 h-4 mr-2 text-pink-500" /> 预览与导出</h2>
-                <div className="flex flex-col items-center justify-center bg-slate-100/80 rounded-2xl p-4 mb-4 border border-slate-200 min-h-[180px] relative overflow-hidden">
-                    {timeline.length > 0 ? (<img src={timeline[previewIndex % timeline.length]?.src} className="max-w-full max-h-[160px] object-contain pixelated" alt="Preview"/>) : (<div className="text-slate-400 text-xs">时间轴为空</div>)}
-                    {timeline.length > 0 && <div className="mt-2 text-[10px] font-mono text-slate-500 absolute bottom-2 right-2 bg-white/80 px-2 py-0.5 rounded-full border border-slate-100">#{previewIndex + 1}</div>}
-                </div>
-                <div className="space-y-4">
-                    <div>
-                        <div className="flex justify-between text-xs text-slate-400 mb-1 font-bold"><span>速度</span><span>{fps} FPS</span></div>
-                        <input type="range" min="1" max="30" value={fps} onChange={(e) => setFps(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-pink-500"/>
-                    </div>
-                    <div className="flex gap-2">
-                        <button onClick={() => setIsPlaying(!isPlaying)} className={`flex-1 py-2 rounded-xl font-bold text-xs flex items-center justify-center transition-all ${isPlaying ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}>
-                            {isPlaying ? <><Pause className="w-4 h-4 mr-1" /> 暂停</> : <><Play className="w-4 h-4 mr-1" /> 播放</>}
-                        </button>
-                        <button onClick={generateGIF} disabled={timeline.length === 0 || isGenerating} className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center transition-all shadow-lg shadow-indigo-200">
-                            {isGenerating ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />} {isGenerating ? '生成中' : '生成 GIF'}
-                        </button>
-                    </div>
-                    {generatedGif && (
-                        <div className="pt-4 border-t border-slate-100 text-center animate-fade-in-up">
-                            <div className="text-center mb-2 text-green-500 font-bold text-xs">生成成功!</div>
-                            <div className="flex flex-col items-center">
-                                <img src={generatedGif} className="border-2 border-white shadow-md rounded-lg max-h-32 mb-3" alt="Result" />
-                                <a href={generatedGif} download={`banana-anim-${Date.now()}.gif`} className="text-xs bg-slate-800 hover:bg-black text-white px-4 py-1.5 rounded-full flex items-center transition-colors"><Download className="w-3 h-3 mr-1" /> 下载文件</a>
-                            </div>
-                        </div>
-                    )}
-                </div>
+                <div className="flex flex-col items-center justify-center bg-slate-100/80 rounded-2xl p-4 mb-4 border border-slate-200 min-h-[180px] relative overflow-hidden">{timeline.length > 0 ? (<img src={timeline[previewIndex % timeline.length]?.src} className="max-w-full max-h-[160px] object-contain pixelated" alt="Preview"/>) : (<div className="text-slate-400 text-xs">时间轴为空</div>)}{timeline.length > 0 && <div className="mt-2 text-[10px] font-mono text-slate-500 absolute bottom-2 right-2 bg-white/80 px-2 py-0.5 rounded-full border border-slate-100">#{previewIndex + 1}</div>}</div>
+                <div className="space-y-4"><div><div className="flex justify-between text-xs text-slate-400 mb-1 font-bold"><span>速度</span><span>{fps} FPS</span></div><input type="range" min="1" max="30" value={fps} onChange={(e) => setFps(Number(e.target.value))} className="w-full h-1.5 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-pink-500"/></div><div className="flex gap-2"><button onClick={() => setIsPlaying(!isPlaying)} className={`flex-1 py-2 rounded-xl font-bold text-xs flex items-center justify-center transition-all ${isPlaying ? 'bg-amber-100 text-amber-600' : 'bg-green-100 text-green-600'}`}>{isPlaying ? <><Pause className="w-4 h-4 mr-1" /> 暂停</> : <><Play className="w-4 h-4 mr-1" /> 播放</>}</button><button onClick={generateGIF} disabled={timeline.length === 0 || isGenerating} className="flex-1 bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 disabled:opacity-50 text-white py-2 rounded-xl font-bold text-xs flex items-center justify-center transition-all shadow-lg shadow-indigo-200">{isGenerating ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Download className="w-4 h-4 mr-1" />} {isGenerating ? '生成中' : '生成 GIF'}</button></div>{generatedGif && (<div className="pt-4 border-t border-slate-100 text-center animate-fade-in-up"><div className="text-center mb-2 text-green-500 font-bold text-xs">生成成功!</div><div className="flex flex-col items-center"><img src={generatedGif} className="border-2 border-white shadow-md rounded-lg max-h-32 mb-3" alt="Result" /><a href={generatedGif} download={`banana-anim-${Date.now()}.gif`} className="text-xs bg-slate-800 hover:bg-black text-white px-4 py-1.5 rounded-full flex items-center transition-colors"><Download className="w-3 h-3 mr-1" /> 下载文件</a></div></div>)}</div>
             </div>
         </div>
         <div className="lg:col-span-8 flex flex-col gap-6">
             <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl overflow-hidden shadow-sm flex flex-col min-h-[350px]">
                 <div className="p-4 border-b border-slate-100 bg-white/40 flex justify-between items-center sticky top-0 z-20">
-                    <div className="flex items-center space-x-4">
-                        <h2 className="text-sm font-bold text-slate-500 flex items-center"><Layers className="w-4 h-4 mr-2 text-blue-500" /> 素材池</h2>
-                        {framePool.length > 0 && (
-                            <div className="flex items-center space-x-2 text-[10px] text-slate-500 bg-slate-100 px-2 py-1 rounded-lg">
-                                <button onClick={() => setSelectedFrameIds(selectedFrameIds.size === framePool.length ? new Set() : new Set(framePool.map(f => f.id)))} className="hover:text-blue-500 flex items-center font-bold">
-                                    {selectedFrameIds.size === framePool.length && framePool.length > 0 ? <CheckSquare className="w-3 h-3 mr-1"/> : <Square className="w-3 h-3 mr-1"/>} 全选
-                                </button>
-                                <span className="w-[1px] h-3 bg-slate-300"></span>
-                                <span>已选 {selectedFrameIds.size}</span>
-                            </div>
-                        )}
-                    </div>
-                    <div className="flex space-x-2">
-                        {selectedFrameIds.size > 0 ? (
-                            <>
-                                <button onClick={() => { setFramePool(prev => prev.filter(f => !selectedFrameIds.has(f.id))); setSelectedFrameIds(new Set()); }} className="text-xs text-red-500 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors flex items-center font-bold"><Trash2 className="w-3 h-3 mr-1" /> 删除</button>
-                                <button onClick={addSelectedToTimeline} className="text-xs text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg transition-colors flex items-center font-bold shadow-md shadow-blue-200"><Plus className="w-3 h-3 mr-1" /> 添加</button>
-                            </>
-                        ) : (
-                            framePool.length > 0 && <button onClick={() => setFramePool([])} className="text-xs text-slate-400 hover:text-red-400 px-2 py-1 rounded hover:bg-red-50 transition-colors">清空所有</button>
-                        )}
-                    </div>
+                    <div className="flex items-center space-x-4"><h2 className="text-sm font-bold text-slate-500 flex items-center"><Layers className="w-4 h-4 mr-2 text-blue-500" /> 素材池</h2>{framePool.length > 0 && (<div className="flex items-center space-x-2 text-[10px] text-slate-500 bg-slate-100 px-2 py-1 rounded-lg"><button onClick={() => setSelectedFrameIds(selectedFrameIds.size === framePool.length ? new Set() : new Set(framePool.map(f => f.id)))} className="hover:text-blue-500 flex items-center font-bold">{selectedFrameIds.size === framePool.length && framePool.length > 0 ? <CheckSquare className="w-3 h-3 mr-1"/> : <Square className="w-3 h-3 mr-1"/>} 全选</button><span className="w-[1px] h-3 bg-slate-300"></span><span>已选 {selectedFrameIds.size}</span></div>)}</div>
+                    <div className="flex space-x-2">{selectedFrameIds.size > 0 ? (<><button onClick={() => { setFramePool(prev => prev.filter(f => !selectedFrameIds.has(f.id))); setSelectedFrameIds(new Set()); }} className="text-xs text-red-500 bg-red-100 hover:bg-red-200 px-3 py-1.5 rounded-lg transition-colors flex items-center font-bold"><Trash2 className="w-3 h-3 mr-1" /> 删除</button><button onClick={addSelectedToTimeline} className="text-xs text-white bg-blue-500 hover:bg-blue-600 px-3 py-1.5 rounded-lg transition-colors flex items-center font-bold shadow-md shadow-blue-200"><Plus className="w-3 h-3 mr-1" /> 添加</button></>) : (framePool.length > 0 && <button onClick={() => setFramePool([])} className="text-xs text-slate-400 hover:text-red-400 px-2 py-1 rounded hover:bg-red-50 transition-colors">清空所有</button>)}</div>
                 </div>
                 <div className="p-4 bg-slate-50/50 flex-1 overflow-y-auto max-h-[400px] custom-scrollbar">
-                    {framePool.length === 0 ? (
-                        <div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2 py-12"><Layers className="w-12 h-12 opacity-20 text-indigo-300" /><p className="text-xs">暂无素材，请先在左侧上传</p></div>
-                    ) : (
-                        <div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-3 select-none">
-                            {framePool.map((frame, idx) => {
-                                const isSelected = selectedFrameIds.has(frame.id);
-                                return (
-                                    <div key={frame.id} onClick={() => { const n = new Set(selectedFrameIds); n.has(frame.id) ? n.delete(frame.id) : n.add(frame.id); setSelectedFrameIds(n); }} onDoubleClick={() => addToTimeline(frame)}
-                                        className={`aspect-square rounded-xl border-2 relative group transition-all cursor-pointer overflow-hidden shadow-sm ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-white bg-white hover:border-blue-200'}`}>
-                                        <img src={frame.src} className="w-full h-full object-contain p-1 pixelated" alt={`Frame ${idx}`} />
-                                        {isSelected && <div className="absolute top-1 left-1 bg-blue-500 text-white p-0.5 rounded-full shadow-md"><Check className="w-2 h-2" /></div>}
-                                        <div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div>
-                                        <div className="absolute bottom-0 right-0 p-1 opacity-0 group-hover:opacity-100 flex gap-1 z-10 transition-opacity">
-                                            <button onClick={(e) => { e.stopPropagation(); addToTimeline(frame); }} className="bg-blue-500 text-white p-1 rounded-md shadow hover:bg-blue-600" title="添加"><Plus className="w-3 h-3" /></button>
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    )}
+                    {framePool.length === 0 ? (<div className="h-full flex flex-col items-center justify-center text-slate-400 space-y-2 py-12"><Layers className="w-12 h-12 opacity-20 text-indigo-300" /><p className="text-xs">暂无素材，请先在左侧上传</p></div>) : (<div className="grid grid-cols-5 sm:grid-cols-6 md:grid-cols-8 gap-3 select-none">{framePool.map((frame, idx) => { const isSelected = selectedFrameIds.has(frame.id); return (<div key={frame.id} onClick={() => { const n = new Set(selectedFrameIds); n.has(frame.id) ? n.delete(frame.id) : n.add(frame.id); setSelectedFrameIds(n); }} onDoubleClick={() => addToTimeline(frame)} className={`aspect-square rounded-xl border-2 relative group transition-all cursor-pointer overflow-hidden shadow-sm ${isSelected ? 'border-blue-500 bg-blue-50' : 'border-white bg-white hover:border-blue-200'}`}><img src={frame.src} className="w-full h-full object-contain p-1 pixelated" alt={`Frame ${idx}`} />{isSelected && <div className="absolute top-1 left-1 bg-blue-500 text-white p-0.5 rounded-full shadow-md"><Check className="w-2 h-2" /></div>}<div className="absolute inset-0 bg-black/0 group-hover:bg-black/5 transition-colors"></div><div className="absolute bottom-0 right-0 p-1 opacity-0 group-hover:opacity-100 flex gap-1 z-10 transition-opacity"><button onClick={(e) => { e.stopPropagation(); addToTimeline(frame); }} className="bg-blue-500 text-white p-1 rounded-md shadow hover:bg-blue-600" title="添加"><Plus className="w-3 h-3" /></button></div></div>); })}</div>)}
                 </div>
             </div>
             <div className="bg-white/70 backdrop-blur-md border border-white/50 rounded-3xl overflow-hidden shadow-sm flex flex-col flex-1">
@@ -304,7 +177,7 @@ const GifMakerModule = () => {
   );
 };
 
-// --- 模块：游客投稿弹窗 (Catbox Mode) ---
+// --- 🟢 4. 游客投稿弹窗 (修复引用) ---
 const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '' });
   const [isUploading, setIsUploading] = useState(false);
@@ -312,38 +185,34 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const [urlInput, setUrlInput] = useState(''); 
   const [isDragOver, setIsDragOver] = useState(false);
 
-  // 🟢 Catbox 上传逻辑 (Catbox First, ImgBB Fallback)
   const processFiles = async (files) => {
     if (!files || files.length === 0) return;
     setIsUploading(true);
-    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
         const fullBase64 = await compressImage(file);
-        const base64Data = fullBase64.split(',')[1]; 
+        const base64Body = fullBase64.split(',')[1];
         
-        // 1. Try Catbox
         try {
-           const res = await fetch('/api/catbox', { 
-               method: 'POST', 
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ image: base64Data }) 
-           });
-           const json = await res.json();
-           if (json.success) {
-             setFormData(prev => ({ ...prev, images: [...prev.images, json.url] }));
-             continue; 
-           }
-        } catch(e) { console.warn("Catbox failed, trying ImgBB..."); }
+            const res = await fetch('/api/catbox', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ image: base64Body }) 
+            });
+            const json = await res.json();
+            if (json.success) {
+                setFormData(prev => ({ ...prev, images: [...prev.images, json.url] }));
+                continue; 
+            }
+        } catch(e) { console.warn("Catbox failed, fallback to ImgBB"); }
 
-        // 2. Fallback ImgBB
         const formData = new FormData();
-        formData.append('image', base64Data);
+        formData.append('image', base64Body);
         const res = await fetch(`https://api.imgbb.com/1/upload?key=d24f035fac70f7c113badcb1f800b248`, { method: 'POST', body: formData });
         const json = await res.json();
-        if(json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
-        else alert("上传失败，请重试");
+        if (json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
+        else alert("上传失败");
         
       } catch (err) { alert("网络错误"); }
     }
@@ -354,23 +223,9 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
   const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(e.dataTransfer.files); };
-
-  const handleAddUrl = () => {
-     if(!urlInput.trim()) return;
-     setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] }));
-     setUrlInput('');
-  };
-
-  const removeImage = (idx) => {
-     setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) }));
-  };
-
-  const toggleTag = (tag) => {
-    setFormData(prev => {
-        const tags = prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag];
-        return { ...prev, tags };
-    });
-  };
+  const handleAddUrl = () => { if(!urlInput.trim()) return; setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] })); setUrlInput(''); };
+  const removeImage = (idx) => { setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idx) })); };
+  const toggleTag = (tag) => { setFormData(prev => { const tags = prev.tags.includes(tag) ? prev.tags.filter(t => t !== tag) : [...prev.tags, tag]; return { ...prev, tags }; }); };
 
   const handleDirectSubmit = async () => {
     if (!formData.content) return alert("请至少填写【Prompt 内容】");
@@ -385,7 +240,6 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
     } catch (error) { alert("投稿失败，请稍后重试。"); } finally { setIsSending(false); }
   };
 
-  // 🛡️ 安全过滤 commonTags
   const safeCommonTags = Array.isArray(commonTags) ? commonTags.filter(t => typeof t === 'string') : [];
 
   return (
@@ -446,14 +300,13 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       onClick={(e) => { e.stopPropagation(); onClick(prompt); }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
-      // 🟢 性能优化：移除了复杂的 backdrop-filter，改用 shadow 和 transform
       className={`group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out aspect-[3/4] flex flex-col relative ${isDragTarget ? 'ring-2 ring-indigo-500 transform scale-105 z-20 shadow-xl' : 'shadow-sm hover:shadow-lg hover:-translate-y-0.5'} ${isBeingDragged ? 'opacity-30 grayscale' : ''} gpu-accelerated`}
     >
       <div className="flex-1 bg-slate-100 relative overflow-hidden pointer-events-none">
         {images.length > 0 ? (
           <>
              {/* 列表页只渲染当前图，减小DOM压力 */}
-             <LazyImage src={images[currentImgIdx]} width={300} alt={prompt.title} className="absolute inset-0 w-full h-full" />
+             <LazyImage src={images[currentImgIdx]} width={600} alt={prompt.title} className="absolute inset-0 w-full h-full" />
              {images.length > 1 && (
                <div className={`absolute bottom-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-opacity duration-300 ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
                  <Layers size={10}/> {currentImgIdx + 1}/{images.length}
@@ -484,7 +337,7 @@ const PromptViewer = memo(({ prompt }) => {
          <div className="relative w-full bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-200/60 shadow-inner flex items-center justify-center group min-h-[300px]">
             <LazyImage 
               src={images[idx]} 
-              width={800} 
+              width={1200} 
               className="w-auto h-auto max-w-full max-h-[75vh] object-contain cursor-zoom-in transition-transform duration-300" 
               onDoubleClick={handleDoubleClick}
               title="双击查看原图"
@@ -515,18 +368,14 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    const [urlInput, setUrlInput] = useState(''); 
    const [isDragOver, setIsDragOver] = useState(false);
 
-   // 🟢 修复：管理员也统一使用后端代理 (/api/catbox)
    const processFiles = async (files) => {
     if (!files || files.length === 0) return;
     setIsCompressing(true);
-    
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       try {
         const fullBase64 = await compressImage(file);
-        const base64Data = fullBase64.split(',')[1]; // 🟢 去头
-        
-        // 1. Try Catbox
+        const base64Data = fullBase64.split(',')[1]; 
         try {
            const res = await fetch('/api/catbox', { 
                method: 'POST', 
@@ -539,15 +388,12 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
              continue; 
            }
         } catch(e) { console.warn("Catbox failed, trying ImgBB..."); }
-
-        // 2. Fallback ImgBB
         const formData = new FormData();
         formData.append('image', base64Data);
         const res = await fetch(`https://api.imgbb.com/1/upload?key=d24f035fac70f7c113badcb1f800b248`, { method: 'POST', body: formData });
         const json = await res.json();
         if(json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
         else alert("上传失败，请重试");
-
       } catch (err) { console.error("Upload Error:", err); alert("网络错误"); }
     }
     setIsCompressing(false);
@@ -557,22 +403,18 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
   const handleDragOver = (e) => { e.preventDefault(); setIsDragOver(true); };
   const handleDragLeave = (e) => { e.preventDefault(); setIsDragOver(false); };
   const handleDrop = (e) => { e.preventDefault(); setIsDragOver(false); processFiles(e.dataTransfer.files); };
-   
-   const handleAddUrl = () => { if (!urlInput.trim()) return; setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] })); setUrlInput(''); };
-   const removeImage = (idxToRemove) => { setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idxToRemove) })); };
-   const removeCommonTag = (t) => { if(confirm(`删除标签 "${t}"?`)) setCommonTags(p => p.filter(x => x !== t)); };
+  const handleAddUrl = () => { if (!urlInput.trim()) return; setFormData(prev => ({ ...prev, images: [...prev.images, urlInput.trim()] })); setUrlInput(''); };
+  const removeImage = (idxToRemove) => { setFormData(prev => ({ ...prev, images: prev.images.filter((_, i) => i !== idxToRemove) })); };
+  const removeCommonTag = (t) => { if(confirm(`删除标签 "${t}"?`)) setCommonTags(p => p.filter(x => x !== t)); };
 
    return (
       <div className="space-y-6">
          <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标题</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all font-bold text-slate-700" /></div>
          <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">投稿人 ID</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/> <input value={formData.contributor} onChange={e => setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-sm" placeholder="无投稿人"/></div></div>
          <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词</label><textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" /></div>
-         
-         {/* 🟢 管理员图片拖拽区域 (修复) */}
          <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-200 hover:border-indigo-400'}`}><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图 ({formData.images.length})</label>
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-3 gap-3">
-                {formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200 group shadow-sm"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-md"><X size={14} /></button></div>))}
+              <div className="grid grid-cols-3 gap-3">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200 group shadow-sm"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-md"><X size={14} /></button></div>))}
                 <label className={`aspect-square bg-white hover:bg-indigo-50 text-indigo-400 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1 transition-all border-2 border-dashed border-indigo-200 hover:border-indigo-400 ${isCompressing ? 'opacity-50' : ''}`}>{isCompressing ? <RefreshCw className="animate-spin" size={20}/> : <Plus size={24} />}<span className="text-[10px] font-bold">{isCompressing ? '处理中' : '添加/拖入'}</span><input type="file" className="hidden" accept="image/*" disabled={isCompressing} multiple onChange={handleFileSelect} /></label>
               </div>
               <div className="flex gap-2 items-center"><div className="flex-1 relative"><LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()} placeholder="粘贴图片链接" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 outline-none transition-all"/></div><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition-colors">添加链接</button></div>
@@ -587,12 +429,10 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    );
 }
 
-// --- 主程序入口 (Router) ---
-
+// --- 主程序入口 ---
 const INITIAL_TAGS = ["示例标签"];
 const INITIAL_SECTIONS = [{ id: 'demo', title: '默认分区', isCollapsed: false, prompts: [] }];
 const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
-// 分页加载
 const ITEMS_PER_PAGE = 24;
 
 export default function App() {
@@ -600,25 +440,20 @@ export default function App() {
   const [isAdmin, setIsAdmin] = useState(false); 
   const [clickCount, setClickCount] = useState(0);
   const [storageError, setStorageError] = useState(false);
-  
   const [sections, setSections] = useState(INITIAL_SECTIONS);
   const [commonTags, setCommonTags] = useState(INITIAL_TAGS);
   const [siteNotes, setSiteNotes] = useState(INITIAL_NOTES); 
-  
   const [isLoading, setIsLoading] = useState(false);
   const [loadError, setLoadError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState([]);
-  
   const [visibleCount, setVisibleCount] = useState(ITEMS_PER_PAGE);
-  
   const [draggedItem, setDraggedItem] = useState(null);
   const [dragOverTarget, setDragOverTarget] = useState(null);
-  
   const [isPromptModalOpen, setIsPromptModalOpen] = useState(false);
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isNotesEditing, setIsNotesEditing] = useState(false);
-  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false); // 投稿弹窗
+  const [isSubmissionOpen, setIsSubmissionOpen] = useState(false); 
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
@@ -660,7 +495,6 @@ export default function App() {
       const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); 
       if(!res.ok) throw new Error(); 
       const d = await res.json(); 
-      // 🛡️ 数据清洗：移除潜在的 Base64 大图 (超过 5000 字符视为乱码)
       const cleanSections = (d.sections || []).map(s => ({
           ...s,
           prompts: s.prompts.map(p => ({
@@ -685,23 +519,37 @@ export default function App() {
     finally { setIsLoading(false); }
   };
 
+  const handleCardClick = useCallback((prompt) => {
+    setEditingPrompt(prompt);
+    setIsPromptModalOpen(true);
+  }, []);
+
   const handleModeToggle = () => {
     if (isAdmin) { setIsAdmin(false); setClickCount(0); } 
     else { const n = clickCount + 1; setClickCount(n); if (n >= 5) { setIsAdmin(true); setClickCount(0); if (navigator.vibrate) navigator.vibrate(50); } }
   };
-  
-  const handleClipboardImport = async () => {
-     try {
-       const text = await navigator.clipboard.readText();
-       const match = text.match(/【(.*?)】/s);
-       const jsonStr = match ? match[1] : text;
+
+  // 🟢 修复：增强版一键导入逻辑 (手动粘贴 fallback)
+  const processImportText = (text) => {
+       let jsonStr = text.trim();
+       const bracketMatch = text.match(/【(.*?)】/s);
+       if (bracketMatch) {
+         jsonStr = bracketMatch[1];
+       } else {
+         const firstOpen = text.indexOf('{');
+         const lastClose = text.lastIndexOf('}');
+         if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
+            jsonStr = text.substring(firstOpen, lastClose + 1);
+         }
+       }
+       jsonStr = jsonStr.replace(/&quot;/g, '"');
        const data = JSON.parse(jsonStr);
-       if (!data.content) throw new Error("无效数据");
+       if (!data.content && !data.prompts) throw new Error("无效数据");
        const newPrompt = {
           id: `imported-${Date.now()}`,
           title: data.title || "未命名提示词", 
           content: data.content,
-          images: data.images || (data.image ? [data.image] : []),
+          images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
           tags: Array.isArray(data.tags) ? data.tags : [],
           contributor: data.contributor || ""
        };
@@ -711,7 +559,23 @@ export default function App() {
           return newSec;
        });
        alert(`成功导入：${newPrompt.title}\n(已添加到第一个分区开头)`);
-     } catch(e) { alert("剪贴板中没有有效的 JSON 数据！"); }
+  };
+  
+  const handleClipboardImport = async () => {
+     try {
+       const text = await navigator.clipboard.readText();
+       processImportText(text);
+     } catch(e) {
+       // 🟢 Fallback: 浏览器禁止自动读取时，弹出输入框让用户粘贴
+       const manualInput = prompt("无法自动读取剪贴板（权限受限）。\n请在此框中手动粘贴 (Ctrl+V) 复制的代码：");
+       if (manualInput) {
+           try {
+               processImportText(manualInput);
+           } catch (err) {
+               alert("无法识别内容，请确保复制了完整的代码块。");
+           }
+       }
+     }
   };
 
   // 🟢 useMemo 缓存过滤结果
@@ -734,16 +598,11 @@ export default function App() {
   const handleDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; const scrollThreshold = 100; const scrollSpeed = 15; if (e.clientY < scrollThreshold) { window.scrollBy(0, -scrollSpeed); } else if (window.innerHeight - e.clientY < scrollThreshold) { window.scrollBy(0, scrollSpeed); } }, []);
   const handleDrop = useCallback((e, targetId, targetType, targetSecId = null) => {
     e.preventDefault(); e.stopPropagation(); setDragOverTarget(null); if (!draggedItem) return; setSections(prev => { const newSections = JSON.parse(JSON.stringify(prev)); if (draggedItem.type === 'SECTION' && targetType === 'SECTION') { const sIdx = newSections.findIndex(s => s.id === draggedItem.data.id); const tIdx = newSections.findIndex(s => s.id === targetId); if (sIdx !== -1 && tIdx !== -1 && sIdx !== tIdx) { const [moved] = newSections.splice(sIdx, 1); newSections.splice(tIdx, 0, moved); } } else if (draggedItem.type === 'PROMPT') { const sSec = newSections.find(s => s.id === draggedItem.sourceSecId); if (!sSec) return prev; const pIdx = sSec.prompts.findIndex(p => p.id === draggedItem.data.id); if (pIdx === -1) return prev; const [moved] = sSec.prompts.splice(pIdx, 1); if (targetType === 'PROMPT') { const tSec = newSections.find(s => s.id === targetSecId); const tPIdx = tSec.prompts.findIndex(p => p.id === targetId); tSec.prompts.splice(tPIdx, 0, moved); } else if (targetType === 'SECTION_AREA') { const tSec = newSections.find(s => s.id === targetId); tSec.prompts.push(moved); } } return newSections; }); }, [draggedItem]);
-  
-  // 🟢 修复：onClick 处理函数
-  const handleCardClick = useCallback((prompt) => {
-    setEditingPrompt(prompt);
-    setIsPromptModalOpen(true);
-  }, []);
-
   const handleSavePrompt = useCallback((promptData) => { const newPrompt = { ...promptData, id: promptData.id || Date.now().toString() }; setSections(prev => { if (editingPrompt && editingPrompt.id) return prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => p.id === newPrompt.id ? newPrompt : p) })); const targetId = targetSectionId || prev[0].id; return prev.map(sec => { if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] }; return sec; }); }); setIsPromptModalOpen(false); setEditingPrompt(null); }, [editingPrompt, targetSectionId]);
   const handleExport = () => { const blob = new Blob([JSON.stringify({ sections, commonTags, siteNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click(); };
   const handleImport = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if(confirm("覆盖当前数据?")) { setSections(d.sections||[]); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); } } catch(err){ alert("文件无效"); } }; reader.readAsText(file); } };
+
+  const handleCreateSection = () => { setEditingSection({ title: '' }); setIsSectionModalOpen(true); };
 
   let renderedCount = 0;
 
@@ -775,7 +634,7 @@ export default function App() {
         {currentView === 'GIF_MAKER' ? (<GifMakerModule />) : (<>
             <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 animate-fade-in-up"><div className="flex items-start gap-4 relative z-10"><div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500"><MessageSquare size={24} /></div><div className="flex-1"><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-slate-700 text-lg">关于本站</h3>{isAdmin && !isNotesEditing && (<button onClick={() => setIsNotesEditing(true)} className="text-xs text-indigo-600 hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/> 编辑公告</button>)}</div>{isNotesEditing ? (<div className="animate-fade-in-up"><textarea className="w-full bg-white/80 border border-indigo-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" rows={3} value={siteNotes} onChange={(e) => setSiteNotes(e.target.value)} /><div className="flex justify-end gap-2 mt-2"><button onClick={() => setIsNotesEditing(false)} className="px-3 py-1 text-xs text-slate-500 hover:bg-white rounded-lg">完成</button></div></div>) : (<div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">{siteNotes || "暂无公告..."}</div>)}</div></div><FileText className="absolute right-[-20px] bottom-[-20px] text-indigo-100 rotate-12" size={120} /></div>
             {filteredSections.map(section => (<div key={section.id} className={`group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}`} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION')}><div className="flex justify-between items-center mb-6 select-none"><div className="flex items-center flex-1">{isAdmin && (<div draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd} className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"><GripVertical size={20} /></div>)}<div onClick={() => setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s))} className="flex items-center cursor-pointer group/title"><div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}><ChevronDown size={14} /></div><h2 className="text-lg font-bold text-slate-800 tracking-tight">{section.title}</h2><span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span></div></div>{isAdmin && (<div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"><button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button><button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>)}</div>{!section.isCollapsed && (<div onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')} className={`grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}>{section.prompts.map(prompt => { if (renderedCount >= visibleCount) return null; renderedCount++; return (<PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} />); })}{section.prompts.length === 0 && (<div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/><span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span></div>)}</div>)}</div>))}
-            {isAdmin && <button onClick={() => { setEditingSection({title: ''}); setIsSectionModalOpen(true); }} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group"><div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div><span className="font-medium">新建一个分区</span></button>}
+            {isAdmin && <button onClick={handleCreateSection} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group mb-8"><div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div><span className="font-medium">新建一个分区</span></button>}
             {renderedCount >= visibleCount && (<div className="text-center py-8 text-slate-400 text-sm animate-pulse">下滑加载更多...</div>)}
           </>
         )}
