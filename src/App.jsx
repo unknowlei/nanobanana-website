@@ -5,7 +5,7 @@ import {
   Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
   UploadCloud, Sparkles, MessageSquare, FileText, ChevronLeft, ChevronRight,
   Layers, Play, Pause, Grid, Scissors, MousePointer2, ArrowUp, ArrowDown, MoveRight, Film,
-  CheckSquare, Square, Settings, Link as LinkIcon, Send, Mail, Loader2, ClipboardCopy, Smile, User, AlertCircle
+  CheckSquare, Square, Settings, Link as LinkIcon, Send, Mail, Loader2, ClipboardCopy, Smile, User, AlertCircle, AlertTriangle, Eye, EyeOff, FolderInput, Copy, FilePlus
 } from 'lucide-react';
 
 /**
@@ -13,14 +13,15 @@ import {
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(42).json";
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(45).json";
 
 // 📧 EmailJS 配置
 const EMAILJS_SERVICE_ID = "service_4y3xdta";    
 const EMAILJS_TEMPLATE_ID = "template_jufrgz5";  
 const EMAILJS_PUBLIC_KEY = "tIMRXTgG9c23yYOKk";  
+const IMGBB_API_KEY = "d24f035fac70f7c113badcb1f800b248"; 
 
-// --- 全局工具与样式 ---
+// --- 1. 全局工具函数 ---
 
 const useGifshot = () => {
   const [loaded, setLoaded] = useState(false);
@@ -34,7 +35,7 @@ const useGifshot = () => {
   return loaded;
 };
 
-// 🟢 智能图片处理 (上传前预处理)
+// 🟢 智能图片处理
 const compressImage = (file) => {
   return new Promise((resolve) => {
     const reader = new FileReader();
@@ -81,11 +82,12 @@ const AnimationStyles = () => (
   `}</style>
 );
 
+// --- 2. 基础组件 ---
+
 const Tag = memo(({ label, onClick, isActive }) => (
   <span onClick={onClick} className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-medium cursor-pointer select-none transition-all duration-200 border ${isActive ? 'bg-indigo-500/90 text-white shadow-md border-indigo-400 scale-105' : 'bg-white/60 text-slate-600 border-white/40 hover:bg-white/90 hover:shadow-sm'}`}>{typeof label === 'string' ? label : 'Tag'}</span>
 ));
 
-// 🟢 极致优化的图片组件 (Memo)
 const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
   const [isLoaded, setIsLoaded] = useState(false);
   const optimizedSrc = useMemo(() => getOptimizedUrl(src, width), [src, width]);
@@ -108,7 +110,9 @@ const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
   );
 });
 
-// --- 🟢 动图工坊 (GifMaker) ---
+// --- 3. 业务组件 (必须在 App 之前) ---
+
+// 🟢 动图工坊
 const GifMakerModule = () => {
   const gifshotLoaded = useGifshot();
   const [sourceImages, setSourceImages] = useState([]); 
@@ -121,7 +125,7 @@ const GifMakerModule = () => {
   const intervalRef = useRef(null); const cropImgRef = useRef(null); const cropContainerRef = useRef(null); 
 
   const handleSourceUpload = (e) => { const files = Array.from(e.target.files); if (files.length === 0) return; files.forEach(file => { const reader = new FileReader(); reader.onload = (event) => { setSourceImages(prev => [...prev, { id: `src-${Date.now()}-${Math.random()}`, src: event.target.result, name: file.name }]); }; reader.readAsDataURL(file); }); e.target.value = ''; };
-  const handleMultiUpload = (e) => { const files = Array.from(e.target.files); const newFrames = []; let processedCount = 0; files.forEach((file, index) => { const reader = new FileReader(); reader.onload = (event) => { const uniqueId = `upload-${Date.now()}-${index}-${Math.random()}`; const frame = { id: uniqueId, src: event.target.result, source: 'upload' }; newFrames.push(frame); processedCount++; if (processedCount === files.length) { setFramePool(prev => [...prev, ...newFrames]); if (autoAddToTimeline) { const timelineFrames = newFrames.map(f => ({ ...f, uniqueId: `auto-${f.id}-${Math.random()}` })); setTimeline(prev => [...prev, ...timelineFrames]); } } }; reader.readAsDataURL(file); }); e.target.value = ''; };
+  const handleMultiUpload = (e) => { const files = Array.from(e.target.files); let processedCount = 0; files.forEach((file, index) => { const reader = new FileReader(); reader.onload = (event) => { const uniqueId = `upload-${Date.now()}-${index}-${Math.random()}`; const frame = { id: uniqueId, src: event.target.result, source: 'upload' }; processedCount++; setFramePool(prev => { const newPool = [...prev, frame]; if(autoAddToTimeline && processedCount === files.length) { setTimeline(t => [...t, ...newPool.slice(-files.length).map(f=>({...f, uniqueId: `auto-${f.id}-${Math.random()}`}))]); } return newPool; }); }; reader.readAsDataURL(file); }); e.target.value = ''; };
   const processSingleImage = (imgData, r, c) => { return new Promise((resolve) => { const image = new Image(); image.onload = () => { const frameW = image.width / c; const frameH = image.height / r; const newFrames = []; const canvas = document.createElement('canvas'); canvas.width = frameW; canvas.height = frameH; const ctx = canvas.getContext('2d'); for (let y = 0; y < r; y++) { for (let x = 0; x < c; x++) { ctx.clearRect(0, 0, frameW, frameH); ctx.drawImage(image, x * frameW, y * frameH, frameW, frameH, 0, 0, frameW, frameH); newFrames.push({ id: `slice-${Date.now()}-${x}-${y}-${Math.random()}`, src: canvas.toDataURL('image/png') }); } } resolve(newFrames); }; image.onerror = () => resolve([]); image.src = imgData.src; }); };
   const handleBatchSlice = async () => { if (sourceImages.length === 0) return; setIsSlicing(true); const allResults = await Promise.all(sourceImages.map(img => processSingleImage(img, rows, cols))); const allNewFrames = allResults.flat(); setFramePool(prev => [...prev, ...allNewFrames]); if (autoAddToTimeline) { const timelineFrames = allNewFrames.map(f => ({ ...f, uniqueId: `auto-${f.id}-${Math.random()}` })); setTimeline(prev => [...prev, ...timelineFrames]); } setIsSlicing(false); };
   const moveSourceImage = (index, direction) => { if ((direction === -1 && index === 0) || (direction === 1 && index === sourceImages.length - 1)) return; setSourceImages(prev => { const n = [...prev]; [n[index], n[index + direction]] = [n[index + direction], n[index]]; return n; }); };
@@ -177,7 +181,7 @@ const GifMakerModule = () => {
   );
 };
 
-// --- 🟢 4. 游客投稿弹窗 (修复引用) ---
+// --- 🟢 4. 游客投稿弹窗 (必须在 App 之前定义) ---
 const SubmissionModal = ({ onClose, commonTags = [] }) => {
   const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '' });
   const [isUploading, setIsUploading] = useState(false);
@@ -209,7 +213,7 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
 
         const formData = new FormData();
         formData.append('image', base64Body);
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=d24f035fac70f7c113badcb1f800b248`, { method: 'POST', body: formData });
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
         const json = await res.json();
         if (json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
         else alert("上传失败");
@@ -259,9 +263,7 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
   );
 };
 
-// --- 模块二：提示词收纳盒 (性能核心) ---
-
-// 🟢 性能核心：使用 memo 缓存卡片，并实现防抖悬停
+// --- 5. 提示词卡片 (性能优化) ---
 const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
@@ -269,7 +271,6 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
   const [isHovering, setIsHovering] = useState(false);
   const hoverTimeout = useRef(null);
 
-  // 🟢 防抖 Hover：避免快速划过时触发重绘
   const handleMouseEnter = () => {
     hoverTimeout.current = setTimeout(() => setIsHovering(true), 200); 
   };
@@ -305,46 +306,60 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       <div className="flex-1 bg-slate-100 relative overflow-hidden pointer-events-none">
         {images.length > 0 ? (
           <>
-             {/* 列表页只渲染当前图，减小DOM压力 */}
              <LazyImage src={images[currentImgIdx]} width={600} alt={prompt.title} className="absolute inset-0 w-full h-full" />
              {images.length > 1 && (
                <div className={`absolute bottom-2 right-2 bg-black/40 backdrop-blur-sm text-white text-[10px] px-2 py-0.5 rounded-full flex items-center gap-1 transition-opacity duration-300 ${isHovering ? 'opacity-100' : 'opacity-0'}`}>
                  <Layers size={10}/> {currentImgIdx + 1}/{images.length}
                </div>
              )}
+             {prompt.similar && prompt.similar.length > 0 && (
+                 <div className="absolute top-2 right-2 bg-indigo-500/80 backdrop-blur-sm text-white text-[9px] px-1.5 py-0.5 rounded-md font-bold shadow-sm">
+                     +{prompt.similar.length} 变体
+                 </div>
+             )}
           </>
         ) : (<div className="w-full h-full flex flex-col items-center justify-center text-slate-300 bg-slate-50"><div className="p-3 bg-white rounded-full shadow-sm mb-2"><ImageIcon size={20}/></div><span className="text-[10px]">No Image</span></div>)}
       </div>
       <div className="p-4 bg-white h-20 flex flex-col justify-center border-t border-slate-50 pointer-events-none relative z-10">
         <h3 className="font-bold text-sm truncate text-slate-800 mb-1.5">{prompt.title}</h3>
-        {/* 🟢 修复：确保 tags 是数组且元素是字符串 */}
         <div className="flex gap-1 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">{tags.slice(0, 2).map(t => (typeof t === 'string' ? <span key={t} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{t}</span> : null))}</div>
       </div>
     </div>
   );
 });
 
+// --- 6. 提示词详情页 (支持变体切换) ---
 const PromptViewer = memo(({ prompt }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
   const [idx, setIdx] = useState(0);
 
+  // 🟢 相似内容逻辑
+  const [activeTab, setActiveTab] = useState(0);
+  const currentContent = useMemo(() => {
+      if (activeTab === 0) return prompt.content;
+      return prompt.similar?.[activeTab - 1]?.content || "";
+  }, [prompt, activeTab]);
+
   const handleDoubleClick = () => { if (images.length > 0) window.open(images[idx], '_blank'); };
 
   return (
     <div className="space-y-6">
+      {/* Tab 切换栏 */}
+      {prompt.similar && prompt.similar.length > 0 && (
+          <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-100">
+              <button onClick={() => setActiveTab(0)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 0 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>主提示词</button>
+              {prompt.similar.map((_, i) => (
+                  <button key={i} onClick={() => setActiveTab(i + 1)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>变体 {i + 1}</button>
+              ))}
+          </div>
+      )}
+
       {images.length > 0 ? (
          <div className="relative w-full bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-200/60 shadow-inner flex items-center justify-center group min-h-[300px]">
-            <LazyImage 
-              src={images[idx]} 
-              width={1200} 
-              className="w-auto h-auto max-w-full max-h-[75vh] object-contain cursor-zoom-in transition-transform duration-300" 
-              onDoubleClick={handleDoubleClick}
-              title="双击查看原图"
-            />
+            <LazyImage src={images[idx]} width={1200} className="w-auto h-auto max-w-full max-h-[75vh] object-contain cursor-zoom-in transition-transform duration-300" onDoubleClick={handleDoubleClick} title="双击查看原图" />
             {images.length > 1 && (
               <>
-                {/* 🟢 修复：增加 z-50 确保按钮可点击 */}
                 <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p-1+images.length)%images.length)}} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronLeft size={24}/></button>
                 <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p+1)%images.length)}} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronRight size={24}/></button>
                 <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-50">{images.map((_, i) => (<div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === idx ? 'bg-white' : 'bg-white/40'}`} />))}</div>
@@ -352,21 +367,64 @@ const PromptViewer = memo(({ prompt }) => {
             )}
          </div>
       ) : (<div className="w-full h-48 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">暂无配图</div>)}
+      
       {prompt.contributor && (<div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg font-bold"><Smile size={16} /><span>投稿人：{prompt.contributor}</span></div>)}
-      <div><div className="text-xs font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1"><FileText size={12}/> PROMPT CONTENT</div><div className="p-5 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm">{prompt.content}</div></div>
+      
+      <div>
+          <div className="text-xs font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1"><FileText size={12}/> PROMPT CONTENT</div>
+          <div className="p-5 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm whitespace-pre-wrap">{currentContent}</div>
+      </div>
+      
       <div className="flex gap-2 flex-wrap">{tags.map(t => (typeof t === 'string' ? <span key={t} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">#{t}</span> : null))}</div>
     </div>
   );
 });
 
-// --- 表单组件 (管理员编辑) ---
+// --- 7. 管理员表单组件 (修复版) ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const getInitialImages = () => { if (initialData?.images && initialData.images.length > 0) return initialData.images; if (initialData?.image) return [initialData.image]; return []; };
-   const [formData, setFormData] = useState({ id: initialData?.id || '', title: initialData?.title || '', content: initialData?.content || '', images: getInitialImages(), tags: initialData?.tags || [], contributor: initialData?.contributor || '' });
+   
+   const [formData, setFormData] = useState({ 
+       id: initialData?.id || '', 
+       title: initialData?.title || '', 
+       tags: initialData?.tags || [], 
+       contributor: initialData?.contributor || '',
+       content: initialData?.content || '', 
+       images: getInitialImages(), 
+       similar: initialData?.similar || [] 
+   });
+
+   const [activeTab, setActiveTab] = useState(0); 
    const [tagInput, setTagInput] = useState('');
    const [isCompressing, setIsCompressing] = useState(false);
    const [urlInput, setUrlInput] = useState(''); 
    const [isDragOver, setIsDragOver] = useState(false);
+
+   const currentContent = useMemo(() => {
+       if (activeTab === 0) return formData.content;
+       return formData.similar[activeTab - 1]?.content || "";
+   }, [formData, activeTab]);
+
+   const updateContent = (val) => {
+       setFormData(prev => {
+           if (activeTab === 0) return { ...prev, content: val };
+           const newSimilar = [...prev.similar];
+           if (!newSimilar[activeTab - 1]) newSimilar[activeTab - 1] = { content: '' };
+           newSimilar[activeTab - 1].content = val;
+           return { ...prev, similar: newSimilar };
+       });
+   };
+
+   const addSimilarPage = () => {
+       setFormData(prev => ({ ...prev, similar: [...prev.similar, { content: '' }] }));
+       setActiveTab(formData.similar.length + 1);
+   };
+
+   const removeSimilarPage = (index) => {
+       if(!confirm("确定删除此变体页面？")) return;
+       setFormData(prev => ({ ...prev, similar: prev.similar.filter((_, i) => i !== index) }));
+       setActiveTab(0);
+   };
 
    const processFiles = async (files) => {
     if (!files || files.length === 0) return;
@@ -377,24 +435,16 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
         const fullBase64 = await compressImage(file);
         const base64Data = fullBase64.split(',')[1]; 
         try {
-           const res = await fetch('/api/catbox', { 
-               method: 'POST', 
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify({ image: base64Data }) 
-           });
+           const res = await fetch('/api/catbox', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ image: base64Data }) });
            const json = await res.json();
-           if (json.success) {
-             setFormData(prev => ({ ...prev, images: [...prev.images, json.url] }));
-             continue; 
-           }
-        } catch(e) { console.warn("Catbox failed, trying ImgBB..."); }
-        const formData = new FormData();
-        formData.append('image', base64Data);
-        const res = await fetch(`https://api.imgbb.com/1/upload?key=d24f035fac70f7c113badcb1f800b248`, { method: 'POST', body: formData });
+           if (json.success) { setFormData(prev => ({ ...prev, images: [...prev.images, json.url] })); continue; }
+        } catch(e) {}
+        const formData = new FormData(); formData.append('image', base64Data);
+        const res = await fetch(`https://api.imgbb.com/1/upload?key=${IMGBB_API_KEY}`, { method: 'POST', body: formData });
         const json = await res.json();
         if(json.success) setFormData(prev => ({ ...prev, images: [...prev.images, json.data.url] }));
-        else alert("上传失败，请重试");
-      } catch (err) { console.error("Upload Error:", err); alert("网络错误"); }
+        else alert("上传失败");
+      } catch (err) { alert("网络错误"); }
     }
     setIsCompressing(false);
   };
@@ -409,12 +459,28 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
 
    return (
       <div className="space-y-6">
-         <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标题</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all font-bold text-slate-700" /></div>
-         <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">投稿人 ID</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/> <input value={formData.contributor} onChange={e => setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-3 rounded-xl outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all text-sm" placeholder="无投稿人"/></div></div>
-         <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词</label><textarea value={formData.content} onChange={e => setFormData({...formData, content: e.target.value})} rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" /></div>
-         <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-200 hover:border-indigo-400'}`}><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图 ({formData.images.length})</label>
+         <div className="grid grid-cols-2 gap-4">
+             <div><label className="text-xs font-bold text-slate-400 block mb-1">标题</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" /></div>
+             <div><label className="text-xs font-bold text-slate-400 block mb-1">投稿人</label><input value={formData.contributor} onChange={e => setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" /></div>
+         </div>
+
+         <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100">
+             <button onClick={() => setActiveTab(0)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab===0 ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>主页面</button>
+             {formData.similar.map((_, idx) => (
+                 <div key={idx} className="relative group">
+                     <button onClick={() => setActiveTab(idx + 1)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab===idx+1 ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-500'}`}>变体 {idx + 1}</button>
+                     <button onClick={(e) => { e.stopPropagation(); removeSimilarPage(idx); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={8}/></button>
+                 </div>
+             ))}
+             <button onClick={addSimilarPage} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 hover:bg-green-100 hover:text-green-600 transition-all"><Plus size={14}/></button>
+         </div>
+
+         <div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词 ({activeTab===0 ? '主' : `变体 ${activeTab}`})</label><textarea value={currentContent} onChange={e => updateContent(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" /></div>
+         
+         <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-200 hover:border-indigo-400'}`}><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图 ({formData.images.length}) - 全局共享</label>
             <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-3 gap-3">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200 group shadow-sm"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-md"><X size={14} /></button></div>))}
+              <div className="grid grid-cols-3 gap-3">
+                {formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200 group shadow-sm"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-md"><X size={14} /></button></div>))}
                 <label className={`aspect-square bg-white hover:bg-indigo-50 text-indigo-400 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1 transition-all border-2 border-dashed border-indigo-200 hover:border-indigo-400 ${isCompressing ? 'opacity-50' : ''}`}>{isCompressing ? <RefreshCw className="animate-spin" size={20}/> : <Plus size={24} />}<span className="text-[10px] font-bold">{isCompressing ? '处理中' : '添加/拖入'}</span><input type="file" className="hidden" accept="image/*" disabled={isCompressing} multiple onChange={handleFileSelect} /></label>
               </div>
               <div className="flex gap-2 items-center"><div className="flex-1 relative"><LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()} placeholder="粘贴图片链接" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 outline-none transition-all"/></div><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition-colors">添加链接</button></div>
@@ -429,7 +495,8 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    );
 }
 
-// --- 主程序入口 ---
+// --- 8. 主程序入口 ---
+
 const INITIAL_TAGS = ["示例标签"];
 const INITIAL_SECTIONS = [{ id: 'demo', title: '默认分区', isCollapsed: false, prompts: [] }];
 const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
@@ -454,11 +521,13 @@ export default function App() {
   const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
   const [isNotesEditing, setIsNotesEditing] = useState(false);
   const [isSubmissionOpen, setIsSubmissionOpen] = useState(false); 
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false); 
+  const [pendingImportPrompt, setPendingImportPrompt] = useState(null); 
+  
   const [editingPrompt, setEditingPrompt] = useState(null);
   const [editingSection, setEditingSection] = useState(null);
   const [targetSectionId, setTargetSectionId] = useState(null);
 
-  // 🟢 滚动加载监听
   useEffect(() => {
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
@@ -528,37 +597,26 @@ export default function App() {
     if (isAdmin) { setIsAdmin(false); setClickCount(0); } 
     else { const n = clickCount + 1; setClickCount(n); if (n >= 5) { setIsAdmin(true); setClickCount(0); if (navigator.vibrate) navigator.vibrate(50); } }
   };
-
-  // 🟢 修复：增强版一键导入逻辑 (手动粘贴 fallback)
+  
   const processImportText = (text) => {
        let jsonStr = text.trim();
        const bracketMatch = text.match(/【(.*?)】/s);
-       if (bracketMatch) {
-         jsonStr = bracketMatch[1];
-       } else {
-         const firstOpen = text.indexOf('{');
-         const lastClose = text.lastIndexOf('}');
-         if (firstOpen !== -1 && lastClose !== -1 && lastClose > firstOpen) {
-            jsonStr = text.substring(firstOpen, lastClose + 1);
-         }
-       }
+       if (bracketMatch) jsonStr = bracketMatch[1];
        jsonStr = jsonStr.replace(/&quot;/g, '"');
-       const data = JSON.parse(jsonStr);
-       if (!data.content && !data.prompts) throw new Error("无效数据");
-       const newPrompt = {
-          id: `imported-${Date.now()}`,
-          title: data.title || "未命名提示词", 
-          content: data.content,
-          images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
-          tags: Array.isArray(data.tags) ? data.tags : [],
-          contributor: data.contributor || ""
-       };
-       setSections(prev => {
-          const newSec = [...prev];
-          if(newSec.length > 0) newSec[0].prompts.unshift(newPrompt);
-          return newSec;
-       });
-       alert(`成功导入：${newPrompt.title}\n(已添加到第一个分区开头)`);
+       try {
+           const data = JSON.parse(jsonStr);
+           if (!data.content && !data.title) throw new Error("无效数据");
+           const newPrompt = {
+              id: `imported-${Date.now()}`,
+              title: data.title || "未命名提示词", 
+              content: data.content,
+              images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
+              tags: Array.isArray(data.tags) ? data.tags : [],
+              contributor: data.contributor || ""
+           };
+           setPendingImportPrompt(newPrompt);
+           setIsImportModalOpen(true);
+       } catch (e) { alert("无法识别 JSON 内容，请确保复制了正确的代码块。"); }
   };
   
   const handleClipboardImport = async () => {
@@ -566,26 +624,31 @@ export default function App() {
        const text = await navigator.clipboard.readText();
        processImportText(text);
      } catch(e) {
-       // 🟢 Fallback: 浏览器禁止自动读取时，弹出输入框让用户粘贴
-       const manualInput = prompt("无法自动读取剪贴板（权限受限）。\n请在此框中手动粘贴 (Ctrl+V) 复制的代码：");
-       if (manualInput) {
-           try {
-               processImportText(manualInput);
-           } catch (err) {
-               alert("无法识别内容，请确保复制了完整的代码块。");
-           }
-       }
+       const manualInput = prompt("无法自动读取剪贴板。\n请在此手动粘贴 (Ctrl+V) 代码：");
+       if (manualInput) processImportText(manualInput);
      }
   };
 
-  // 🟢 useMemo 缓存过滤结果
+  const confirmImportToSection = (sectionId) => {
+      if (!pendingImportPrompt) return;
+      setSections(prev => prev.map(sec => {
+          if (sec.id === sectionId) return { ...sec, prompts: [pendingImportPrompt, ...sec.prompts] };
+          return sec;
+      }));
+      setIsImportModalOpen(false);
+      setPendingImportPrompt(null);
+      alert(`成功导入到分区！`);
+  };
+
   const filteredSections = useMemo(() => {
     return sections.map(section => ({
       ...section,
       prompts: section.prompts.filter(p => {
         const q = searchQuery.toLowerCase();
         const tags = Array.isArray(p.tags) ? p.tags : []; 
-        const matchesSearch = p.title.toLowerCase().includes(q) || p.content.toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q));
+        const matchesSearch = p.title.toLowerCase().includes(q) || 
+            (Array.isArray(p.content) ? p.content.join(' ') : p.content).toLowerCase().includes(q) || 
+            tags.some(t => t.toLowerCase().includes(q));
         const matchesTags = selectedTags.length === 0 || selectedTags.every(t => tags.includes(t));
         return matchesSearch && matchesTags;
       })
@@ -604,6 +667,7 @@ export default function App() {
 
   const handleCreateSection = () => { setEditingSection({ title: '' }); setIsSectionModalOpen(true); };
 
+  // 🟢 将 renderedCount 定义在组件内部作用域
   let renderedCount = 0;
 
   return (
@@ -643,6 +707,29 @@ export default function App() {
       {/* Modals */}
       {isSubmissionOpen && <SubmissionModal onClose={() => setIsSubmissionOpen(false)} commonTags={commonTags} />}
       {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col p-8 shadow-2xl ring-1 ring-white/50 animate-fade-in-up"><div className="flex justify-between mb-6 border-b border-slate-100 pb-4"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={20}/></div><h3 className="font-bold text-xl text-slate-800">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}</h3></div><button onClick={() => setIsPromptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : <PromptViewer prompt={editingPrompt} />}</div></div></div>)}
+      {/* 🟢 选择导入分区的弹窗 */}
+      {isImportModalOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in-up">
+              <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-white/50">
+                  <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-bold text-slate-800 flex items-center"><FolderInput className="w-5 h-5 mr-2 text-purple-500"/> 选择导入分区</h3>
+                      <button onClick={() => { setIsImportModalOpen(false); setPendingImportPrompt(null); }}><X className="text-slate-400 hover:text-slate-600"/></button>
+                  </div>
+                  <div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">
+                      {sections.map(section => (
+                          <button 
+                              key={section.id}
+                              onClick={() => confirmImportToSection(section.id)}
+                              className="w-full text-left px-4 py-3 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 transition-colors font-medium text-sm text-slate-600 flex items-center justify-between group"
+                          >
+                              <span>{section.title}</span>
+                              <span className="text-xs text-slate-400 group-hover:text-indigo-400">{section.prompts.length} 个</span>
+                          </button>
+                      ))}
+                  </div>
+              </div>
+          </div>
+      )}
       {isSectionModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm"><div className="bg-white p-8 rounded-3xl w-96 shadow-2xl animate-fade-in-up ring-1 ring-white/50"><h3 className="font-bold mb-6 text-xl text-slate-800">分区名称</h3><input id="sec-input" autoFocus defaultValue={editingSection?.title} className="w-full border-2 border-slate-100 p-3 rounded-xl mb-6 outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-700" /><div className="flex justify-end gap-3"><button onClick={() => setIsSectionModalOpen(false)} className="px-5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">取消</button><button onClick={() => { const val = document.getElementById('sec-input').value; if(val) { if(editingSection.id) { setSections(prev => prev.map(s => s.id === editingSection.id ? { ...s, title: val } : s)); } else { setSections([...sections, { id: `s-${Date.now()}`, title: val, isCollapsed: false, prompts: [] }]); } setIsSectionModalOpen(false); } }} className="px-6 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transform hover:-translate-y-0.5 transition-all">确定</button></div></div></div>)}
     </div>
   );
