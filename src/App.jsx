@@ -265,8 +265,8 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
   );
 };
 
-// --- 5. 提示词卡片 (性能优化 + 收藏功能 + 新内容标记) ---
-const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite, isNew }) => {
+// --- 5. 提示词卡片 (性能优化 + 收藏功能) ---
+const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
@@ -327,14 +327,7 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
         <div className="flex gap-1 overflow-hidden opacity-70 group-hover:opacity-100 transition-opacity">{tags.slice(0, 2).map(t => (typeof t === 'string' ? <span key={t} className="text-[10px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500">{t}</span> : null))}</div>
       </div>
       
-      {/* 🔴 NEW 标签 (New Badge) */}
-      {isNew && (
-          <div className="absolute bottom-4 right-12 z-20 bg-green-500 text-white text-[10px] font-bold px-1.5 py-0.5 rounded shadow-sm animate-pulse pointer-events-none select-none">
-              NEW
-          </div>
-      )}
-
-      {/* 收藏按钮 (Favorite Button) */}
+      {/* 🔴 收藏按钮 (Favorite Button) */}
       <button 
         onClick={(e) => { e.stopPropagation(); onToggleFavorite(prompt); }} 
         className={`absolute bottom-3 right-3 p-2 rounded-full z-20 transition-all active:scale-90 hover:bg-slate-100 ${isFavorite ? 'text-pink-500 bg-pink-50' : 'text-slate-300 bg-white/80'}`}
@@ -556,24 +549,7 @@ export default function App() {
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const sidebarRef = useRef(null);
 
-  // 🔴 上次访问时间 (Last Visit Time Logic)
-  const [lastVisit, setLastVisit] = useState(0);
-
   useEffect(() => {
-    // 1. 读取上次访问时间
-    const storedLastVisit = localStorage.getItem('nanobanana_last_visit');
-    const now = Date.now();
-    
-    if (storedLastVisit) {
-        setLastVisit(parseInt(storedLastVisit, 10));
-    } else {
-        // 如果是首次访问，初始化为当前时间（避免全部显示为New）
-        setLastVisit(now);
-    }
-
-    // 2. 更新访问时间为现在（供下次使用）
-    localStorage.setItem('nanobanana_last_visit', now.toString());
-
     const handleScroll = () => {
       if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) {
         setVisibleCount(prev => prev + ITEMS_PER_PAGE);
@@ -755,34 +731,6 @@ export default function App() {
   };
 
   const isFavorite = (promptId) => favorites.some(f => f.id === promptId);
-
-  // 🔴 判断是否为新内容 (Check if item is new)
-  const isNewItem = useCallback((id) => {
-      if (!id || typeof id !== 'string') return false;
-      
-      // 尝试提取时间戳
-      let timestamp = null;
-      
-      // Case 1: 纯数字时间戳 (e.g., "1678888888888")
-      if (/^\d{13}$/.test(id)) {
-          timestamp = parseInt(id, 10);
-      } 
-      // Case 2: 导入格式 (e.g., "imported-1678888888888")
-      else if (id.startsWith('imported-')) {
-          const part = id.split('-')[1];
-          if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10);
-      }
-      // Case 3: 用户创建格式 (e.g., "u-1678888888888")
-      else if (id.startsWith('u-')) {
-          const part = id.split('-')[1];
-          if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10);
-      }
-
-      if (timestamp && timestamp > lastVisit) {
-          return true;
-      }
-      return false;
-  }, [lastVisit]);
 
   // 🔴 侧边栏拖拽排序逻辑
   const handleFavoriteDrop = (draggedId, targetId) => {
@@ -982,7 +930,6 @@ export default function App() {
                 onClick={handleCardClick} 
                 isFavorite={isFavorite(prompt.id)}
                 onToggleFavorite={toggleFavorite}
-                isNew={isNewItem(prompt.id)}
             /> 
             ); })}{section.prompts.length === 0 && (<div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/><span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span></div>)}</div>)}</div>))}
             {isAdmin && <button onClick={handleCreateSection} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group mb-8"><div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div><span className="font-medium">新建一个分区</span></button>}
@@ -1002,7 +949,7 @@ export default function App() {
                  </div>
                  <h3 className="text-xl font-bold text-pink-700 text-center mb-4">此子区已被標記為重口（官方聲明）</h3>
                  <div className="text-sm font-medium text-pink-800/80 leading-relaxed space-y-2 mb-6 text-center font-traditional">
-                    <p>請注意，這子区的內容過於重口味，可能會使人產生惡心、頭暈等不適症狀，亦有可能使閣下情緒有負面影響，因此我們認為這個子区不適合任何人仕觀看。</p>
+                    <p>請注意，這子区的內容過於重口味，可能會使人產生惡心、頭暈等不適症狀，亦有可能使閣下情緒有負面影響，因此我們認為這個本子不適合任何人仕觀看。</p>
                     <p>如閣下仍然執意決定要觀看，請閣下自行承受觀看後的後果。若有任何不適症狀，請立刻停止觀看並及時向醫師尋求幫助</p>
                  </div>
                  <div className="flex gap-3">
