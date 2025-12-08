@@ -14,7 +14,7 @@ import {
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(61).json";
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(63).json";
 
 // 📧 EmailJS 配置
 const EMAILJS_SERVICE_ID = "service_4y3xdta";    
