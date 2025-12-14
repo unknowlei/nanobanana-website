@@ -14,12 +14,12 @@ import {
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(71).json";
+const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(57).json";
 
-// 📧 EmailJS 配置
-const EMAILJS_SERVICE_ID = "service_4y3xdta";    
-const EMAILJS_TEMPLATE_ID = "template_jufrgz5";  
-const EMAILJS_PUBLIC_KEY = "tIMRXTgG9c23yYOKk";  
+// 📧 投稿接收配置 (FormSubmit.co Token)
+// 使用 Token 替代裸露的邮箱地址，保护隐私
+const SUBMISSION_EMAIL = "8b5a6ba41156391e628299f7b2c258d0"; 
+
 const IMGBB_API_KEY = "d24f035fac70f7c113badcb1f800b248"; 
 
 // --- 1. 全局工具函数 ---
@@ -235,15 +235,51 @@ const SubmissionModal = ({ onClose, commonTags = [] }) => {
 
   const handleDirectSubmit = async () => {
     if (!formData.content) return alert("请至少填写【Prompt 内容】");
-    if (!EMAILJS_SERVICE_ID) return alert("管理员未配置邮件服务");
+    
+    // 检查是否替换了邮箱
+    if (SUBMISSION_EMAIL.includes("replace_this")) {
+        return alert("请先在代码中配置您的接收邮箱！(SUBMISSION_EMAIL)");
+    }
+
     setIsSending(true);
-    const previewImageStr = formData.images.length > 0 ? formData.images[0] : "无图片";
-    const contributorInfo = formData.contributor || "匿名";
-    const templateParams = { title: `${formData.title || "未命名"} ${contributorInfo}`, content: formData.content, image: previewImageStr, contributor: contributorInfo, tags: formData.tags.join(", "), json_data: JSON.stringify(formData) };
+    
     try {
-      const response = await fetch('https://api.emailjs.com/api/v1.0/email/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ service_id: EMAILJS_SERVICE_ID, template_id: EMAILJS_TEMPLATE_ID, user_id: EMAILJS_PUBLIC_KEY, template_params: templateParams }) });
-      if (response.ok) { alert("🎉 投稿成功！"); onClose(); } else { throw new Error("发送失败"); }
-    } catch (error) { alert("投稿失败，请稍后重试。"); } finally { setIsSending(false); }
+      // 构造 FormSubmit.co 需要的数据
+      const response = await fetch(`https://formsubmit.co/ajax/${SUBMISSION_EMAIL}`, {
+          method: 'POST',
+          headers: { 
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+          },
+          body: JSON.stringify({
+              _subject: `大香蕉新投稿: ${formData.title || "未命名"}`, // 邮件标题
+              _template: "table", // 邮件样式
+              _captcha: "false", // 关闭验证码 (可选)
+              
+              // 邮件正文内容
+              标题: formData.title || "无标题",
+              内容: formData.content,
+              投稿人: formData.contributor || "匿名",
+              标签: formData.tags.join(", "),
+              图片链接: formData.images.join("\n"),
+              
+              // 附带完整的 JSON 数据方便复制
+              原始数据JSON: JSON.stringify(formData)
+          })
+      });
+
+      if (response.ok) { 
+          alert("🎉 投稿成功！"); 
+          onClose(); 
+      } else { 
+          throw new Error("发送失败"); 
+      }
+    } catch (error) { 
+        alert("投稿失败，请检查网络或稍后重试。"); 
+        console.error(error);
+    } finally { 
+        setIsSending(false); 
+    }
   };
 
   const safeCommonTags = Array.isArray(commonTags) ? commonTags.filter(t => typeof t === 'string') : [];
@@ -921,7 +957,7 @@ export default function App() {
           </div>
       </div>
 
-      {/* 侧边栏开关按钮 - 去掉了数字角标 */}
+      {/* 侧边栏开关按钮 - 已经去掉了数字角标 */}
       {!isSidebarOpen && (
           <button 
             onClick={() => setIsSidebarOpen(true)}
