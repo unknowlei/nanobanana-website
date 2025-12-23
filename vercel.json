@@ -2,5 +2,13 @@
   "buildCommand": "npm install && npm run build",
   "outputDirectory": "dist",
   "framework": "vite",
-  "installCommand": "npm install"
+  "installCommand": "npm install",
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [{ "type": "host", "value": "www.bmzxdlj.cn" }],
+      "destination": "https://bmzxdlj.cn/:path*",
+      "permanent": true
+    }
+  ]
 }
