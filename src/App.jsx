@@ -620,6 +620,9 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isSyncing, setIsSyncing] = useState(false);
 
+  // 🔴 NEW! 区折叠状态（默认折叠）
+  const [isNewSectionCollapsed, setIsNewSectionCollapsed] = useState(true);
+
   const [lastVisit, setLastVisit] = useState(() => {
       const storedLastVisit = localStorage.getItem('nanobanana_last_visit');
       if (storedLastVisit) return parseInt(storedLastVisit, 10);
@@ -939,6 +942,21 @@ export default function App() {
   const isNewItem = useCallback((id) => { if (!id || typeof id !== 'string') return false; let timestamp = null; if (/^\d{13}$/.test(id)) { timestamp = parseInt(id, 10); } else if (id.startsWith('imported-')) { const part = id.split('-')[1]; if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10); } else if (id.startsWith('u-')) { const part = id.split('-')[1]; if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10); } if (timestamp && timestamp > lastVisit) { return true; } return false; }, [lastVisit]);
   const handleFavoriteDrop = (draggedId, targetId) => { const draggedIndex = favorites.findIndex(f => f.id === draggedId); const targetIndex = favorites.findIndex(f => f.id === targetId); if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return; const newFavorites = [...favorites]; const [removed] = newFavorites.splice(draggedIndex, 1); newFavorites.splice(targetIndex, 0, removed); setFavorites(newFavorites); };
   const filteredSections = useMemo(() => { return sections.map(section => ({ ...section, prompts: section.prompts.filter(p => { const q = searchQuery.toLowerCase(); const tags = Array.isArray(p.tags) ? p.tags : []; const matchesSearch = p.title.toLowerCase().includes(q) || (Array.isArray(p.content) ? p.content.join(' ') : p.content).toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)); const matchesTags = selectedTags.length === 0 || selectedTags.every(t => tags.includes(t)); return matchesSearch && matchesTags; }) })).filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0)); }, [sections, searchQuery, selectedTags]);
+  
+  // 🔴 收集所有 NEW 提示词（排除重口/猎奇区）
+  const newPrompts = useMemo(() => {
+    const result = [];
+    sections.forEach(section => {
+      if (section.isRestricted) return; // 排除重口/猎奇区
+      section.prompts.forEach(prompt => {
+        if (isNewItem(prompt.id)) {
+          result.push({ ...prompt, fromSection: section.title });
+        }
+      });
+    });
+    return result;
+  }, [sections, isNewItem]);
+
   const handleDragStart = useCallback((e, type, item, sourceSecId = null) => { if (!isAdmin && type !== 'FAVORITE_ITEM') { e.preventDefault(); return; } setDraggedItem({ type, data: item, sourceSecId }); e.dataTransfer.effectAllowed = "move"; setTimeout(() => { if(e.target) e.target.style.opacity = '0.4'; }, 0); }, [isAdmin]);
   const handleDragEnd = useCallback((e) => { e.target.style.opacity = '1'; setDraggedItem(null); setDragOverTarget(null); }, []);
   const handleDragEnter = useCallback((e, targetId) => { e.preventDefault(); e.stopPropagation(); if ((draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) || draggedItem?.type === 'PROMPT' || draggedItem?.type === 'FAVORITE_ITEM') setDragOverTarget(targetId); }, [draggedItem]);
@@ -1006,6 +1024,45 @@ export default function App() {
         {storageError && (<div className="mb-6 p-3 bg-amber-50/80 backdrop-blur border border-amber-200 text-amber-700 text-sm rounded-xl flex items-center shadow-sm animate-pulse"><CheckSquare size={16} className="mr-2"/> <span>本地缓存已满！请尽快点击右上角【导出按钮】保存数据。</span></div>)}
         {currentView === 'GIF_MAKER' ? (<GifMakerModule />) : (<>
             <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 animate-fade-in-up"><div className="flex items-start gap-4 relative z-10"><div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500"><MessageSquare size={24} /></div><div className="flex-1"><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-slate-700 text-lg">关于本站</h3>{isAdmin && !isNotesEditing && (<button onClick={() => setIsNotesEditing(true)} className="text-xs text-indigo-600 hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/> 编辑公告</button>)}</div>{isNotesEditing ? (<div className="animate-fade-in-up"><textarea className="w-full bg-white/80 border border-indigo-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" rows={3} value={siteNotes} onChange={(e) => setSiteNotes(e.target.value)} /><div className="flex justify-end gap-2 mt-2"><button onClick={() => setIsNotesEditing(false)} className="px-3 py-1 text-xs text-slate-500 hover:bg-white rounded-lg">完成</button></div></div>) : (<div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">{siteNotes || "暂无公告..."}</div>)}</div></div><FileText className="absolute right-[-20px] bottom-[-20px] text-indigo-100 rotate-12" size={120} /></div>
+            
+            {/* 🔴 NEW! 区 - 显示所有新提示词（排除猎奇区） */}
+            {newPrompts.length > 0 && (
+              <div className="mb-8 bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-sm animate-fade-in-up">
+                <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setIsNewSectionCollapsed(!isNewSectionCollapsed)}>
+                  <div className="flex items-center gap-3">
+                    <div className={`p-1.5 rounded-full bg-white shadow-sm text-green-500 transition-all duration-300 ${isNewSectionCollapsed ? '-rotate-90' : ''}`}>
+                      <ChevronDown size={14} />
+                    </div>
+                    <h3 className="font-bold text-green-700 text-lg flex items-center gap-2">
+                      NEW! <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">{newPrompts.length}</span>
+                    </h3>
+                  </div>
+                </div>
+                {!isNewSectionCollapsed && (
+                  <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5">
+                    {newPrompts.map(prompt => (
+                      <PromptCard 
+                        key={`new-${prompt.id}`} 
+                        prompt={prompt} 
+                        isAdmin={isAdmin} 
+                        draggedItem={null} 
+                        dragOverTarget={null} 
+                        handleDragStart={() => {}} 
+                        handleDragEnd={() => {}} 
+                        handleDragOver={() => {}} 
+                        handleDragEnter={() => {}} 
+                        handleDrop={() => {}} 
+                        onClick={handleCardClick} 
+                        isFavorite={isFavorite(prompt.id)} 
+                        onToggleFavorite={toggleFavorite} 
+                        isNew={true}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
             {isAdmin && isPendingPanelOpen && (
               <div className="mb-8 bg-gradient-to-r from-orange-50/80 to-amber-50/80 backdrop-blur-md border border-orange-200/50 rounded-2xl p-6 shadow-lg animate-fade-in-up">
                 <PendingSubmissionsPanel 
