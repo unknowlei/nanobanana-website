@@ -18,7 +18,7 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-// 管理�?UID（硬编码�?
+// 管理员 UID（硬编码）
 const ADMIN_UID = "8jD6GqU7D4P7FZ0P05xrtUUK2qJ2";
 
 export const submitPrompt = async (promptData) => {
