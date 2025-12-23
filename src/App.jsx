@@ -15,7 +15,7 @@ import { submitPrompt, getPendingSubmissions, approveSubmission, rejectSubmissio
  * 👇👇👇 核心配置区 👇👇👇
  * ==============================================================================
  */
-const DATA_SOURCE_URL = "https://raw.githubusercontent.com/unknowlei/nanobanana-data/refs/heads/main/data%20(84).json";
+const DATA_SOURCE_URL = "/data.json";
 
 // 📧 投稿接收配置 (FormSubmit.co Token)
 const SUBMISSION_EMAIL = "8b5a6ba41156391e628299f7b2c258d0"; 

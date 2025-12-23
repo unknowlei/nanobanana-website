@@ -15,8 +15,8 @@ export default async function handler(req, res) {
 
     // 从环境变量获取 GitHub Token
     const GITHUB_TOKEN = process.env.GITHUB_TOKEN;
-    const GITHUB_REPO = process.env.GITHUB_REPO || 'unknowlei/nanobanana-data';
-    const GITHUB_FILE_PATH = process.env.GITHUB_FILE_PATH || 'data%20(84).json';
+    const GITHUB_REPO = process.env.GITHUB_REPO || 'unknowlei/nanobanana-website';
+    const GITHUB_FILE_PATH = process.env.GITHUB_FILE_PATH || 'public/data.json';
 
     if (!GITHUB_TOKEN) {
       return res.status(500).json({ success: false, error: 'GitHub token not configured' });
