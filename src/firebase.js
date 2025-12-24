@@ -41,19 +41,18 @@ export const submitPrompt = async (promptData) => {
   }
 };
 
+// 使用 API 路由获取待处理投稿（绕过 CORS）
 export const getPendingSubmissions = async () => {
   try {
-    const q = query(
-      collection(db, "pending_submissions"),
-      where("status", "==", "pending"),
-      orderBy("createdAt", "desc")
-    );
-    const querySnapshot = await getDocs(q);
-    const submissions = [];
-    querySnapshot.forEach((doc) => {
-      submissions.push({ id: doc.id, ...doc.data() });
+    const response = await fetch('/api/get-submissions', {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
     });
-    return { success: true, data: submissions };
+    
+    const result = await response.json();
+    return result;
   } catch (error) {
     console.error("获取投稿失败:", error);
     return { success: false, error: error.message };
