@@ -105,7 +105,10 @@ export const uploadImageToFirebase = async (file, path = "submissions") => {
 export const loginWithGoogle = async () => {
   try {
     const result = await signInWithPopup(auth, googleProvider);
-    return { success: true, user: result.user };
+    const user = result.user;
+    const isAdmin = user.uid === ADMIN_UID;
+    console.log("登录用户 UID:", user.uid, "是否管理员:", isAdmin);
+    return { success: true, user, isAdmin };
   } catch (error) {
     console.error("登录失败:", error);
     return { success: false, error: error.message };
@@ -125,9 +128,10 @@ export const logout = async () => {
 export const onAuthChange = (callback) => {
   return onAuthStateChanged(auth, (user) => {
     if (user) {
-      callback({ user, isAdmin: user.uid === ADMIN_UID });
+      const isAdmin = user.uid === ADMIN_UID;
+      callback(user, isAdmin);
     } else {
-      callback({ user: null, isAdmin: false });
+      callback(null, false);
     }
   });
 };
