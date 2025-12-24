@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { title, content, tags, images, contact } = req.body;
+    const { title, content, tags, images, contributor, action, targetId, originalTitle, submissionType } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ success: false, error: '标题和内容不能为空' });
@@ -32,7 +32,11 @@ export default async function handler(req, res) {
         content: { stringValue: Array.isArray(content) ? content.join('\n') : content },
         tags: { arrayValue: { values: (tags || []).map(t => ({ stringValue: t })) } },
         images: { arrayValue: { values: (images || []).map(i => ({ stringValue: i })) } },
-        contact: { stringValue: contact || '' },
+        contributor: { stringValue: contributor || '' },
+        action: { stringValue: action || 'create' },
+        targetId: targetId ? { stringValue: targetId } : { nullValue: null },
+        originalTitle: originalTitle ? { stringValue: originalTitle } : { nullValue: null },
+        submissionType: { stringValue: submissionType || '全新投稿' },
         status: { stringValue: 'pending' },
         createdAt: { timestampValue: new Date().toISOString() },
         processedAt: { nullValue: null }
