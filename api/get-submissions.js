@@ -17,51 +17,29 @@ export default async function handler(req, res) {
     const projectId = 'nano-banana-d0fe0';
     const apiKey = 'AIzaSyBxkZhzbilg15YFUHdEix2DrXQLEa4rpoQ';
     
-    // 使用 Firebase REST API 查询 Firestore
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
-
-    const queryBody = {
-      structuredQuery: {
-        from: [{ collectionId: 'pending_submissions' }],
-        where: {
-          fieldFilter: {
-            field: { fieldPath: 'status' },
-            op: 'EQUAL',
-            value: { stringValue: 'pending' }
-          }
-        },
-        orderBy: [
-          {
-            field: { fieldPath: 'createdAt' },
-            direction: 'DESCENDING'
-          }
-        ]
-      }
-    };
+    // 获取所有文档，然后在服务端过滤
+    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pending_submissions?key=${apiKey}`;
 
     const response = await fetch(firestoreUrl, {
-      method: 'POST',
+      method: 'GET',
       headers: {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(queryBody)
+      }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
       console.error('Firestore error:', errorText);
-      return res.status(500).json({ success: false, error: '获取投稿失败' });
+      return res.status(500).json({ success: false, error: '获取投稿失败: ' + errorText });
     }
 
-    const results = await response.json();
+    const result = await response.json();
     
     // 解析 Firestore 返回的数据格式
-    const submissions = results
-      .filter(item => item.document) // 过滤空结果
-      .map(item => {
-        const doc = item.document;
+    const submissions = (result.documents || [])
+      .map(doc => {
         const docId = doc.name.split('/').pop();
-        const fields = doc.fields;
+        const fields = doc.fields || {};
         
         return {
           id: docId,
@@ -77,6 +55,13 @@ export default async function handler(req, res) {
           status: fields.status?.stringValue || 'pending',
           createdAt: fields.createdAt?.timestampValue || null
         };
+      })
+      .filter(sub => sub.status === 'pending') // 只返回待处理的
+      .sort((a, b) => {
+        // 按创建时间降序排序
+        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return timeB - timeA;
       });
 
     return res.status(200).json({ success: true, data: submissions });
