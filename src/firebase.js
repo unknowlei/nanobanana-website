@@ -17,19 +17,24 @@ const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
+const googleProvider = new GoogleAuthProvider();
 
-// 管理员 UID（硬编码）
+// 管理员 UID
 const ADMIN_UID = "8jD6GqU7D4P7FZ0P05xrtUUK2qJ2";
 
+// 使用 API 路由提交投稿（绕过 CORS）
 export const submitPrompt = async (promptData) => {
   try {
-    const docRef = await addDoc(collection(db, "pending_submissions"), {
-      ...promptData,
-      status: "pending",
-      createdAt: serverTimestamp(),
-      processedAt: null
+    const response = await fetch('/api/submit', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(promptData)
     });
-    return { success: true, id: docRef.id };
+    
+    const result = await response.json();
+    return result;
   } catch (error) {
     console.error("提交失败:", error);
     return { success: false, error: error.message };
@@ -40,18 +45,13 @@ export const getPendingSubmissions = async () => {
   try {
     const q = query(
       collection(db, "pending_submissions"),
-      where("status", "==", "pending")
+      where("status", "==", "pending"),
+      orderBy("createdAt", "desc")
     );
     const querySnapshot = await getDocs(q);
     const submissions = [];
     querySnapshot.forEach((doc) => {
       submissions.push({ id: doc.id, ...doc.data() });
-    });
-    // 在客户端排序
-    submissions.sort((a, b) => {
-      const timeA = a.createdAt?.toMillis?.() || 0;
-      const timeB = b.createdAt?.toMillis?.() || 0;
-      return timeB - timeA;
     });
     return { success: true, data: submissions };
   } catch (error) {
@@ -101,14 +101,11 @@ export const uploadImageToFirebase = async (file, path = "submissions") => {
   }
 };
 
-// Authentication 函数
+// 认证相关函数
 export const loginWithGoogle = async () => {
   try {
-    const provider = new GoogleAuthProvider();
-    const result = await signInWithPopup(auth, provider);
-    const user = result.user;
-    const isAdmin = user.uid === ADMIN_UID;
-    return { success: true, user, isAdmin };
+    const result = await signInWithPopup(auth, googleProvider);
+    return { success: true, user: result.user };
   } catch (error) {
     console.error("登录失败:", error);
     return { success: false, error: error.message };
@@ -125,15 +122,14 @@ export const logout = async () => {
   }
 };
 
-export const checkIsAdmin = (user) => {
-  return user?.uid === ADMIN_UID;
-};
-
 export const onAuthChange = (callback) => {
   return onAuthStateChanged(auth, (user) => {
-    const isAdmin = user ? checkIsAdmin(user) : false;
-    callback(user, isAdmin);
+    if (user) {
+      callback({ user, isAdmin: user.uid === ADMIN_UID });
+    } else {
+      callback({ user: null, isAdmin: false });
+    }
   });
 };
 
-export { db, storage, auth };
+export { db, storage, auth, ADMIN_UID };
