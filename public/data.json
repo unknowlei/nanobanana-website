@@ -6,6 +6,19 @@
       "isCollapsed": true,
       "prompts": [
         {
+          "id": "u-1766660213760",
+          "title": "背",
+          "content": "生成一张温馨场景图，主体为图1角色背负图2角色的上半身特写。图1角色双手轻托图2角色的膝盖，侧脸带着柔情凝视图2角色的睡颜；图2角色趴在图1角色的背上熟睡，双手环抱图1角色的颈部。背景设定为夜晚洋馆楼顶，天空正在下流星雨，营造浪漫氛围。重点刻画图1角色的表情细节，使其流露出爱意与保护感。保持原有角色画风，体型和猫耳和尾巴元素不变，，色调统一，光影自然。",
+          "images": [
+            "https://files.catbox.moe/xj92zl.png",
+            "https://files.catbox.moe/bjchbx.png"
+          ],
+          "tags": [
+            "通用"
+          ],
+          "contributor": "炼猫术士"
+        },
+        {
           "id": "u-1766584530957",
           "title": "这比魔法好用多了",
           "content": "你是一名顶尖的游戏与动漫概念美术设计大师，精通角色元素解读和枪械皮肤设计，擅长制作二次元角色手持带有自身特征的枪械。任务目标是根据用户提供的角色立绘和要素要求生成主体形象手持带有自身特征的枪械。\n\n要求：参考提供的主体形象，在尽可能不改变角色动作的前提下，将角色手中原有的物品（武器、书籍、行李等）替换为枪械，枪械皮肤仿照cod二次元枪械皮肤，枪械皮肤有适当特效，枪械皮肤参考角色服装色调及特色元素。\n-持枪动作可在以下两种选择：\n①左手轻扶枪械前握把或前护木，动作自然，右手握住枪械后握把，右手食指搭在扳机上（注意不是扣下扳机）。\n②右手握住枪械后握把，右手食指搭在班级上（注意不是扣下扳机），左手保持原有动作或替换为你认为更能保持身体平衡的动作，整体动作自然。\n补充需要：\n-严格保证角色服装不变，肢体不能扭曲变形。\n-视觉角度可以变更，但必须维持立绘风格。\n-背景纯黑或纯白\n-枪械种类随机选择，手枪、步枪、狙击枪、机枪、霰弹枪机会相同，型号在美系、苏系、欧系中随机选择，机会相同。",
@@ -690,17 +703,24 @@
           "contributor": ""
         },
         {
-          "id": "1763909587046",
+          "id": "u-1766631169283",
           "title": "表白",
           "content": "生成一张三格漫画，画面上方三分之一处的左半部分是第一格，右半部分是第二格，画面下方占总画面三分之二的位置是第三格。要求人物长相服装与参考图完全一致。第一格为人物的面部特写，眼睛睁大，眼神中带着一丝惊讶，嘴巴被一只手轻轻捂住，旁边配有一个 “！” 的符号，整体神态呈现出意外、略带羞怯的感觉，动作上是单手掩口，姿态显得较为娇俏。第二格也是人物的面部特写，眼睛眯起，呈现出笑意，嘴巴微张，那只捂住嘴的手还保持着动作，同时有 “噗～” 的拟声词，神态是开心、俏皮的，仿佛是忍不住要笑出声，动作上延续了掩口的姿态，却多了几分活泼的情绪。第三格背景是有云朵的天空，画面只出现了人物的上半身，人物画风与参考图完全一致。人物的发丝被风吹起，眼睛弯弯，面带柔和的笑容，脸颊还有淡淡的红晕。她姿态放松，身体略向前倾，双手背在身后，整体神态是自信且温柔，呈现出一种大方又迷人的状态。第三格左边有圆形对话框，写着“你觉得我漂亮”。右侧下方有圆形对话框，写着“那是因为你已经爱上我了，笨蛋”。",
           "images": [
             "https://files.catbox.moe/sldwwr.jfif",
-            "https://files.catbox.moe/bdgyuf.jfif"
+            "https://files.catbox.moe/bdgyuf.jfif",
+            "https://files.catbox.moe/iaip2b.png"
           ],
           "tags": [
             "动漫"
           ],
-          "contributor": ""
+          "contributor": "",
+          "similar": [
+            {
+              "content": "生成一张三格漫画，画面上方三分之一处的左半部分是第一格，右半部分是第二格，画面下方占总画面三分之二的位置是第三格。要求人物长相服装与参考图完全一致。第一格为人物的面部特写，眼睛睁大，眼神中带着一丝惊讶，嘴巴被一只手轻轻捂住，旁边配有一个 “！” 的符号，整体神态呈现出意外、略带羞怯的感觉，动作上是单手掩口，姿态显得较为娇俏。第二格也是人物的面部特写，眼睛眯起，呈现出笑意，嘴巴微张，那只捂住嘴的手还保持着动作，同时有 “噗～” 的拟声词，神态是开心、俏皮的，仿佛是忍不住要笑出声，动作上延续了掩口的姿态，却多了几分活泼的情绪。第三格背景是有云朵的天空，画面只出现了人物的上半身，人物画风与参考图完全一致。人物的发丝被风吹起，眼睛弯弯，面带柔和的笑容，脸颊还有淡淡的红晕。她姿态放松，身体略向前倾，双手背在身后，整体神态是自信且温柔，呈现出一种大方又迷人的状态。第三格左边有圆形对话框，写着“你觉得我漂亮”。右侧下方有圆形对话框，写着“那是因为你已经爱上我了，笨蛋”。\n\n【Negative Prompt】\n\n(绘画), (插画), (素描), (3D渲染), (卡通), (二次元), (油画), (光滑的皮肤), (塑料质感), (油腻的皮肤), (过度的后期处理), (磨皮), (完美无瑕), (更改外貌特征)",
+              "contributor": "白水泉"
+            }
+          ]
         },
         {
           "id": "1763912784990",
@@ -756,17 +776,26 @@
           "similar": []
         },
         {
-          "id": "imported-1764067063654",
+          "id": "u-1766631150808",
           "title": "南斗狱杀拳VS北斗飞卫拳",
           "content": "请基于我上传的两张图片，保持图片中角色的所有外貌特征、发型、服装、配饰完全不变，确保还原角色外貌服装，生成一张新的高质量二次元插图。\n图一中的角色位于画面左侧，图二的角色位于画面左侧\n图片的画风为彩色的仿北斗神拳画风\n在保留外貌特征和服装的情况下，将双方角色转变为与北斗神拳中的角色相同的肌肉兄贵，面部画风和五官风格同样模仿北斗神拳，浓眉与棱角分明的面部特征，且仍然穿着原图中的衣服\n重构角色的姿势，输出一张还原《北斗神拳》中，南斗狱杀拳VS北斗飞卫拳的角色在空中交叉飞踢的经典构图与姿势的图片\n辅助提示：两个角色位于空中，双方的踢出的腿在空中交叉为一个X字，双方高度位置水平一致",
           "images": [
             "https://i.ibb.co/1Y4V4ZNH/1ecf5652e902.jpg",
-            "https://i.ibb.co/ccdwSSw4/b29deeed03ff.jpg"
+            "https://i.ibb.co/ccdwSSw4/b29deeed03ff.jpg",
+            "https://files.catbox.moe/wh7pza.png",
+            "https://files.catbox.moe/js97xo.png",
+            "https://files.catbox.moe/t8fsao.png"
           ],
           "tags": [
             "逆天"
           ],
-          "contributor": "Grox0101"
+          "contributor": "Grox0101",
+          "similar": [
+            {
+              "content": "请基于我上传的两张图片，保持图片中角色的所有外貌特征、发型、服装、配饰完全不变，确保还原角色外貌服装，生成一张新的高质量插图。\n图一中的角色位于画面左侧，图二的角色位于画面左侧\n\n保留外貌特征和服装的情况下，仍然穿着原图中的衣服\n重构角色的姿势，输出一张还原《北斗神拳》中，南斗狱杀拳VS北斗飞卫拳的角色在空中交叉飞踢的经典构图与姿势的图片(图三)\n\n辅助提示：两个角色位于空中，双方的踢出的腿在空中交叉为一个X字，双方高度位置水平一致\n\n【Negative Prompt】\n\n(绘画), (插画), (素描), (3D渲染), (卡通), (二次元), (油画), (光滑的皮肤), (塑料质感), (油腻的皮肤), (过度的后期处理), (磨皮), (完美无瑕)",
+              "contributor": "匿名"
+            }
+          ]
         },
         {
           "id": "imported-1765028821992",
@@ -961,8 +990,33 @@
     {
       "id": "s-1763890751009",
       "title": "动漫（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
+        {
+          "id": "u-1766631160299",
+          "title": "野餐",
+          "content": "图1，图2，图3角色坐在地上野餐，图1角色跪坐中间，图2角色跪坐在左，图3角色呈鸭子坐在右，图1和图3角色饭盒里的饭都快吃完了，图2角色的饭盒还是满的，图2角色低着头，眼部被阴影覆盖，表情依旧是在忍耐，双手握成拳按在大腿上，膝盖并拢，小腿分开，大腿不停颤抖，呈鸭子坐。在图2角色的腹部上添加两个很小的“嗡”，并添加颤抖符号。图3角色关心的看着图2角色，图1角色转过身对着图3角色摆摆手左手，笑着表示没事，右手藏在背后，图1角色藏在背后的右手手中拿着一个小型粉色遥控器，遥控器只有一个按钮和一个旋钮，用大拇指把旋钮推到了最大档位。（在图1角色附近插入一张图1角色藏在背后的右手的特写）保持角色画风，服饰不变，保留猫耳尾巴。",
+          "images": [
+            "https://files.catbox.moe/6l1ugx.png"
+          ],
+          "tags": [
+            "动漫",
+            "通用"
+          ],
+          "contributor": "炼猫术士"
+        },
+        {
+          "id": "u-1766631122078",
+          "title": "圣诞礼物",
+          "content": "让图1人物躺下来，被包裹在圣诞礼盒里。人物丝带裹身，露出肩膀、胸口、腰部和大腿，嘴叼着丝带的一头。附带一张贺卡，上面写着“Merry Christmas!”。保持画风以及保持人物在生日礼盒里，礼盒里有圣诞元素。人物在内部蜷缩成一团。保持人物体型比例不变。保持人物头型和装饰不变。",
+          "images": [
+            "https://files.catbox.moe/4z8lmd.png"
+          ],
+          "tags": [
+            "动漫"
+          ],
+          "contributor": "匿名"
+        },
         {
           "id": "imported-1766584646427",
           "title": "阶段图 - 细化描述",
@@ -1284,17 +1338,24 @@
           "contributor": "时光时光man些吧"
         },
         {
-          "id": "imported-1765545298441",
+          "id": "u-1766660194944",
           "title": "圣诞礼物",
           "content": "参考图像人物，保留原有面部妆容和装饰，生成一张表现力强的还原参考人物的具有胶片质感的动漫图像。广角视角，图中角色正面全身躺在一张巨大的红色心形床垫上，眼睛看向正前方主视角，眼皮微张，眼神饱含魅惑和爱意，脸颊有自然的腮红, 嘴里咬着一块心形巧克力, 双手在锁骨处比爱心手势，身体仅被稀疏的顺滑红色丝绸缎带缠绕，没有多余衣物，胸口前方被三分之一大小的红色蝴蝶结略微遮挡，蝴蝶结的缎带紧绷，被身体高高撑起，腹部留白，皮肤白皙自然，展现自然毛孔，身体线条极其突出且自然，自然白皙的腿部，red choker, bell, simple red background, gift boxes, rose petals，微光环境，氛围浪漫柔和，竖屏比例",
           "images": [
-            "https://files.catbox.moe/7bb1dy.jpg"
+            "https://files.catbox.moe/7bb1dy.jpg",
+            "https://files.catbox.moe/z6qzv7.png"
           ],
           "tags": [
             "动漫",
             "通用"
           ],
-          "contributor": ""
+          "contributor": "",
+          "similar": [
+            {
+              "content": "参考图像人物，保留原有面部妆容和装饰，生成一张表现力强的还原参考人物的具有胶片质感的动漫图像。广角视角，图中两个角色正面全身躺在一张巨大的红色心形床垫上，眼睛看向正前方主视角，眼皮微张，眼神饱含魅惑和爱意，脸颊有自然的腮红, 嘴里咬着一块心形巧克力, 两人各伸出一只手比爱心手势，身体仅被稀疏的顺滑红色丝绸缎带缠绕，没有多余衣物，胸口前方被三分之一大小的红色蝴蝶结略微遮挡，蝴蝶结的缎带紧绷，被身体高高撑起，腹部留白，皮肤白皙自然，展现自然毛孔，身体线条极其突出且自然，自然白皙的腿部，red choker, bell, simple red background, gift boxes, rose petals，微光环境，氛围浪漫柔和",
+              "contributor": "哈米斯波芬"
+            }
+          ]
         },
         {
           "id": "imported-1765545249501",
@@ -2691,18 +2752,27 @@
           "similar": []
         },
         {
-          "id": "1764254456762",
+          "id": "u-1766631142712",
           "title": "QQ聊天记录",
           "content": "生成一张经过后期美化、风格可爱的社交软件聊天界面截图（看起来像是模仿\nQQ的界面）。\n以下是图片的具体内容描述：1.视觉风格：\n1.整体色调为粉色，对话框气泡使用了卡通可爱猫咪的元素，还有樱花和云朵的装饰，非常有“少女心”。\n2.聊天内容：\n所有的消息都是由同一个人（左侧头像为参考图中的女孩）发送给视角的持有者。\n内容是一个循序渐进的“表白”过程，结合了二次元游戏文化。文字内容如下（从上到下）：第一句：“你说你喜欢XXX我记得一清二楚第二句：“XXX我也入坑了”第三句：“XXX我也出了”\n3. 图片内容：\n在文字中间发送了一张真实照片。\n照片中是一个人在洗手间或更衣室对着镜子的自拍。\n这个人正在Cosplay（角色扮演）上文提到的角色\n特征与参考图中的角色相同.角色十分还原又漂亮，如同高质量亚洲coser,\n动作是比着剪刀手，拿着手机正在自拍，并没有挡住可爱的脸部。\n4.后续文字：第四句：“还有什么不懂的我们可以慢慢了解”第五句：“可以给我一个追求你的机会吗”\n5. 最后还有一张图片，这个coser的掀起裙子的臀部特写，可以看到白色丁字裤、用油性笔在裸露臀瓣（Cheek）上写着（爱心标志）”专属小穴“，”专属肉便器“，表明角色很用心的扮演角色。",
           "images": [
-            "https://files.catbox.moe/bjj148.jpg"
+            "https://files.catbox.moe/bjj148.jpg",
+            "https://files.catbox.moe/lsfxq6.png",
+            "https://files.catbox.moe/fsagju.png",
+            "https://files.catbox.moe/au0md9.png"
           ],
           "tags": [
             "cosplay",
             "真人",
             "通用"
           ],
-          "contributor": ""
+          "contributor": "",
+          "similar": [
+            {
+              "content": "角色変为光之美少女",
+              "contributor": "匿名"
+            }
+          ]
         },
         {
           "id": "1764257039011",
@@ -2838,8 +2908,21 @@
     {
       "id": "s-1763908305060",
       "title": "通用（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
+        {
+          "id": "u-1766639016729",
+          "title": "对江独酌(图中人物需自行使用参考图片)",
+          "content": "Masterpiece, best quality, 8K resolution, hyper-detailed, photorealistic 3D render.\nComposition and Tension:\nA composition of extreme tension and dynamism. The camera is positioned from the character's side-rear, employing a slightly low angle to enhance her presence. Strong diagonal leading lines are fundamental to the scene: formed by the pavilion's pillar, the character's intense line of sight, and a brilliant golden path of light reflected on the river. The character's body and the pillar create a powerful foreground frame, locking the viewer's gaze first onto her exquisite side profile, then guiding it along her sightline into the vast, endless winter landscape.\nFocal Point: The Luminous Profile:\nThe absolute focal point of the image is the character's sculpture-like, exquisite side profile, sharply outlined by the last rays of the setting sun. A crisp, razor-sharp rim light precisely illuminates the contour of her cheek, the bridge of her nose, and the edges of her hair, making her stand out luminously against the slightly darker, shadowed interior of the pavilion. This creates a dramatic, three-dimensional chiaroscuro effect.\nDynamics and Environmental Integration:\nHer posture is not static; it captures the very instant she turns her head towards the sunset, her body holding a subtle, poised twist that suggests a deep emotional connection to the view. This is a captured moment of profound introspection. The river wind that lifts her hair and billows her sleeves is the same force that creates ripples on the water's surface. The warm steam from her wine stove mingles with the cool evening air, visually and thematically merging her inner warmth with the outer world's cool tranquility. She is not just in the landscape; she is a part of its breath and light.\nCore Instruction and Character Details:\n[Core Instruction]: The character's attire, hairstyle, accessories, and overall appearance must strictly follow the provided reference image.This is the highest priority.\nBased on the reference, her expression is one of serene, powerful focus, completely absorbed by the scenery. The details of her clothing, especially textures like silk or embroidered patterns, catch the light in complex, beautiful ways.\nBackground and Atmosphere:\nThe distant winter scenery is no longer just a background but an extension of her emotions and gaze. The golden hour light is intense, creating long shadows and a deep, saturated color palette of fiery oranges, deep blues, and the stark white of distant frost-touched elements. The scene is vast, quiet, yet charged with the energy of the setting sun and the character's focused presence.\nArt Style and Technical Specifications:\nCinematic CG artwork, blending Unreal Engine 5 realism with Octane Render's quality. Extreme cinematic lighting with volumetric light, global illumination, and precise ray tracing. All materials use hyper-detailed PBR textures for photorealistic skin and environments. A perfect ultra-HD wallpaper.",
+          "images": [
+            "https://files.catbox.moe/djuqex.png",
+            "https://files.catbox.moe/u5r59k.png"
+          ],
+          "tags": [
+            "通用"
+          ],
+          "contributor": "火色"
+        },
         {
           "id": "imported-1766487673168",
           "title": "土下座",
@@ -3284,16 +3367,26 @@
           "contributor": ""
         },
         {
-          "id": "imported-1764912396054",
+          "id": "u-1766631132717",
           "title": "角色料理",
           "content": "先将原图角色主体放在正中央(如果原图露点则需要添加最低限度的遮蔽物)，然后进行扩展，分解构造出她作为食材的各种细节(用局部放大图的方式呈现，环绕在周围用箭头链接表示对应关系)，并标注出你的食用解说(细节特征，食用指南，注意要用侮辱性的描述图中人物)并且使用手写体文字进行标注说明，最好使用中文。：\n1：各种部位的单独特写(多图，各种可食用部位并描述可做成的料理。)\n2：臀肉和胸肉诱惑展示(两图)\n3：裙底近距离观看内裤仰视图\n4：屠宰前的表情(连续的多种表情对比(四图)：冷漠鄙视；害羞；绝望；失神(舌头伸出👅微微翻白眼留着口水))\n5：一张你认为在这个角色身上最好吃的部位，并说明该部位的味道和口感\n6.一张生殖器官切割下来的料理图，结构纹理等要体现角色特点",
           "images": [
-            "https://files.catbox.moe/xf7rqc.jpg"
+            "https://files.catbox.moe/xf7rqc.jpg",
+            "https://files.catbox.moe/pedfkq.jpg",
+            "https://files.catbox.moe/y3dwpt.jpg",
+            "https://files.catbox.moe/7fs5s5.jpg",
+            "https://files.catbox.moe/0734tn.png"
           ],
           "tags": [
             "猎奇"
           ],
-          "contributor": "恐暴龙"
+          "contributor": "恐暴龙",
+          "similar": [
+            {
+              "content": "《天鹅肉食用指南》",
+              "contributor": "白水泉"
+            }
+          ]
         },
         {
           "id": "imported-1764606902076",
@@ -3392,5 +3485,5 @@
     "通用"
   ],
   "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n12月21日 更新！\n新增了修改提示词和投稿变体功能\n如果你觉得你投稿的提示词可以优化，或者有更好的提示词，可以点击具体的提示词之后选择“修改投稿”\n如果你有同类型的提示词，或者受到了某个提示词的启发而自己创作出的提示词，可以点击“新增变体”投稿类似的提示词整合在一个合集中\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2025-12-24T13:58:53.526Z"
+  "lastUpdated": "2025-12-25T10:57:10.133Z"
 }
