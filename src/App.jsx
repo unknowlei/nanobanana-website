@@ -203,6 +203,16 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
                   tags: Array.isArray(initialData.tags) ? initialData.tags : [],
                   contributor: initialData.contributor || ''
               });
+          } else if (mode === 'edit-variant') {
+              // 编辑变体模式：预填变体数据
+              const variantData = initialData.variantData || {};
+              setFormData({
+                  title: initialData.title + ` (变体 ${initialData.variantIndex + 1})`,
+                  content: variantData.content || '',
+                  images: initialData.images || (initialData.image ? [initialData.image] : []),
+                  tags: Array.isArray(initialData.tags) ? initialData.tags : [],
+                  contributor: variantData.contributor || ''
+              });
           } else if (mode === 'variant') {
               // 变体模式：预填标题(只读)、标签、保留父级图片(逻辑上在后端处理，这里仅展示或允许新增)
               // 注意：用户说"除了名字和之前的图片不能修改之外都可以修改，也可以新增图片"
@@ -265,16 +275,18 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
     
     try {
       // 构造扩展的 Submission Object
+      const actionType = mode === 'edit-variant' ? 'edit-variant' : mode;
       const submissionData = {
-          title: mode === 'variant' ? initialData.title : formData.title,
+          title: (mode === 'variant' || mode === 'edit-variant') ? initialData.title : formData.title,
           content: formData.content,
           images: formData.images,
           tags: formData.tags,
           contributor: formData.contributor || "匿名",
-          action: mode, // 'create', 'edit', 'variant'
+          action: actionType,
           targetId: initialData ? initialData.id : null,
+          variantIndex: mode === 'edit-variant' ? initialData.variantIndex : null,
           originalTitle: initialData ? initialData.title : null,
-          submissionType: mode === 'variant' ? '新增变体' : mode === 'edit' ? '修改原贴' : '全新投稿'
+          submissionType: mode === 'edit-variant' ? '修改变体' : mode === 'variant' ? '新增变体' : mode === 'edit' ? '修改原贴' : '全新投稿'
       };
 
       const result = await submitPrompt(submissionData);
@@ -294,7 +306,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
   };
 
   const safeCommonTags = Array.isArray(commonTags) ? commonTags.filter(t => typeof t === 'string') : [];
-  const modalTitle = mode === 'variant' ? '新增变体投稿' : mode === 'edit' ? '修改原投稿' : '投稿提示词';
+  const modalTitle = mode === 'edit-variant' ? '修改变体投稿' : mode === 'variant' ? '新增变体投稿' : mode === 'edit' ? '修改原投稿' : '投稿提示词';
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up">
@@ -430,8 +442,17 @@ const PromptViewer = memo(({ prompt, onSubmissionAction }) => {
               <button onClick={() => onSubmissionAction('variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors border border-purple-100">
                   <CopyPlus size={14}/> 投稿变体
               </button>
-              <button onClick={() => onSubmissionAction('edit', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-100">
-                  <Edit3 size={14}/> 修改投稿
+              <button onClick={() => {
+                  if (activeTab === 0) {
+                      onSubmissionAction('edit', prompt);
+                  } else {
+                      const variant = prompt.similar?.[activeTab - 1];
+                      if (variant) {
+                          onSubmissionAction('edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
+                      }
+                  }
+              }} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-100">
+                  <Edit3 size={14}/> {activeTab === 0 ? '修改投稿' : '修改变体'}
               </button>
           </div>
       </div>
@@ -448,7 +469,7 @@ const PromptViewer = memo(({ prompt, onSubmissionAction }) => {
 });
 
 // --- 7. 管理员待审核界面组件 ---
-const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onViewSubmission }) => {
+const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onViewSubmission, refreshKey }) => {
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -465,7 +486,7 @@ const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onView
 
   useEffect(() => {
     loadSubmissions();
-  }, []);
+  }, [refreshKey]);
 
   if (isLoading) {
     return (
@@ -615,6 +636,7 @@ export default function App() {
   // 🔴 待审核弹窗状态
   const [viewingSubmission, setViewingSubmission] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
+  const [pendingRefreshKey, setPendingRefreshKey] = useState(0);
 
   // 🔴 用户认证状态
   const [currentUser, setCurrentUser] = useState(null);
@@ -776,6 +798,7 @@ export default function App() {
     handleApproveSubmission(submission, sectionId);
     setViewingSubmission(null);
     setSelectedSection(null);
+    setPendingRefreshKey(prev => prev + 1); // 刷新待处理列表
   }, [handleApproveSubmission]);
 
   // 🔴 处理拒绝投稿
@@ -783,6 +806,7 @@ export default function App() {
     if (!confirm("确定拒绝此投稿？")) return;
     await rejectSubmission(submissionId);
     setViewingSubmission(null);
+    setPendingRefreshKey(prev => prev + 1); // 刷新待处理列表
   }, []);
 
   // 🔴 处理登录
@@ -1071,6 +1095,7 @@ export default function App() {
                   onReject={() => {}}
                   onEdit={handleEditSubmission}
                   onViewSubmission={setViewingSubmission}
+                  refreshKey={pendingRefreshKey}
                 />
               </div>
             )}

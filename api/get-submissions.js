@@ -50,6 +50,7 @@ export default async function handler(req, res) {
           contributor: fields.contributor?.stringValue || '',
           action: fields.action?.stringValue || 'create',
           targetId: fields.targetId?.stringValue || null,
+          variantIndex: fields.variantIndex?.integerValue !== undefined ? parseInt(fields.variantIndex.integerValue) : null,
           originalTitle: fields.originalTitle?.stringValue || null,
           submissionType: fields.submissionType?.stringValue || '全新投稿',
           status: fields.status?.stringValue || 'pending',
