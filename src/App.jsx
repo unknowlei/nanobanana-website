@@ -36,6 +36,145 @@ const useGifshot = () => {
   return loaded;
 };
 
+// 🟢 自适应弹出框 - 图片尺寸检测 Hook
+const useImageDimensions = (imageUrl) => {
+  const [dimensions, setDimensions] = useState({ width: 0, height: 0, aspectRatio: 1, orientation: 'square' });
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    if (!imageUrl) {
+      setDimensions({ width: 0, height: 0, aspectRatio: 1, orientation: 'square' });
+      setIsLoading(false);
+      return;
+    }
+
+    setIsLoading(true);
+    const img = new Image();
+    
+    img.onload = () => {
+      const width = img.naturalWidth;
+      const height = img.naturalHeight;
+      const aspectRatio = width / height;
+      
+      let orientation = 'square';
+      if (aspectRatio > 1.2) orientation = 'landscape';
+      else if (aspectRatio < 0.8) orientation = 'portrait';
+      
+      setDimensions({ width, height, aspectRatio, orientation });
+      setIsLoading(false);
+    };
+
+    img.onerror = () => {
+      setDimensions({ width: 0, height: 0, aspectRatio: 1, orientation: 'square' });
+      setIsLoading(false);
+    };
+
+    // 使用优化后的 URL 来检测尺寸
+    img.src = imageUrl;
+  }, [imageUrl]);
+
+  return { ...dimensions, isLoading };
+};
+
+// 🟢 计算自适应弹出框尺寸 - 确保图片完整显示无需滚动
+// 支持横图（上下布局）和竖图/正方形（左右布局）
+const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight) => {
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
+  const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
+  
+  // 弹窗边距：距离视口边缘的最小间距
+  const viewportPadding = 24;
+  
+  // 弹窗内部 padding
+  const modalPadding = 24; // p-6 = 24px
+  
+  // 判断是否使用左右布局（正方形或竖图）
+  const useSideLayout = orientation === 'portrait' || orientation === 'square';
+  
+  if (useSideLayout) {
+    // 🟢 左右布局：图片在左，内容在右
+    // 可用的最大高度（留更多空间给图片）
+    const maxAvailableHeight = viewportHeight - viewportPadding * 2 - modalPadding * 2 - 80; // 80px 标题栏
+    
+    // 计算图片区域的高度（占据大部分可用高度）
+    let calculatedImageHeight = Math.min(maxAvailableHeight * 0.95, 800);
+    let calculatedImageWidth = calculatedImageHeight * aspectRatio;
+    
+    // 右侧内容区域最小宽度
+    const minContentWidth = 350;
+    
+    // 可用的最大宽度
+    const maxAvailableWidth = viewportWidth - viewportPadding * 2;
+    
+    // 确保图片宽度不超过可用宽度的55%（留45%给内容区）
+    const maxImageWidth = (maxAvailableWidth - modalPadding * 2) * 0.55;
+    if (calculatedImageWidth > maxImageWidth) {
+      calculatedImageWidth = maxImageWidth;
+      calculatedImageHeight = calculatedImageWidth / aspectRatio;
+    }
+    
+    // 弹窗总宽度 = 图片宽度 + 内容宽度 + 间距
+    let modalWidth = calculatedImageWidth + minContentWidth + modalPadding * 3;
+    
+    // 最大宽度限制
+    const maxModalWidth = Math.min(maxAvailableWidth, 1400);
+    modalWidth = Math.min(modalWidth, maxModalWidth);
+    
+    // 最小宽度
+    modalWidth = Math.max(modalWidth, 700);
+    
+    return {
+      maxWidth: `${modalWidth}px`,
+      width: 'auto',
+      '--adaptive-image-max-height': `${Math.max(calculatedImageHeight, 300)}px`,
+      '--adaptive-layout': 'side', // 标记为左右布局
+      '--adaptive-image-width': `${calculatedImageWidth}px`,
+    };
+  } else {
+    // 🟢 上下布局：横图使用传统布局，但放大图片区域
+    // 减少固定内容高度估算，给图片更多空间
+    // 标题栏: ~60px, 其他内容区: ~200px（减少了）
+    const fixedContentHeight = 260;
+    
+    // 可用于显示图片的最大高度（增加了）
+    const maxAvailableImageHeight = viewportHeight - viewportPadding * 2 - fixedContentHeight - modalPadding * 2;
+    
+    // 可用的最大宽度
+    const maxAvailableWidth = viewportWidth - viewportPadding * 2;
+    
+    // 根据图片比例计算合适的尺寸
+    let calculatedImageHeight = Math.min(maxAvailableImageHeight, 700); // 限制最大高度
+    let calculatedImageWidth = calculatedImageHeight * aspectRatio;
+    
+    // 如果计算出的宽度超过可用宽度，则以宽度为准重新计算
+    if (calculatedImageWidth > maxAvailableWidth - modalPadding * 2) {
+      calculatedImageWidth = maxAvailableWidth - modalPadding * 2;
+      calculatedImageHeight = calculatedImageWidth / aspectRatio;
+    }
+    
+    // 图片区域额外需要的宽度（左右内边距）
+    const imageAreaExtraPadding = 32;
+    
+    // 计算弹窗的最终宽度
+    let modalWidth = calculatedImageWidth + modalPadding * 2 + imageAreaExtraPadding;
+    
+    // 最小宽度限制
+    const minModalWidth = 500;
+    modalWidth = Math.max(modalWidth, minModalWidth);
+    
+    // 最大宽度限制
+    const maxModalWidth = Math.min(maxAvailableWidth, 1400);
+    modalWidth = Math.min(modalWidth, maxModalWidth);
+    
+    return {
+      maxWidth: `${modalWidth}px`,
+      width: 'auto',
+      '--adaptive-image-max-height': `${Math.max(calculatedImageHeight, 300)}px`,
+      '--adaptive-layout': 'stack', // 标记为上下布局
+    };
+  }
+};
+
 // 🟢 智能图片处理
 const compressImage = (file) => {
   return new Promise((resolve) => {
@@ -185,7 +324,7 @@ const GifMakerModule = () => {
 
 // --- 🟢 4. 游客投稿弹窗 (支持 修改 和 变体) ---
 const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialData = null }) => {
-  const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '' });
+  const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '', notes: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [urlInput, setUrlInput] = useState(''); 
@@ -201,7 +340,8 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
                   content: initialData.content,
                   images: initialData.images || (initialData.image ? [initialData.image] : []),
                   tags: Array.isArray(initialData.tags) ? initialData.tags : [],
-                  contributor: initialData.contributor || ''
+                  contributor: initialData.contributor || '',
+                  notes: initialData.notes || ''
               });
           } else if (mode === 'edit-variant') {
               // 编辑变体模式：预填变体数据
@@ -211,7 +351,8 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
                   content: variantData.content || '',
                   images: initialData.images || (initialData.image ? [initialData.image] : []),
                   tags: Array.isArray(initialData.tags) ? initialData.tags : [],
-                  contributor: variantData.contributor || ''
+                  contributor: variantData.contributor || '',
+                  notes: variantData.notes || ''
               });
           } else if (mode === 'variant') {
               // 变体模式：预填标题(只读)、标签、保留父级图片(逻辑上在后端处理，这里仅展示或允许新增)
@@ -222,7 +363,8 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
                   content: "", // 内容清空，等待填入变体内容
                   images: initialData.images || (initialData.image ? [initialData.image] : []),
                   tags: Array.isArray(initialData.tags) ? initialData.tags : [],
-                  contributor: ''
+                  contributor: '',
+                  notes: ''
               });
           }
       }
@@ -282,6 +424,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
           images: formData.images,
           tags: formData.tags,
           contributor: formData.contributor || "匿名",
+          notes: formData.notes || "",
           action: actionType,
           targetId: initialData ? initialData.id : null,
           variantIndex: mode === 'edit-variant' ? initialData.variantIndex : null,
@@ -316,6 +459,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
              <div><label className="text-xs font-bold text-slate-500 block mb-1">标题 {mode !== 'create' && '(不可修改)'}</label><input value={mode === 'variant' ? initialData.title : formData.title} disabled={mode !== 'create'} onChange={e=>setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed" placeholder="给你的灵感起个名"/></div>
              <div><label className="text-xs font-bold text-slate-500 block mb-1">投稿人 ID (选填)</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/><input value={formData.contributor} onChange={e=>setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="无投稿人"/></div></div>
              <div><label className="text-xs font-bold text-slate-500 block mb-1">Prompt 内容 <span className="text-red-500">*</span></label><textarea value={formData.content} onChange={e=>setFormData({...formData, content: e.target.value})} rows={4} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 font-mono text-sm" placeholder={mode === 'variant' ? "请输入变体 prompt..." : "必填..."}/></div>
+             <div><label className="text-xs font-bold text-slate-500 block mb-1">作者备注 (选填)</label><textarea value={formData.notes} onChange={e=>setFormData({...formData, notes: e.target.value})} rows={2} className="w-full bg-amber-50 border border-amber-200 p-2 rounded-xl outline-none focus:border-amber-400 text-sm" placeholder="添加备注说明、使用技巧等..."/></div>
              <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'}`}><label className="text-xs font-bold text-slate-500 block mb-1 px-1">配图 ({formData.images.length}) - {mode==='variant'?'新增图片':'拖拽/多选'}</label><div className="grid grid-cols-3 gap-2 mb-2">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group bg-slate-100"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button></div>))}<label className={`aspect-square bg-indigo-50 text-indigo-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100 transition-all border-2 border-dashed border-indigo-200 ${isUploading ? 'opacity-50' : ''}`}>{isUploading ? <Loader2 className="animate-spin w-5 h-5"/> : <Plus className="w-6 h-6"/>}<span className="text-[10px] font-bold mt-1 text-center px-1">{isUploading ? '上传中' : '点击/拖入'}</span><input type="file" accept="image/*" multiple className="hidden" disabled={isUploading} onChange={handleFileSelect}/></label></div><div className="flex gap-2"><input value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAddUrl()} placeholder="粘贴链接" className="flex-1 bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs outline-none"/><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg disabled:opacity-50">添加</button></div></div>
              <div><label className="text-xs font-bold text-slate-500 block mb-2">标签 (选填)</label>{safeCommonTags.length > 0 ? (<div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-xl border border-slate-200 max-h-32 overflow-y-auto custom-scrollbar">{safeCommonTags.map(t => (<span key={t} onClick={() => toggleTag(t)} className={`px-3 py-1.5 text-xs rounded-lg cursor-pointer transition-all select-none border ${formData.tags.includes(t) ? 'bg-indigo-500 text-white border-indigo-500 shadow-md' : 'bg-white text-slate-600 border-slate-200 hover:border-indigo-300'}`}>{t}</span>))}</div>) : (<div className="text-xs text-slate-400 p-2 bg-slate-50 rounded-xl text-center">暂无可用标签</div>)}</div>
              <button onClick={handleDirectSubmit} disabled={isUploading || isSending} className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold shadow-lg shadow-indigo-200 transition-all disabled:opacity-50 flex items-center justify-center">{isSending ? <Loader2 className="animate-spin mr-2 w-4 h-4"/> : <Send className="mr-2 w-4 h-4"/>} {isSending ? '投递中...' : '立即投稿'}</button>
@@ -387,12 +531,40 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
   );
 });
 
-// --- 6. 提示词详情页 (支持变体切换 + 投稿变体/修改入口) ---
-const PromptViewer = memo(({ prompt, onSubmissionAction }) => {
+// --- 6. 提示词详情页 (支持变体切换 + 投稿变体/修改入口 + 左右布局 + 作者备注 + 变体独立图片) ---
+const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscape' }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
-  const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
+  // 🟢 主提示词的图片
+  const mainImages = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
   const [idx, setIdx] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
+  
+  // 🟢 判断是否使用左右布局（竖图或正方形）
+  const useSideLayout = orientation === 'portrait' || orientation === 'square';
+  
+  // 🟢 计算当前 Tab 的图片（变体可能有自己的图片）
+  const currentImages = useMemo(() => {
+      if (activeTab === 0) return mainImages;
+      const variant = prompt.similar?.[activeTab - 1];
+      // 如果变体有自己的图片，使用变体图片；否则使用主图
+      if (variant && Array.isArray(variant.images) && variant.images.length > 0) {
+          return variant.images;
+      }
+      return mainImages;
+  }, [prompt, activeTab, mainImages]);
+  
+  // 🟢 切换 Tab 时自动跳转到该变体的第一张图片
+  useEffect(() => {
+      if (activeTab === 0) {
+          setIdx(0);
+      } else {
+          const variant = prompt.similar?.[activeTab - 1];
+          // 如果变体有自己的图片，跳到第一张
+          if (variant && Array.isArray(variant.images) && variant.images.length > 0) {
+              setIdx(0);
+          }
+      }
+  }, [activeTab, prompt.similar]);
   
   const currentContent = useMemo(() => {
       if (activeTab === 0) return prompt.content;
@@ -402,36 +574,37 @@ const PromptViewer = memo(({ prompt, onSubmissionAction }) => {
   // 新增：计算当前展示的投稿人
   const currentContributor = useMemo(() => {
       if (activeTab === 0) return prompt.contributor;
-      // 尝试获取变体的投稿人
-      return prompt.similar?.[activeTab - 1]?.contributor; 
+      return prompt.similar?.[activeTab - 1]?.contributor;
   }, [prompt, activeTab]);
 
-  const handleDoubleClick = () => { if (images.length > 0) window.open(images[idx], '_blank'); };
+  // 🟢 新增：计算当前展示的作者备注
+  const currentNotes = useMemo(() => {
+      if (activeTab === 0) return prompt.notes || "";
+      return prompt.similar?.[activeTab - 1]?.notes || "";
+  }, [prompt, activeTab]);
 
-  return (
-    <div className="space-y-6">
-      {prompt.similar && prompt.similar.length > 0 && (
-          <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-100">
-              <button onClick={() => setActiveTab(0)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 0 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>主提示词</button>
-              {prompt.similar.map((_, i) => (
-                  <button key={i} onClick={() => setActiveTab(i + 1)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>变体 {i + 1}</button>
-              ))}
-          </div>
-      )}
+  const handleDoubleClick = () => { if (currentImages.length > 0) window.open(currentImages[idx], '_blank'); };
 
-      {images.length > 0 ? (
-         <div className="relative w-full bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-200/60 shadow-inner flex items-center justify-center group min-h-[300px]">
-            <LazyImage src={images[idx]} width={1200} className="w-auto h-auto max-w-full max-h-[75vh] object-contain cursor-zoom-in transition-transform duration-300" onDoubleClick={handleDoubleClick} title="双击查看原图" />
-            {images.length > 1 && (
-              <>
-                <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p-1+images.length)%images.length)}} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronLeft size={24}/></button>
-                <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p+1)%images.length)}} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronRight size={24}/></button>
-                <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-50">{images.map((_, i) => (<div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === idx ? 'bg-white' : 'bg-white/40'}`} />))}</div>
-              </>
-            )}
-         </div>
-      ) : (<div className="w-full h-48 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">暂无配图</div>)}
-      
+  // 🟢 图片区域组件 - 使用 currentImages 以支持变体独立图片
+  const ImageSection = () => (
+    currentImages.length > 0 ? (
+       <div className="relative w-full bg-slate-50/50 rounded-2xl overflow-hidden border border-slate-200/60 shadow-inner flex items-center justify-center group" style={{ minHeight: useSideLayout ? '300px' : '200px', maxHeight: 'var(--adaptive-image-max-height, 70vh)' }}>
+          <LazyImage src={currentImages[idx]} width={1200} className="w-auto h-auto max-w-full object-contain cursor-zoom-in transition-transform duration-300" style={{ maxHeight: 'var(--adaptive-image-max-height, 70vh)' }} onDoubleClick={handleDoubleClick} title="双击查看原图" />
+          {currentImages.length > 1 && (
+            <>
+              <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p-1+currentImages.length)%currentImages.length)}} className="absolute left-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronLeft size={24}/></button>
+              <button onClick={(e)=>{e?.stopPropagation();setIdx((p)=>(p+1)%currentImages.length)}} className="absolute right-2 top-1/2 -translate-y-1/2 p-2 rounded-full bg-black/10 hover:bg-black/30 text-white transition-all opacity-0 group-hover:opacity-100 z-50"><ChevronRight size={24}/></button>
+              <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5 z-50">{currentImages.map((_, i) => (<div key={i} className={`w-1.5 h-1.5 rounded-full transition-colors ${i === idx ? 'bg-white' : 'bg-white/40'}`} />))}</div>
+            </>
+          )}
+       </div>
+    ) : (<div className="w-full h-48 bg-slate-50 rounded-2xl flex items-center justify-center text-slate-300">暂无配图</div>)
+  );
+
+  // 🟢 内容区域组件
+  const ContentSection = () => (
+    <div className={`space-y-4 ${useSideLayout ? 'flex-1 min-w-0 flex flex-col' : ''}`}>
+      {/* 标签和操作按钮 */}
       <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="flex flex-wrap gap-2">
               {tags.map(t => (typeof t === 'string' ? <span key={t} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">#{t}</span> : null))}
@@ -457,13 +630,53 @@ const PromptViewer = memo(({ prompt, onSubmissionAction }) => {
           </div>
       </div>
 
-      {/* 修改：显示当前 Tab 对应的投稿人 */}
+      {/* 投稿人 */}
       {currentContributor && (<div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg font-bold"><Smile size={16} /><span>投稿人：{currentContributor}</span></div>)}
       
-      <div>
+      {/* Prompt 内容 - 当无备注时自动扩展高度 */}
+      <div className={currentNotes ? '' : 'flex-1 flex flex-col'}>
           <div className="text-xs font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1"><FileText size={12}/> PROMPT CONTENT</div>
-          <div className="p-5 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm whitespace-pre-wrap">{currentContent}</div>
+          <div className={`p-4 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm whitespace-pre-wrap overflow-y-auto custom-scrollbar ${currentNotes ? 'max-h-[200px]' : 'flex-1 min-h-[150px] max-h-[400px]'}`}>{currentContent}</div>
       </div>
+
+      {/* 🟢 作者备注区域 */}
+      {currentNotes && (
+        <div>
+            <div className="text-xs font-bold text-amber-500 mb-2 tracking-wider flex items-center gap-1"><MessageSquare size={12}/> 作者备注</div>
+            <div className="p-3 bg-amber-50 rounded-xl font-sans text-sm border border-amber-200 text-amber-800 leading-relaxed shadow-sm whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{currentNotes}</div>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-4">
+      {/* 变体切换标签 */}
+      {prompt.similar && prompt.similar.length > 0 && (
+          <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-100">
+              <button onClick={() => setActiveTab(0)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 0 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>主提示词</button>
+              {prompt.similar.map((_, i) => (
+                  <button key={i} onClick={() => setActiveTab(i + 1)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>变体 {i + 1}</button>
+              ))}
+          </div>
+      )}
+
+      {/* 🟢 根据图片方向选择布局 */}
+      {useSideLayout ? (
+        // 左右布局：图片在左，内容在右
+        <div className="flex gap-6" style={{ minHeight: 'var(--adaptive-image-max-height, 400px)' }}>
+          <div className="flex-shrink-0" style={{ width: 'var(--adaptive-image-width, 45%)' }}>
+            <ImageSection />
+          </div>
+          <ContentSection />
+        </div>
+      ) : (
+        // 上下布局：传统布局
+        <>
+          <ImageSection />
+          <ContentSection />
+        </>
+      )}
     </div>
   );
 });
@@ -555,14 +768,14 @@ const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onView
   );
 };
 
-// --- 8. 管理员表单组件 (修复版) ---
+// --- 8. 管理员表单组件 (修复版 + 作者备注支持) ---
 function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }) {
    const getInitialImages = () => { if (initialData?.images && initialData.images.length > 0) return initialData.images; if (initialData?.image) return [initialData.image]; return []; };
-   const [formData, setFormData] = useState({ id: initialData?.id || '', title: initialData?.title || '', tags: initialData?.tags || [], contributor: initialData?.contributor || '', content: initialData?.content || '', images: getInitialImages(), similar: initialData?.similar || [] });
-   const [activeTab, setActiveTab] = useState(0); 
+   const [formData, setFormData] = useState({ id: initialData?.id || '', title: initialData?.title || '', tags: initialData?.tags || [], contributor: initialData?.contributor || '', content: initialData?.content || '', notes: initialData?.notes || '', images: getInitialImages(), similar: initialData?.similar || [] });
+   const [activeTab, setActiveTab] = useState(0);
    const [tagInput, setTagInput] = useState('');
    const [isCompressing, setIsCompressing] = useState(false);
-   const [urlInput, setUrlInput] = useState(''); 
+   const [urlInput, setUrlInput] = useState('');
    const [isDragOver, setIsDragOver] = useState(false);
    
    const currentContent = useMemo(() => { if (activeTab === 0) return formData.content; return formData.similar[activeTab - 1]?.content || ""; }, [formData, activeTab]);
@@ -570,10 +783,16 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    // 🔴 修复：获取当前Tab的投稿人
    const currentContributor = useMemo(() => { if (activeTab === 0) return formData.contributor; return formData.similar[activeTab - 1]?.contributor || ""; }, [formData, activeTab]);
 
+   // 🟢 新增：获取当前Tab的作者备注
+   const currentNotes = useMemo(() => { if (activeTab === 0) return formData.notes || ''; return formData.similar[activeTab - 1]?.notes || ""; }, [formData, activeTab]);
+
    const updateContent = (val) => { setFormData(prev => { if (activeTab === 0) return { ...prev, content: val }; const newSimilar = [...prev.similar]; if (!newSimilar[activeTab - 1]) newSimilar[activeTab - 1] = { content: '' }; newSimilar[activeTab - 1].content = val; return { ...prev, similar: newSimilar }; }); };
    
    // 🔴 修复：更新当前Tab的投稿人
    const updateContributor = (val) => { setFormData(prev => { if (activeTab === 0) return { ...prev, contributor: val }; const newSimilar = [...prev.similar]; if (!newSimilar[activeTab - 1]) newSimilar[activeTab - 1] = { content: '', contributor: '' }; newSimilar[activeTab - 1] = { ...newSimilar[activeTab - 1], contributor: val }; return { ...prev, similar: newSimilar }; }); };
+
+   // 🟢 新增：更新当前Tab的作者备注
+   const updateNotes = (val) => { setFormData(prev => { if (activeTab === 0) return { ...prev, notes: val }; const newSimilar = [...prev.similar]; if (!newSimilar[activeTab - 1]) newSimilar[activeTab - 1] = { content: '', notes: '' }; newSimilar[activeTab - 1] = { ...newSimilar[activeTab - 1], notes: val }; return { ...prev, similar: newSimilar }; }); };
 
    const addSimilarPage = () => { setFormData(prev => ({ ...prev, similar: [...prev.similar, { content: '' }] })); setActiveTab(formData.similar.length + 1); };
    const removeSimilarPage = (index) => { if(!confirm("确定删除此变体页面？")) return; setFormData(prev => ({ ...prev, similar: prev.similar.filter((_, i) => i !== index) })); setActiveTab(0); };
@@ -644,6 +863,26 @@ export default function App() {
 
   // 🔴 NEW! 区折叠状态（默认折叠）
   const [isNewSectionCollapsed, setIsNewSectionCollapsed] = useState(true);
+
+  // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
+  const editingPromptFirstImage = useMemo(() => {
+    if (!editingPrompt) return null;
+    const images = Array.isArray(editingPrompt.images) && editingPrompt.images.length > 0
+      ? editingPrompt.images
+      : (editingPrompt.image ? [editingPrompt.image] : []);
+    return images.length > 0 ? images[0] : null;
+  }, [editingPrompt]);
+
+  // 🟢 自适应弹窗：检测第一张图片的尺寸
+  const { orientation: imageOrientation, aspectRatio: imageAspectRatio, isLoading: isImageLoading } = useImageDimensions(editingPromptFirstImage);
+
+  // 🟢 自适应弹窗：计算弹窗样式
+  const adaptiveModalStyle = useMemo(() => {
+    if (!editingPromptFirstImage || isImageLoading) {
+      return { maxWidth: '768px' }; // 默认 max-w-3xl
+    }
+    return getAdaptiveModalStyle(imageOrientation, imageAspectRatio);
+  }, [editingPromptFirstImage, imageOrientation, imageAspectRatio, isImageLoading]);
 
   const [lastVisit, setLastVisit] = useState(() => {
       const storedLastVisit = localStorage.getItem('nanobanana_last_visit');
@@ -743,20 +982,25 @@ export default function App() {
       }));
       alert("✅ 修改已批准并更新！");
     } else if (submission.action === 'variant' && submission.targetId) {
-      // 变体投稿：添加到原提示词的similar数组
+      // 🟢 变体投稿：添加到原提示词的similar数组，变体图片独立保存
       setSections(prev => prev.map(sec => ({
         ...sec,
         prompts: sec.prompts.map(p => {
           if (p.id === submission.targetId) {
+            // 计算变体独有的图片（不包含主提示词的图片）
+            const mainImages = p.images || [];
+            const variantImages = (submission.images || []).filter(img => !mainImages.includes(img));
+            
             const newVariant = {
               content: submission.content,
-              contributor: submission.contributor
+              contributor: submission.contributor,
+              notes: submission.notes || '',
+              // 🟢 只有当变体有新图片时才保存到变体的 images 字段
+              ...(variantImages.length > 0 ? { images: variantImages } : {})
             };
-            const newImages = submission.images.filter(img => !(p.images || []).includes(img));
             return {
               ...p,
               id: `u-${Date.now()}`,
-              images: [...(p.images || []), ...newImages],
               similar: [...(p.similar || []), newVariant]
             };
           }
@@ -890,22 +1134,24 @@ export default function App() {
                            // 核心修改逻辑
                            if (data.action === 'edit') {
                                // 修改模式：直接替换字段，并更新ID
-                               return { ...p, ...data, id: newTimestamp }; 
+                               return { ...p, ...data, id: newTimestamp, notes: data.notes || p.notes || '' };
                            } else if (data.action === 'variant') {
                                // 变体模式：添加到 similar，更新ID
-                               const newVariant = { 
+                               // 🟢 计算变体独有的图片（不包含主提示词的图片）
+                               const mainImages = p.images || [];
+                               const variantImages = (data.images || []).filter(img => !mainImages.includes(img));
+                               
+                               const newVariant = {
                                    content: data.content,
-                                   // 🔴 关键修改：保存变体的投稿人
-                                   contributor: data.contributor
+                                   contributor: data.contributor,
+                                   notes: data.notes || '',
+                                   // 🟢 只有当变体有新图片时才保存到变体的 images 字段
+                                   ...(variantImages.length > 0 ? { images: variantImages } : {})
                                };
-                               const newImages = data.images.filter(img => !p.images.includes(img)); // 找出新图
-                               // 将新图追加到主图列表（可选，根据需求）
-                               const updatedImages = [...p.images, ...newImages];
                                
                                return {
                                    ...p,
                                    id: newTimestamp, // 更新时间戳
-                                   images: updatedImages,
                                    similar: [...(p.similar || []), newVariant]
                                };
                            }
@@ -927,11 +1173,12 @@ export default function App() {
            if (!data.content && !data.title) throw new Error("无效数据");
            const newPrompt = {
               id: `imported-${Date.now()}`,
-              title: data.title || "未命名提示词", 
+              title: data.title || "未命名提示词",
               content: data.content,
               images: Array.isArray(data.images) ? data.images : (data.image ? [data.image] : []),
               tags: Array.isArray(data.tags) ? data.tags : [],
-              contributor: data.contributor || ""
+              contributor: data.contributor || "",
+              notes: data.notes || ""
            };
            setPendingImportPrompt(newPrompt);
            setIsImportModalOpen(true);
@@ -1230,7 +1477,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-w-3xl max-h-[90vh] rounded-3xl overflow-hidden flex flex-col p-8 shadow-2xl ring-1 ring-white/50 animate-fade-in-up"><div className="flex justify-between mb-6 border-b border-slate-100 pb-4"><div className="flex items-center gap-3"><div className="w-10 h-10 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={20}/></div><h3 className="font-bold text-xl text-slate-800">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}</h3></div><button onClick={() => setIsPromptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : (editingPrompt ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)}</div></div></div>)}
+      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}</h3></div><button onClick={() => setIsPromptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : (editingPrompt ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)}</div></div></div>)}
       {pendingRestrictedSectionId && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
               <div className="bg-pink-50 w-full max-w-lg rounded-3xl p-6 shadow-2xl border-2 border-pink-200">
