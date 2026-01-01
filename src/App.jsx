@@ -1414,6 +1414,18 @@ export default function App() {
                 />
               </div>
 
+              {/* 🟢 作者备注区域 */}
+              <div>
+                <div className="text-xs font-bold text-amber-500 mb-2 uppercase tracking-wide flex items-center gap-1"><MessageSquare size={12}/> 作者备注</div>
+                <textarea
+                  value={viewingSubmission.notes || ""}
+                  onChange={(e) => setViewingSubmission({...viewingSubmission, notes: e.target.value})}
+                  className="w-full bg-amber-50 rounded-lg p-3 text-sm text-amber-800 font-sans leading-relaxed border-2 border-amber-200 focus:border-amber-400 outline-none transition-colors resize-none"
+                  rows={3}
+                  placeholder="输入作者备注..."
+                />
+              </div>
+
               <div>
                 <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">标签</div>
                 <div className="flex flex-wrap gap-2">
