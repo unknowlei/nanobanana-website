@@ -532,7 +532,8 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
 });
 
 // --- 6. 提示词详情页 (支持变体切换 + 投稿变体/修改入口 + 左右布局 + 作者备注 + 变体独立图片) ---
-const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscape' }) => {
+// 🔴 新增 isFromFavorite 和 onLocalAction props，区分本地收藏和云端提示词
+const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscape', isFromFavorite = false, onLocalAction }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   // 🟢 主提示词的图片
   const mainImages = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
@@ -609,23 +610,47 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
               {tags.map(t => (typeof t === 'string' ? <span key={t} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">#{t}</span> : null))}
           </div>
           
-          {/* 🔴 游客创作入口 (Visitor Contribution Actions) */}
+          {/* 🔴 游客创作入口 - 区分本地收藏和云端提示词 */}
           <div className="flex gap-2">
-              <button onClick={() => onSubmissionAction('variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors border border-purple-100">
-                  <CopyPlus size={14}/> 投稿变体
-              </button>
-              <button onClick={() => {
-                  if (activeTab === 0) {
-                      onSubmissionAction('edit', prompt);
-                  } else {
-                      const variant = prompt.similar?.[activeTab - 1];
-                      if (variant) {
-                          onSubmissionAction('edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
-                      }
-                  }
-              }} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-100">
-                  <Edit3 size={14}/> {activeTab === 0 ? '修改投稿' : '修改变体'}
-              </button>
+              {isFromFavorite ? (
+                  // 🟢 本地收藏：显示本地操作按钮
+                  <>
+                      <button onClick={() => onLocalAction && onLocalAction('local-variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 text-xs font-bold rounded-lg transition-colors border border-green-100">
+                          <CopyPlus size={14}/> 添加变体
+                      </button>
+                      <button onClick={() => {
+                          if (activeTab === 0) {
+                              onLocalAction && onLocalAction('local-edit', prompt);
+                          } else {
+                              const variant = prompt.similar?.[activeTab - 1];
+                              if (variant) {
+                                  onLocalAction && onLocalAction('local-edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
+                              }
+                          }
+                      }} className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 text-xs font-bold rounded-lg transition-colors border border-amber-100">
+                          <Edit3 size={14}/> {activeTab === 0 ? '编辑' : '编辑变体'}
+                      </button>
+                  </>
+              ) : (
+                  // 🟢 云端提示词：显示投稿按钮
+                  <>
+                      <button onClick={() => onSubmissionAction('variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors border border-purple-100">
+                          <CopyPlus size={14}/> 投稿变体
+                      </button>
+                      <button onClick={() => {
+                          if (activeTab === 0) {
+                              onSubmissionAction('edit', prompt);
+                          } else {
+                              const variant = prompt.similar?.[activeTab - 1];
+                              if (variant) {
+                                  onSubmissionAction('edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
+                              }
+                          }
+                      }} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-100">
+                          <Edit3 size={14}/> {activeTab === 0 ? '修改投稿' : '修改变体'}
+                      </button>
+                  </>
+              )}
           </div>
       </div>
 
@@ -842,6 +867,10 @@ export default function App() {
   const [pendingRestrictedSectionId, setPendingRestrictedSectionId] = useState(null);
   const [favorites, setFavorites] = useState([]);
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  // 🔴 标记当前查看的提示词是否来自本地收藏
+  const [isViewingFavorite, setIsViewingFavorite] = useState(false);
+  // 🔴 标记是否正在编辑本地收藏（显示 PromptForm 而非 PromptViewer）
+  const [isLocalEditing, setIsLocalEditing] = useState(false);
   const [isPendingPanelOpen, setIsPendingPanelOpen] = useState(false);
   const [sidebarWidth, setSidebarWidth] = useState(320); 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -1200,8 +1229,35 @@ export default function App() {
       return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [isResizingSidebar]);
 
-  const fetchCloudData = async (force = true) => { if (force && !window.confirm("这将强制从 GitHub 拉取最新数据并覆盖本地缓存，确定吗？")) return; setIsLoading(true); try { const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); if(!res.ok) throw new Error(); const d = await res.json(); const cleanSections = (d.sections || []).map(s => ({ ...s, isCollapsed: (s.isRestricted || s.defaultCollapsed) ? true : s.isCollapsed, prompts: s.prompts.map(p => ({ ...p, tags: Array.isArray(p.tags) ? p.tags : [], images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).filter(url => url.length < 5000) })) })); setSections(cleanSections); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); if(force) { try { localStorage.setItem('nanobanana_sections', JSON.stringify(cleanSections)); localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[])); localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||"")); alert("已强制从云端同步最新数据！"); } catch(e) { alert("云端数据太大，无法存入本地缓存。"); } } } catch (err) { if(force) alert("同步失败，请检查配置"); setLoadError("离线模式"); } finally { setIsLoading(false); } };
-  const handleCardClick = useCallback((prompt) => { setEditingPrompt(prompt); setIsPromptModalOpen(true); }, []);
+  const fetchCloudData = async (force = true) => { if (force && !window.confirm("���将强制从 GitHub 拉取最新数据并覆盖本地缓存，确定吗？")) return; setIsLoading(true); try { const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); if(!res.ok) throw new Error(); const d = await res.json(); const cleanSections = (d.sections || []).map(s => ({ ...s, isCollapsed: (s.isRestricted || s.defaultCollapsed) ? true : s.isCollapsed, prompts: s.prompts.map(p => ({ ...p, tags: Array.isArray(p.tags) ? p.tags : [], images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).filter(url => url.length < 5000) })) })); setSections(cleanSections); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); if(force) { try { localStorage.setItem('nanobanana_sections', JSON.stringify(cleanSections)); localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[])); localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||"")); alert("已强制从云端同步最新数据！"); } catch(e) { alert("云端数据太大，无法存入本地缓存。"); } } } catch (err) { if(force) alert("同步失败，请检查配置"); setLoadError("离线模式"); } finally { setIsLoading(false); } };
+  // 🔴 修改 handleCardClick，添加第二个参数标记是否来自本地收藏
+  const handleCardClick = useCallback((prompt, fromFavorite = false) => { setEditingPrompt(prompt); setIsViewingFavorite(fromFavorite); setIsPromptModalOpen(true); }, []);
+  
+  // 🔴 处理本地收藏的编辑/变体操作（不触发投稿）
+  const handleLocalAction = useCallback((action, data) => {
+    if (action === 'local-edit') {
+      // 🟢 直接进入编辑模式，显示 PromptForm
+      setEditingPrompt(data);
+      setIsViewingFavorite(true);
+      setIsLocalEditing(true); // 标记为本地编辑模式
+    } else if (action === 'local-variant') {
+      // 🟢 添加本地变体后进入编辑模式
+      const newVariant = { content: '', contributor: '', notes: '' };
+      const updatedPrompt = {
+        ...data,
+        similar: [...(data.similar || []), newVariant]
+      };
+      setFavorites(prev => prev.map(f => f.id === data.id ? updatedPrompt : f));
+      setEditingPrompt(updatedPrompt);
+      setIsViewingFavorite(true);
+      setIsLocalEditing(true); // 进入编辑模式
+    } else if (action === 'local-edit-variant') {
+      // 🟢 编辑本地变体 - 直接进入编辑模式
+      setEditingPrompt(data);
+      setIsViewingFavorite(true);
+      setIsLocalEditing(true); // 标记为本地编辑模式
+    }
+  }, []);
   const handleModeToggle = () => { if (isAdmin) { setIsAdmin(false); setClickCount(0); } else { const n = clickCount + 1; setClickCount(n); if (n >= 5) { setIsAdmin(true); setClickCount(0); if (navigator.vibrate) navigator.vibrate(50); } } };
   const handleClipboardImport = async () => { try { const text = await navigator.clipboard.readText(); processImportText(text); } catch(e) { const manualInput = prompt("无法自动读取剪贴板。\n请在此手动粘贴 (Ctrl+V) 代码："); if (manualInput) processImportText(manualInput); } };
   const confirmImportToSection = (sectionId) => { if (!pendingImportPrompt) return; setSections(prev => prev.map(sec => { if (sec.id === sectionId) return { ...sec, prompts: [pendingImportPrompt, ...sec.prompts] }; return sec; })); setIsImportModalOpen(false); setPendingImportPrompt(null); alert(`成功导入到分区！`); };
@@ -1232,7 +1288,7 @@ export default function App() {
   const handleDragEnter = useCallback((e, targetId) => { e.preventDefault(); e.stopPropagation(); if ((draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) || draggedItem?.type === 'PROMPT' || draggedItem?.type === 'FAVORITE_ITEM') setDragOverTarget(targetId); }, [draggedItem]);
   const handleDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; const scrollThreshold = 100; const scrollSpeed = 15; if (e.clientY < scrollThreshold) { window.scrollBy(0, -scrollSpeed); } else if (window.innerHeight - e.clientY < scrollThreshold) { window.scrollBy(0, scrollSpeed); } }, []);
   const handleDrop = useCallback((e, targetId, targetType, targetSecId = null) => { e.preventDefault(); e.stopPropagation(); setDragOverTarget(null); if (!draggedItem) return; if (draggedItem.type === 'FAVORITE_ITEM' && targetType === 'FAVORITE_ITEM') { handleFavoriteDrop(draggedItem.data.id, targetId); return; } if (!isAdmin) return; setSections(prev => { const newSections = JSON.parse(JSON.stringify(prev)); if (draggedItem.type === 'SECTION' && targetType === 'SECTION') { const sIdx = newSections.findIndex(s => s.id === draggedItem.data.id); const tIdx = newSections.findIndex(s => s.id === targetId); if (sIdx !== -1 && tIdx !== -1 && sIdx !== tIdx) { const [moved] = newSections.splice(sIdx, 1); newSections.splice(tIdx, 0, moved); } } else if (draggedItem.type === 'PROMPT') { const sSec = newSections.find(s => s.id === draggedItem.sourceSecId); if (!sSec) return prev; const pIdx = sSec.prompts.findIndex(p => p.id === draggedItem.data.id); if (pIdx === -1) return prev; const [moved] = sSec.prompts.splice(pIdx, 1); if (targetType === 'PROMPT') { const tSec = newSections.find(s => s.id === targetSecId); const tPIdx = tSec.prompts.findIndex(p => p.id === targetId); tSec.prompts.splice(tPIdx, 0, moved); } else if (targetType === 'SECTION_AREA') { const tSec = newSections.find(s => s.id === targetId); tSec.prompts.push(moved); } } return newSections; }); }, [draggedItem, isAdmin, favorites]);
-  const handleSavePrompt = useCallback((promptData) => { const newPrompt = { ...promptData, id: promptData.id || `u-${Date.now()}` }; if (isAdmin) { setSections(prev => { if (editingPrompt && editingPrompt.id) { let found = false; const updated = prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => { if (p.id === editingPrompt.id) { found = true; return newPrompt; } return p; }) })); if (found) return updated; } const targetId = targetSectionId || prev[0].id; return prev.map(sec => { if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] }; return sec; }); }); } else { setFavorites(prev => { const exists = prev.find(p => p.id === newPrompt.id); if (exists) return prev.map(p => p.id === newPrompt.id ? newPrompt : p); return [newPrompt, ...prev]; }); if (!isSidebarOpen) setIsSidebarOpen(true); alert("创作成功！已保存到右侧收藏栏。"); } setIsPromptModalOpen(false); setEditingPrompt(null); }, [editingPrompt, targetSectionId, isAdmin, isSidebarOpen]);
+  const handleSavePrompt = useCallback((promptData) => { const newPrompt = { ...promptData, id: promptData.id || `u-${Date.now()}` }; if (isAdmin) { setSections(prev => { if (editingPrompt && editingPrompt.id) { let found = false; const updated = prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => { if (p.id === editingPrompt.id) { found = true; return newPrompt; } return p; }) })); if (found) return updated; } const targetId = targetSectionId || prev[0].id; return prev.map(sec => { if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] }; return sec; }); }); } else { setFavorites(prev => { const exists = prev.find(p => p.id === newPrompt.id); if (exists) return prev.map(p => p.id === newPrompt.id ? newPrompt : p); return [newPrompt, ...prev]; }); if (!isSidebarOpen) setIsSidebarOpen(true); if (isLocalEditing) { alert("本地收藏已更新！"); } else { alert("创作成功！已保存到右侧收藏栏。"); } } setIsPromptModalOpen(false); setEditingPrompt(null); setIsLocalEditing(false); }, [editingPrompt, targetSectionId, isAdmin, isSidebarOpen, isLocalEditing]);
   const handleExport = () => { const blob = new Blob([JSON.stringify({ sections, commonTags, siteNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click(); };
   const handleImport = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if(confirm("覆盖当前数据?")) { setSections(d.sections||[]); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); } } catch(err){ alert("文件无效"); } }; reader.readAsText(file); } };
   const handleCreateSection = () => { setEditingSection({ title: '' }); setIsSectionModalOpen(true); };
@@ -1244,7 +1300,7 @@ export default function App() {
       <AnimationStyles />
       <div className="fixed inset-0 z-0 pointer-events-none bg-[#f8fafc] static-gradient"></div>
       
-      <div ref={sidebarRef} className={`fixed top-0 right-0 h-full bg-white/95 backdrop-blur-xl shadow-2xl z-40 transition-transform duration-300 ease-in-out flex flex-col border-l border-indigo-100 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: window.innerWidth < 768 ? '85%' : `${sidebarWidth}px` }} > <div className="hidden md:block absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-indigo-400/50 transition-colors z-50" onMouseDown={() => setIsResizingSidebar(true)}></div> <div className="p-4 border-b border-indigo-50 flex justify-between items-center bg-indigo-50/30"> <h3 className="font-bold text-slate-700 flex items-center"><Heart className="w-4 h-4 mr-2 text-pink-500 fill-pink-500"/> 我的收藏 ({favorites.length})</h3> <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><ChevronRight size={20} className="text-slate-400"/></button> </div> <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar"> {favorites.length === 0 ? ( <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm space-y-4"> <div className="p-4 bg-slate-50 rounded-full"><Heart size={32} className="text-slate-300"/></div> <p>点击卡片爱心收藏</p> <button onClick={() => { setEditingPrompt(null); setIsPromptModalOpen(true); }} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors">新建一个</button> </div> ) : ( favorites.map((fav, index) => ( <div key={fav.id} draggable onDragStart={(e) => handleDragStart(e, 'FAVORITE_ITEM', fav)} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, fav.id)} onDrop={(e) => handleDrop(e, fav.id, 'FAVORITE_ITEM')} onClick={() => handleCardClick(fav)} className={`bg-white p-3 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex gap-3 relative ${dragOverTarget === fav.id ? 'ring-2 ring-indigo-400 bg-indigo-50' : ''}`} > <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 overflow-hidden"> {fav.images && fav.images.length > 0 ? ( <img src={getOptimizedUrl(fav.images[0], 100)} className="w-full h-full object-cover pixelated" /> ) : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={16}/></div>} </div> <div className="flex-1 min-w-0 flex flex-col justify-center"> <h4 className="font-bold text-sm text-slate-700 truncate mb-1">{fav.title}</h4> <p className="text-[10px] text-slate-400 line-clamp-2">{fav.content}</p> </div> <button onClick={(e) => { e.stopPropagation(); toggleFavorite(fav); }} className="absolute top-2 right-2 p-1.5 text-pink-400 hover:text-pink-600 hover:bg-pink-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button> <div className="absolute right-2 bottom-2 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100"><GripHorizontal size={14}/></div> </div> )) )} </div> </div>
+      <div ref={sidebarRef} className={`fixed top-0 right-0 h-full bg-white/95 backdrop-blur-xl shadow-2xl z-40 transition-transform duration-300 ease-in-out flex flex-col border-l border-indigo-100 ${isSidebarOpen ? 'translate-x-0' : 'translate-x-full'}`} style={{ width: window.innerWidth < 768 ? '85%' : `${sidebarWidth}px` }} > <div className="hidden md:block absolute left-0 top-0 bottom-0 w-1 cursor-ew-resize hover:bg-indigo-400/50 transition-colors z-50" onMouseDown={() => setIsResizingSidebar(true)}></div> <div className="p-4 border-b border-indigo-50 flex justify-between items-center bg-indigo-50/30"> <h3 className="font-bold text-slate-700 flex items-center"><Heart className="w-4 h-4 mr-2 text-pink-500 fill-pink-500"/> 我的收藏 ({favorites.length})</h3> <button onClick={() => setIsSidebarOpen(false)} className="p-1 hover:bg-slate-200 rounded-full transition-colors"><ChevronRight size={20} className="text-slate-400"/></button> </div> <div className="flex-1 overflow-y-auto p-3 space-y-3 custom-scrollbar"> {favorites.length === 0 ? ( <div className="flex flex-col items-center justify-center h-full text-slate-400 text-sm space-y-4"> <div className="p-4 bg-slate-50 rounded-full"><Heart size={32} className="text-slate-300"/></div> <p>点击卡片爱心收藏</p> <button onClick={() => { setEditingPrompt(null); setIsViewingFavorite(false); setIsPromptModalOpen(true); }} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-xl text-xs font-bold hover:bg-indigo-100 transition-colors">新建一个</button> </div> ) : ( favorites.map((fav, index) => ( <div key={fav.id} draggable onDragStart={(e) => handleDragStart(e, 'FAVORITE_ITEM', fav)} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, fav.id)} onDrop={(e) => handleDrop(e, fav.id, 'FAVORITE_ITEM')} onClick={() => handleCardClick(fav, true)} className={`bg-white p-3 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all cursor-pointer group flex gap-3 relative ${dragOverTarget === fav.id ? 'ring-2 ring-indigo-400 bg-indigo-50' : ''}`} > <div className="w-16 h-16 bg-slate-100 rounded-lg flex-shrink-0 overflow-hidden"> {fav.images && fav.images.length > 0 ? ( <img src={getOptimizedUrl(fav.images[0], 100)} className="w-full h-full object-cover pixelated" /> ) : <div className="w-full h-full flex items-center justify-center text-slate-300"><ImageIcon size={16}/></div>} </div> <div className="flex-1 min-w-0 flex flex-col justify-center"> <h4 className="font-bold text-sm text-slate-700 truncate mb-1">{fav.title}</h4> <p className="text-[10px] text-slate-400 line-clamp-2">{fav.content}</p> </div> <button onClick={(e) => { e.stopPropagation(); toggleFavorite(fav); }} className="absolute top-2 right-2 p-1.5 text-pink-400 hover:text-pink-600 hover:bg-pink-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"><Trash2 size={12}/></button> <div className="absolute right-2 bottom-2 text-slate-300 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100"><GripHorizontal size={14}/></div> </div> )) )} </div> </div>
       {!isSidebarOpen && ( <button onClick={() => setIsSidebarOpen(true)} className="fixed right-0 top-1/2 -translate-y-1/2 bg-white/90 backdrop-blur border border-slate-200 shadow-lg p-2 rounded-l-xl z-30 hover:pl-3 transition-all group" > <ChevronLeft size={20} className="text-slate-400 group-hover:text-indigo-500" /> </button> )}
 
       <header className="sticky top-0 z-30 bg-white/70 backdrop-blur-md border-b border-white/40 shadow-sm transition-all duration-300">
@@ -1488,7 +1544,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}</h3></div><button onClick={() => setIsPromptModalOpen(false)} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : (editingPrompt ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)}</div></div></div>)}
+      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">本地收藏</span>}</h3></div><button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
       {pendingRestrictedSectionId && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
               <div className="bg-pink-50 w-full max-w-lg rounded-3xl p-6 shadow-2xl border-2 border-pink-200">
