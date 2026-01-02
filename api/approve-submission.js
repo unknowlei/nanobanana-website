@@ -25,10 +25,11 @@ export default async function handler(req, res) {
 
     // Firebase 配置
     const projectId = 'nano-banana-d0fe0';
+    const apiKey = 'AIzaSyBxkZhzbilg15YFUHdEix2DrXQLEa4rpoQ';
     const collection = 'pending_submissions';
     
-    // 使用 Firebase REST API 更新文档
-    const updateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${submissionId}?updateMask.fieldPaths=status&updateMask.fieldPaths=processedAt`;
+    // 使用 Firebase REST API 更新文档（必须包含 API key）
+    const updateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${submissionId}?key=${apiKey}&updateMask.fieldPaths=status&updateMask.fieldPaths=processedAt`;
     
     const updateData = {
       fields: {
