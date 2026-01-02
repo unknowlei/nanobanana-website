@@ -1,5 +1,5 @@
 // Vercel Serverless Function: 批准投稿
-// 使用 Firebase REST API 更新投稿状态，绕过 CORS 问题
+// 使用 Firebase REST API 删除已批准的投稿，绕过 CORS 问题
 
 export default async function handler(req, res) {
   // 设置 CORS 头
@@ -28,47 +28,38 @@ export default async function handler(req, res) {
     const apiKey = 'AIzaSyBxkZhzbilg15YFUHdEix2DrXQLEa4rpoQ';
     const collection = 'pending_submissions';
     
-    // 使用 Firebase REST API 更新文档（必须包含 API key）
-    const updateUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${submissionId}?key=${apiKey}&updateMask.fieldPaths=status&updateMask.fieldPaths=processedAt`;
-    
-    const updateData = {
-      fields: {
-        status: { stringValue: 'approved' },
-        processedAt: { timestampValue: new Date().toISOString() }
-      }
-    };
+    // 使用 Firebase REST API 删除文档（批准后从待处理分区移除）
+    const deleteUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${submissionId}?key=${apiKey}`;
 
-    const response = await fetch(updateUrl, {
-      method: 'PATCH',
+    const response = await fetch(deleteUrl, {
+      method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(updateData)
+      }
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error('Firebase 更新失败:', errorText);
-      return res.status(500).json({ 
-        error: '更新投稿状态失败', 
-        details: errorText 
+      console.error('Firebase 删除失败:', errorText);
+      return res.status(500).json({
+        error: '删除投稿失败',
+        details: errorText
       });
     }
 
-    const result = await response.json();
-    console.log('投稿已批准:', submissionId);
+    console.log('投稿已批准并从待处理分区删除:', submissionId);
 
-    return res.status(200).json({ 
-      success: true, 
-      message: '投稿已批准',
-      submissionId 
+    return res.status(200).json({
+      success: true,
+      message: '投稿已批准并从待处理分区删除',
+      submissionId
     });
 
   } catch (error) {
     console.error('批准投稿时出错:', error);
-    return res.status(500).json({ 
-      error: '服务器内部错误', 
-      details: error.message 
+    return res.status(500).json({
+      error: '服务器内部错误',
+      details: error.message
     });
   }
 }
