@@ -59,14 +59,22 @@ export const getPendingSubmissions = async () => {
   }
 };
 
+// 使用 API 路由批准投稿（绕过 CORS）
 export const approveSubmission = async (submissionId) => {
   try {
-    const docRef = doc(db, "pending_submissions", submissionId);
-    await updateDoc(docRef, {
-      status: "approved",
-      processedAt: serverTimestamp()
+    const response = await fetch('/api/approve-submission', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ submissionId })
     });
-    return { success: true };
+    
+    const result = await response.json();
+    if (!result.success) {
+      console.error("批准失败:", result.error);
+    }
+    return result;
   } catch (error) {
     console.error("批准失败:", error);
     return { success: false, error: error.message };
