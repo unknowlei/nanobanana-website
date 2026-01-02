@@ -14,7 +14,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { title, content, tags, images, contributor, action, targetId, variantIndex, originalTitle, submissionType } = req.body;
+    const { title, content, tags, images, contributor, notes, action, targetId, variantIndex, originalTitle, submissionType } = req.body;
 
     if (!title || !content) {
       return res.status(400).json({ success: false, error: '标题和内容不能为空' });
@@ -33,6 +33,7 @@ export default async function handler(req, res) {
         tags: { arrayValue: { values: (tags || []).map(t => ({ stringValue: t })) } },
         images: { arrayValue: { values: (images || []).map(i => ({ stringValue: i })) } },
         contributor: { stringValue: contributor || '' },
+        notes: { stringValue: notes || '' },
         action: { stringValue: action || 'create' },
         targetId: targetId ? { stringValue: targetId } : { nullValue: null },
         variantIndex: variantIndex !== null && variantIndex !== undefined ? { integerValue: variantIndex } : { nullValue: null },

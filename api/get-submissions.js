@@ -48,6 +48,7 @@ export default async function handler(req, res) {
           tags: fields.tags?.arrayValue?.values?.map(v => v.stringValue) || [],
           images: fields.images?.arrayValue?.values?.map(v => v.stringValue) || [],
           contributor: fields.contributor?.stringValue || '',
+          notes: fields.notes?.stringValue || '',
           action: fields.action?.stringValue || 'create',
           targetId: fields.targetId?.stringValue || null,
           variantIndex: fields.variantIndex?.integerValue !== undefined ? parseInt(fields.variantIndex.integerValue) : null,

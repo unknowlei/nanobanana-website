@@ -979,7 +979,8 @@ export default function App() {
       content: submission.content,
       images: submission.images || [],
       tags: submission.tags || [],
-      contributor: submission.contributor || "匿名"
+      contributor: submission.contributor || "匿名",
+      notes: submission.notes || ""  // 🟢 修复：添加作者备注字段
     };
 
     if (submission.action === 'create') {
