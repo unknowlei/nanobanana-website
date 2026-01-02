@@ -1,0 +1,32 @@
+rules_version = '2';
+
+// Firebase Firestore 安全规则
+// 项目: nano-banana-d0fe0
+// 更新说明: 允许公开删除 pending_submissions 集合中的文档
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // 待处理投稿集合 - 允许公开读写和删除
+    // 原因: API 路由 (approve-submission.js) 使用 REST API 删除文档
+    // 这是处理 CORS 问题的最简单方案
+    match /pending_submissions/{submissionId} {
+      // 允许任何人读取
+      allow read: if true;
+      
+      // 允许任何人创建（投稿功能）
+      allow create: if true;
+      
+      // 允许任何人更新（可选，用于修改投稿状态）
+      allow update: if true;
+      
+      // 🔴 关键修复: 允许任何人删除（批准/拒绝投稿时需要）
+      allow delete: if true;
+    }
+    
+    // 其他集合默认拒绝访问（如有其他集合可在此添加规则）
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

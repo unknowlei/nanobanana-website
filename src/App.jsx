@@ -1067,10 +1067,10 @@ export default function App() {
 
   // 🔴 处理批准投稿（带分区选择）
   const handleApproveWithSection = useCallback(async (submission, sectionId) => {
-    // 调用 API 从 Firebase 删除待处理投稿
-    const result = await approveSubmission(submission.id);
+    // 使用前端 Firebase SDK 删除待处理投稿（管理员已登录，拥有删除权限）
+    const result = await rejectSubmission(submission.id);
     if (!result.success) {
-      alert("❌ 从待处理分区删除失败: " + (result.error || result.details || "未知错误"));
+      alert("❌ 从待处理分区删除失败: " + (result.error || "未知错误"));
       return; // 失败时不继续执行
     }
     // 成功后添加到指定分区
