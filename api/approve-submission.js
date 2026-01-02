@@ -24,7 +24,7 @@ export default async function handler(req, res) {
     }
 
     // Firebase 配置
-    const projectId = 'nanobanana-website';
+    const projectId = 'nano-banana-d0fe0';
     const collection = 'pending_submissions';
     
     // 使用 Firebase REST API 更新文档
