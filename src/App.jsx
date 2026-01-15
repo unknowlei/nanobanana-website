@@ -6,7 +6,8 @@ import {
   UploadCloud, Sparkles, MessageSquare, FileText, ChevronLeft, ChevronRight,
   Layers, Play, Pause, Grid, Scissors, MousePointer2, ArrowUp, ArrowDown, MoveRight, Film,
   CheckSquare, Square, Settings, Link as LinkIcon, Send, Mail, Loader2, ClipboardCopy, Smile, User, AlertCircle, AlertTriangle, Eye, EyeOff, FolderInput, Copy, FilePlus,
-  Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput
+  Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput,
+  ArrowUpCircle, List, History
 } from 'lucide-react';
 import { submitPrompt, getPendingSubmissions, approveSubmission, rejectSubmission, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
 
@@ -950,6 +951,23 @@ export default function App() {
   
   // 🟢 移动提示词弹窗状态
   const [moveModalData, setMoveModalData] = useState(null); // { prompt, currentSectionId }
+  
+  // 🟢 回收站弹窗状态
+  const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
+  
+  // 🟢 回顶按钮状态
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [lastScrollY, setLastScrollY] = useState(0);
+  const [scrollingUp, setScrollingUp] = useState(false);
+  
+  // 🟢 子区跳转下拉菜单状态
+  const [isSectionNavOpen, setIsSectionNavOpen] = useState(false);
+  const sectionNavRef = useRef(null);
+  
+  // 🟢 搜索历史记录
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [isSearchHistoryOpen, setIsSearchHistoryOpen] = useState(false);
+  const searchInputRef = useRef(null);
 
   // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
   const editingPromptFirstImage = useMemo(() => {
@@ -979,10 +997,102 @@ export default function App() {
 
   useEffect(() => {
     localStorage.setItem('nanobanana_last_visit', Date.now().toString());
-    const handleScroll = () => { if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) setVisibleCount(prev => prev + ITEMS_PER_PAGE); };
+    const handleScroll = () => {
+      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+      
+      // 🟢 回顶按钮逻辑：向上滚动时显示
+      const currentScrollY = window.scrollY;
+      if (currentScrollY < lastScrollY && currentScrollY > 200) {
+        setScrollingUp(true);
+        setShowBackToTop(true);
+      } else if (currentScrollY > lastScrollY) {
+        setScrollingUp(false);
+        // 延迟隐藏，给用户反应时间
+        setTimeout(() => {
+          if (!scrollingUp) setShowBackToTop(false);
+        }, 1000);
+      }
+      if (currentScrollY <= 100) {
+        setShowBackToTop(false);
+      }
+      setLastScrollY(currentScrollY);
+    };
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
+  }, [lastScrollY, scrollingUp]);
+
+  // 🟢 回顶功能
+  const scrollToTop = useCallback(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    setShowBackToTop(false);
   }, []);
+
+  // 🟢 点击子区导航外部关闭
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (sectionNavRef.current && !sectionNavRef.current.contains(e.target)) {
+        setIsSectionNavOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  // 🟢 加载搜索历史
+  useEffect(() => {
+    const storedHistory = localStorage.getItem('nanobanana_search_history');
+    if (storedHistory) {
+      setSearchHistory(JSON.parse(storedHistory));
+    }
+  }, []);
+
+  // 🟢 保存搜索历史
+  const saveSearchHistory = useCallback((query) => {
+    if (!query.trim()) return;
+    setSearchHistory(prev => {
+      const filtered = prev.filter(h => h !== query.trim());
+      const newHistory = [query.trim(), ...filtered].slice(0, 5);
+      localStorage.setItem('nanobanana_search_history', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  }, []);
+
+  // 🟢 删除单条搜索历史
+  const removeSearchHistory = useCallback((query) => {
+    setSearchHistory(prev => {
+      const newHistory = prev.filter(h => h !== query);
+      localStorage.setItem('nanobanana_search_history', JSON.stringify(newHistory));
+      return newHistory;
+    });
+  }, []);
+
+  // 🟢 跳转到指定分区
+  const scrollToSection = useCallback((sectionId) => {
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) return;
+    
+    // 如果是猎奇区且非管理员，弹出警告
+    if (section.isRestricted && !isAdmin) {
+      setPendingRestrictedSectionId(sectionId);
+      setIsSectionNavOpen(false);
+      return;
+    }
+    
+    // 如果折叠了，先展开
+    if (section.isCollapsed) {
+      setSections(prev => prev.map(s => s.id === sectionId ? { ...s, isCollapsed: false } : s));
+    }
+    
+    // 延迟滚动以等待DOM更新
+    setTimeout(() => {
+      const element = document.getElementById(`section-${sectionId}`);
+      if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+    }, 100);
+    
+    setIsSectionNavOpen(false);
+  }, [sections, isAdmin]);
 
   useEffect(() => {
     const localSections = localStorage.getItem('nanobanana_sections');
@@ -1541,10 +1651,128 @@ export default function App() {
             {currentView === 'PROMPTS' && (
                 <button onClick={() => { setEditingPrompt(null); setTargetSectionId(sections.length>0?sections[0].id:null); setIsPromptModalOpen(true); }} className="bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white px-4 py-1.5 rounded-full text-xs font-bold flex items-center gap-1 shadow-lg shadow-indigo-500/30 transition-all hover:-translate-y-0.5 active:translate-y-0"><Plus size={14} /> <span className="hidden sm:inline">新建</span></button>
             )}
-            {isAdmin && (<><button onClick={() => setIsPendingPanelOpen(!isPendingPanelOpen)} className={`p-2 rounded-full transition-colors shadow-sm ${isPendingPanelOpen ? 'bg-orange-500 text-white' : 'text-orange-600 bg-orange-50 hover:bg-orange-100'}`} title="待审核投稿"><Clock size={18} /></button><button onClick={handleClipboardImport} title="剪贴板一键导入" className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-full transition-colors shadow-sm hidden sm:flex"><ClipboardCopy size={18} /></button><button onClick={handleExport} title="导出" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors hidden sm:flex"><Download size={18}/></button><label title="导入" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 cursor-pointer transition-colors hidden sm:flex"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label></>)}
+            {isAdmin && (
+              <>
+                {/* 🟢 回收站按钮 - 移到右上角 */}
+                {deletedPrompts.length > 0 && (
+                  <button
+                    onClick={() => setIsRecycleBinOpen(true)}
+                    className="relative p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-full transition-colors shadow-sm"
+                    title="回收站"
+                  >
+                    <Archive size={18} />
+                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
+                      {deletedPrompts.length > 9 ? '9+' : deletedPrompts.length}
+                    </span>
+                  </button>
+                )}
+                <button onClick={() => setIsPendingPanelOpen(!isPendingPanelOpen)} className={`p-2 rounded-full transition-colors shadow-sm ${isPendingPanelOpen ? 'bg-orange-500 text-white' : 'text-orange-600 bg-orange-50 hover:bg-orange-100'}`} title="待审核投稿"><Clock size={18} /></button>
+                <button onClick={handleClipboardImport} title="剪贴板一键导入" className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-full transition-colors shadow-sm hidden sm:flex"><ClipboardCopy size={18} /></button>
+                <button onClick={handleExport} title="导出" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors hidden sm:flex"><Download size={18}/></button>
+                <label title="导入" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 cursor-pointer transition-colors hidden sm:flex"><Upload size={18}/><input type="file" accept=".json" className="hidden" onChange={handleImport}/></label>
+              </>
+            )}
           </div>
         </div>
-        {currentView === 'PROMPTS' && (<div className="border-t border-white/20 bg-white/40 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4 backdrop-blur-md animate-fade-in-up"><div className="relative w-full sm:w-80 group"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} /><input type="text" placeholder="搜索..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className="w-full pl-9 pr-4 py-2 bg-white/60 border border-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all shadow-sm" /></div><div className="flex gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar py-1 items-center"><Sparkles size={14} className="text-yellow-500 mr-1 flex-shrink-0" />{commonTags.map(tag => (<Tag key={tag} label={tag} isActive={selectedTags.includes(tag)} onClick={() => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} />))}</div></div>)}
+        {currentView === 'PROMPTS' && (
+          <div className="border-t border-white/20 bg-white/40 px-4 py-3 max-w-7xl mx-auto flex flex-col sm:flex-row gap-4 backdrop-blur-md animate-fade-in-up">
+            {/* 🟢 搜索框 + 历史记录 */}
+            <div className="relative w-full sm:w-80 group">
+              <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-indigo-500 transition-colors" size={16} />
+              <input
+                ref={searchInputRef}
+                type="text"
+                placeholder="搜索..."
+                value={searchQuery}
+                onChange={e => setSearchQuery(e.target.value)}
+                onFocus={() => setIsSearchHistoryOpen(true)}
+                onBlur={() => setTimeout(() => setIsSearchHistoryOpen(false), 200)}
+                onKeyDown={e => {
+                  if (e.key === 'Enter' && searchQuery.trim()) {
+                    saveSearchHistory(searchQuery);
+                    setIsSearchHistoryOpen(false);
+                  }
+                }}
+                className="w-full pl-9 pr-10 py-2 bg-white/60 border border-white/40 rounded-xl text-sm outline-none focus:ring-2 focus:ring-indigo-500/20 focus:bg-white transition-all shadow-sm"
+              />
+              {searchQuery && (
+                <button
+                  onClick={() => setSearchQuery('')}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600"
+                >
+                  <X size={14} />
+                </button>
+              )}
+              {/* 🟢 搜索历史下拉 */}
+              {isSearchHistoryOpen && searchHistory.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
+                  <div className="px-3 py-2 text-xs font-bold text-slate-400 flex items-center gap-1 border-b border-slate-100">
+                    <History size={12} /> 搜索历史
+                  </div>
+                  {searchHistory.map((history, idx) => (
+                    <div
+                      key={idx}
+                      className="flex items-center justify-between px-3 py-2 hover:bg-indigo-50 cursor-pointer group"
+                      onClick={() => {
+                        setSearchQuery(history);
+                        setIsSearchHistoryOpen(false);
+                      }}
+                    >
+                      <span className="text-sm text-slate-600 truncate">{history}</span>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          removeSearchHistory(history);
+                        }}
+                        className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* 🟢 子区快捷跳转 */}
+            <div className="relative" ref={sectionNavRef}>
+              <button
+                onClick={() => setIsSectionNavOpen(!isSectionNavOpen)}
+                className="flex items-center gap-1 px-3 py-2 bg-white/60 border border-white/40 rounded-xl text-sm font-medium text-slate-600 hover:bg-white hover:text-indigo-600 transition-all shadow-sm"
+              >
+                <List size={14} />
+                <span className="hidden sm:inline">子区导航</span>
+                <ChevronDown size={14} className={`transition-transform ${isSectionNavOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isSectionNavOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-50 min-w-[200px] max-h-[60vh] overflow-y-auto custom-scrollbar">
+                  <div className="px-3 py-2 text-xs font-bold text-slate-400 border-b border-slate-100">快速跳转</div>
+                  {sections.map(section => (
+                    <button
+                      key={section.id}
+                      onClick={() => scrollToSection(section.id)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-indigo-50 flex items-center justify-between group transition-colors"
+                    >
+                      <span className="text-sm text-slate-600 group-hover:text-indigo-600 flex items-center gap-2">
+                        {section.title}
+                        {section.isRestricted && <AlertTriangle size={12} className="text-pink-500" />}
+                      </span>
+                      <span className="text-xs text-slate-400">{section.prompts.length}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            
+            {/* 🟢 标签筛选 */}
+            <div className="flex gap-2 overflow-x-auto w-full sm:w-auto no-scrollbar py-1 items-center flex-1">
+              <Sparkles size={14} className="text-yellow-500 mr-1 flex-shrink-0" />
+              {commonTags.map(tag => (
+                <Tag key={tag} label={tag} isActive={selectedTags.includes(tag)} onClick={() => setSelectedTags(prev => prev.includes(tag) ? prev.filter(t => t !== tag) : [...prev, tag])} />
+              ))}
+            </div>
+          </div>
+        )}
       </header>
 
       {/* 🔴 修复布局偏移问题：仅当 Sidebar 打开且在宽屏下才应用 marginRight */}
@@ -1604,7 +1832,7 @@ export default function App() {
                 />
               </div>
             )}
-            {filteredSections.map(section => (<div key={section.id} className={`group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}`} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION')}><div className="flex justify-between items-center mb-6 select-none"><div className="flex items-center flex-1">{isAdmin && (<div draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd} className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"><GripVertical size={20} /></div>)}
+            {filteredSections.map(section => (<div id={`section-${section.id}`} key={section.id} className={`group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}`} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION')}><div className="flex justify-between items-center mb-6 select-none"><div className="flex items-center flex-1">{isAdmin && (<div draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd} className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"><GripVertical size={20} /></div>)}
             <div onClick={() => handleSectionToggle(section)} className="flex items-center cursor-pointer group/title"><div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}><ChevronDown size={14} /></div><h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center">{section.title} {section.isRestricted && <span className="ml-2 text-[9px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded border border-pink-200">重口</span>}</h2><span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span></div></div>{isAdmin && (<div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"><button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button><button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>)}</div>{!section.isCollapsed && (<div onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')} className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}>{section.prompts.map(prompt => { if (renderedCount >= visibleCount) return null; renderedCount++; return (
             <PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} isFavorite={isFavorite(prompt.id)} onToggleFavorite={toggleFavorite} isNew={isNewItem(prompt.id)}/> 
             ); })}{section.prompts.length === 0 && (<div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/><span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span></div>)}</div>)}</div>))}
@@ -1777,32 +2005,71 @@ export default function App() {
               </div>
           </div>
       )}
-      {/* 🟢 软删除回收站区域（仅管理员可见） */}
-      {isAdmin && deletedPrompts.length > 0 && (
-        <div className="fixed bottom-4 left-4 z-40">
-          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-4 max-w-sm">
-            <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
-              <Archive size={16} className="text-orange-500"/> 回收站 ({deletedPrompts.length})
-              <span className="text-[10px] text-slate-400 font-normal">7天内可恢复</span>
-            </h4>
-            <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-2">
-              {deletedPrompts.slice(0, 5).map(item => (
-                <div key={item.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg text-xs">
-                  <span className="truncate flex-1 text-slate-600">{item.title}</span>
-                  <button
-                    onClick={() => handleRestoreDeleted(item)}
-                    className="px-2 py-1 bg-green-100 text-green-600 rounded font-bold hover:bg-green-200 transition-colors ml-2"
-                  >
-                    恢复
-                  </button>
+      {/* 🟢 回收站弹窗（仅管理员可见） */}
+      {isRecycleBinOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up" onClick={() => setIsRecycleBinOpen(false)}>
+          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-white/50" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Archive size={20} className="text-orange-500"/> 回收站 ({deletedPrompts.length})
+                <span className="text-xs text-slate-400 font-normal">7天内可恢复</span>
+              </h3>
+              <button onClick={() => setIsRecycleBinOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
+              {deletedPrompts.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Archive size={48} className="mx-auto mb-2 opacity-30" />
+                  <p>回收站是空的</p>
                 </div>
-              ))}
-              {deletedPrompts.length > 5 && (
-                <div className="text-xs text-slate-400 text-center">还有 {deletedPrompts.length - 5} 条...</div>
+              ) : (
+                <div className="space-y-2">
+                  {deletedPrompts.map(item => (
+                    <div key={item.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
+                      <div className="flex items-center gap-3 flex-1 min-w-0">
+                        {item.images && item.images.length > 0 ? (
+                          <img src={getOptimizedUrl(item.images[0], 80)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
+                        ) : (
+                          <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
+                            <ImageIcon size={16} className="text-slate-400" />
+                          </div>
+                        )}
+                        <div className="min-w-0">
+                          <h4 className="font-bold text-sm text-slate-700 truncate">{item.title}</h4>
+                          <p className="text-[10px] text-slate-400">
+                            删除于 {new Date(item.deletedAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => {
+                          handleRestoreDeleted(item);
+                          if (deletedPrompts.length <= 1) setIsRecycleBinOpen(false);
+                        }}
+                        className="px-3 py-1.5 bg-green-100 text-green-600 rounded-lg font-bold text-xs hover:bg-green-200 transition-colors ml-2"
+                      >
+                        恢复
+                      </button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           </div>
         </div>
+      )}
+      
+      {/* 🟢 回顶按钮 */}
+      {showBackToTop && (
+        <button
+          onClick={scrollToTop}
+          className="fixed bottom-6 right-6 z-40 p-3 bg-indigo-500 hover:bg-indigo-600 text-white rounded-full shadow-lg shadow-indigo-300/50 transition-all hover:scale-110 active:scale-95 animate-fade-in-up md:bottom-8 md:right-8"
+          title="回到顶部"
+        >
+          <ArrowUpCircle size={24} />
+        </button>
       )}
       
       {/* ... Other Modals ... */}
