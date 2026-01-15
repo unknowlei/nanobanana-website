@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
-import { 
-  Plus, Search, X, Edit2, Trash2, ChevronDown, 
+import {
+  Plus, Search, X, Edit2, Trash2, ChevronDown,
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
-  Download, Upload, RefreshCw, Cloud, GripVertical, Check, 
+  Download, Upload, RefreshCw, Cloud, GripVertical, Check,
   UploadCloud, Sparkles, MessageSquare, FileText, ChevronLeft, ChevronRight,
   Layers, Play, Pause, Grid, Scissors, MousePointer2, ArrowUp, ArrowDown, MoveRight, Film,
   CheckSquare, Square, Settings, Link as LinkIcon, Send, Mail, Loader2, ClipboardCopy, Smile, User, AlertCircle, AlertTriangle, Eye, EyeOff, FolderInput, Copy, FilePlus,
-  Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive
+  Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput
 } from 'lucide-react';
 import { submitPrompt, getPendingSubmissions, approveSubmission, rejectSubmission, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
 
@@ -832,6 +832,59 @@ function PromptForm({ initialData, commonTags, setCommonTags, onSave, onDelete }
    return ( <div className="space-y-6"><div className="grid grid-cols-2 gap-4"><div><label className="text-xs font-bold text-slate-400 block mb-1">标题</label><input value={formData.title} onChange={e => setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" /></div><div><label className="text-xs font-bold text-slate-400 block mb-1">投稿人 ({activeTab===0 ? '主' : `变体 ${activeTab}`})</label><input value={currentContributor} onChange={e => updateContributor(e.target.value)} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" /></div></div><div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-100"><button onClick={() => setActiveTab(0)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab===0 ? 'bg-indigo-500 text-white' : 'bg-slate-100 text-slate-500'}`}>主页面</button>{formData.similar.map((_, idx) => (<div key={idx} className="relative group"><button onClick={() => setActiveTab(idx + 1)} className={`px-3 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition-all ${activeTab===idx+1 ? 'bg-purple-500 text-white' : 'bg-slate-100 text-slate-500'}`}>变体 {idx + 1}</button><button onClick={(e) => { e.stopPropagation(); removeSimilarPage(idx); }} className="absolute -top-1 -right-1 bg-red-500 text-white rounded-full p-0.5 opacity-0 group-hover:opacity-100 transition-opacity"><X size={8}/></button></div>))}<button onClick={addSimilarPage} className="px-2 py-1 rounded-lg bg-slate-100 text-slate-400 hover:bg-green-100 hover:text-green-600 transition-all"><Plus size={14}/></button></div><div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">提示词 ({activeTab===0 ? '主' : `变体 ${activeTab}`})</label><textarea value={currentContent} onChange={e => updateContent(e.target.value)} rows={5} className="w-full bg-slate-50 border border-slate-200 p-3 rounded-xl font-mono text-sm outline-none focus:bg-white focus:border-indigo-500 focus:ring-4 focus:ring-indigo-50 transition-all" /></div><div><label className="text-xs font-bold text-amber-500 block mb-2 uppercase tracking-wide flex items-center gap-1"><MessageSquare size={12}/> 作者备注 ({activeTab===0 ? '主' : `变体 ${activeTab}`})</label><textarea value={currentNotes} onChange={e => updateNotes(e.target.value)} rows={2} className="w-full bg-amber-50 border border-amber-200 p-3 rounded-xl text-sm outline-none focus:bg-amber-100 focus:border-amber-400 focus:ring-4 focus:ring-amber-50 transition-all" placeholder="添加备注说明、使用技巧等..." /></div><div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-indigo-200 hover:border-indigo-400'}`}><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">配图 ({formData.images.length}) - 全局共享</label><div className="flex flex-col gap-4"><div className="grid grid-cols-3 gap-3">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square bg-slate-50 rounded-xl overflow-hidden border border-slate-200 group shadow-sm"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-all hover:scale-110 shadow-md"><X size={14} /></button></div>))}<label className={`aspect-square bg-white hover:bg-indigo-50 text-indigo-400 rounded-xl cursor-pointer flex flex-col items-center justify-center gap-1 transition-all border-2 border-dashed border-indigo-200 hover:border-indigo-400 ${isCompressing ? 'opacity-50' : ''}`}>{isCompressing ? <RefreshCw className="animate-spin" size={20}/> : <Plus size={24} />}<span className="text-[10px] font-bold">{isCompressing ? '处理中' : '添加/拖入'}</span><input type="file" className="hidden" accept="image/*" disabled={isCompressing} multiple onChange={handleFileSelect} /></label></div><div className="flex gap-2 items-center"><div className="flex-1 relative"><LinkIcon className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" /><input value={urlInput} onChange={(e) => setUrlInput(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && handleAddUrl()} placeholder="粘贴图片链接" className="w-full pl-9 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:bg-white focus:border-indigo-500 outline-none transition-all"/></div><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-4 py-2 bg-slate-100 text-slate-600 font-bold text-xs rounded-xl hover:bg-indigo-100 hover:text-indigo-600 disabled:opacity-50 disabled:hover:bg-slate-100 disabled:hover:text-slate-600 transition-colors">添加链接</button></div></div></div><div><label className="text-xs font-bold text-slate-400 block mb-2 uppercase tracking-wide">标签</label><div className="flex flex-wrap gap-2 p-3 bg-slate-50 rounded-2xl border border-slate-200">{commonTags.map(t => (<span key={t} className={`group inline-flex items-center gap-1 text-xs px-3 py-1.5 rounded-lg transition-all font-medium cursor-pointer border ${formData.tags.includes(t)?'bg-indigo-500 text-white shadow-md border-indigo-500':'bg-white text-slate-600 border-slate-200 hover:bg-white/80'}`}><span onClick={() => setFormData(p => ({...p, tags: p.tags.includes(t)?p.tags.filter(x=>x!==t):[...p.tags, t]}))}>{t}</span><button type="button" onClick={(e) => { e.stopPropagation(); removeCommonTag(t); }} className={`p-0.5 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 hover:text-white ${formData.tags.includes(t) ? 'text-indigo-200' : 'text-slate-400'}`}><X size={10} /></button></span>))}<input value={tagInput} onChange={e=>setTagInput(e.target.value)} placeholder="+新建" className="w-24 text-xs bg-transparent border-b-2 border-slate-200 outline-none focus:border-indigo-500 px-2 py-1 transition-colors" onKeyDown={e=>{if(e.key==='Enter'&&tagInput){setCommonTags([...commonTags, tagInput]); setTagInput('');}}}/></div></div><div className="flex justify-between pt-6 mt-2 border-t border-slate-100">{initialData && initialData.id && <button onClick={() => onDelete(initialData.id)} className="text-red-500 text-sm font-medium hover:bg-red-50 px-3 py-2 rounded-lg transition-colors flex items-center gap-1"><Trash2 size={16}/> 删除</button>}<button disabled={isCompressing} onClick={() => { if(!formData.title) return alert("标题必填"); onSave(formData); }} className={`bg-gradient-to-r from-indigo-600 to-purple-600 text-white px-8 py-2.5 rounded-xl text-sm font-bold ml-auto hover:shadow-lg hover:shadow-indigo-500/30 hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center gap-2 ${isCompressing ? 'opacity-50' : ''}`}><Check size={18} /> 保存盒子</button></div></div>);
 }
 
+// 🟢 管理员移动提示词到其他分区的弹窗组件
+const MoveToSectionModal = ({ prompt, sections, currentSectionId, onMove, onClose }) => {
+  const [selectedSectionId, setSelectedSectionId] = useState(null);
+  
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up" onClick={onClose}>
+      <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-white/50" onClick={(e) => e.stopPropagation()}>
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-bold text-slate-800 flex items-center">
+            <FolderOutput className="w-5 h-5 mr-2 text-indigo-500"/> 移动到其他分区
+          </h3>
+          <button onClick={onClose}><X className="text-slate-400 hover:text-slate-600"/></button>
+        </div>
+        <p className="text-sm text-slate-500 mb-4">将 <span className="font-bold text-slate-700">"{prompt.title}"</span> 移动到：</p>
+        <div className="max-h-[50vh] overflow-y-auto custom-scrollbar space-y-2">
+          {sections.map(section => (
+            <button
+              key={section.id}
+              onClick={() => setSelectedSectionId(section.id)}
+              disabled={section.id === currentSectionId}
+              className={`w-full text-left px-4 py-3 rounded-xl transition-colors font-medium text-sm flex items-center justify-between group ${
+                section.id === currentSectionId
+                  ? 'bg-slate-100 text-slate-400 cursor-not-allowed'
+                  : selectedSectionId === section.id
+                    ? 'bg-indigo-500 text-white shadow-md'
+                    : 'bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 text-slate-600'
+              }`}
+            >
+              <span className="flex items-center gap-2">
+                {section.title}
+                {section.id === currentSectionId && <span className="text-[10px] bg-slate-200 px-1.5 py-0.5 rounded">当前</span>}
+              </span>
+              <span className={`text-xs ${selectedSectionId === section.id ? 'text-indigo-200' : 'text-slate-400 group-hover:text-indigo-400'}`}>
+                {section.prompts.length} 个
+              </span>
+            </button>
+          ))}
+        </div>
+        <div className="flex gap-2 mt-4 pt-4 border-t border-slate-100">
+          <button onClick={onClose} className="flex-1 py-2.5 bg-slate-100 text-slate-600 font-bold rounded-xl hover:bg-slate-200 transition-colors text-sm">取消</button>
+          <button
+            onClick={() => { if(selectedSectionId) { onMove(prompt.id, currentSectionId, selectedSectionId); onClose(); } }}
+            disabled={!selectedSectionId}
+            className="flex-1 py-2.5 bg-indigo-500 text-white font-bold rounded-xl hover:bg-indigo-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm flex items-center justify-center gap-1"
+          >
+            <FolderOutput size={14}/> 确认移动
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 // --- 8. 主程序入口 ---
 
 const INITIAL_TAGS = ["示例标签"];
@@ -891,6 +944,12 @@ export default function App() {
 
   // 🔴 NEW! 区折叠状态（默认折叠）
   const [isNewSectionCollapsed, setIsNewSectionCollapsed] = useState(true);
+  
+  // 🟢 软删除：存储已删除的提示词（保留一周）
+  const [deletedPrompts, setDeletedPrompts] = useState([]);
+  
+  // 🟢 移动提示词弹窗状态
+  const [moveModalData, setMoveModalData] = useState(null); // { prompt, currentSectionId }
 
   // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
   const editingPromptFirstImage = useMemo(() => {
@@ -938,6 +997,19 @@ export default function App() {
         if (localNotes) setSiteNotes(JSON.parse(localNotes)); 
     } else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData(false); 
     if (localFavorites) setFavorites(JSON.parse(localFavorites));
+    
+    // 🟢 加载软删除数据并清理超过一周的
+    const localDeleted = localStorage.getItem('nanobanana_deleted');
+    if (localDeleted) {
+      const parsed = JSON.parse(localDeleted);
+      const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+      const validDeleted = parsed.filter(item => item.deletedAt > oneWeekAgo);
+      setDeletedPrompts(validDeleted);
+      // 如果有过期的，更新存储
+      if (validDeleted.length !== parsed.length) {
+        localStorage.setItem('nanobanana_deleted', JSON.stringify(validDeleted));
+      }
+    }
   }, []);
 
   // 🔴 Firebase Authentication 监听器
@@ -961,7 +1033,9 @@ export default function App() {
       } catch (e) { if (e.name === 'QuotaExceededError') setStorageError(true); }
     }
     localStorage.setItem('nanobanana_favorites', JSON.stringify(favorites));
-  }, [sections, commonTags, siteNotes, isAdmin, favorites]);
+    // 🟢 保存软删除数据
+    localStorage.setItem('nanobanana_deleted', JSON.stringify(deletedPrompts));
+  }, [sections, commonTags, siteNotes, isAdmin, favorites, deletedPrompts]);
 
   // 🔴 打开投稿窗口的处理函数
   const openSubmissionModal = useCallback((mode = 'create', data = null) => {
@@ -1012,6 +1086,7 @@ export default function App() {
       alert("✅ 修改已批准并更新！");
     } else if (submission.action === 'variant' && submission.targetId) {
       // 🟢 变体投稿：添加到原提示词的similar数组，变体图片独立保存
+      // 🔴 修复：不再更新主提示词的 ID，避免后续变体的 targetId 失效
       setSections(prev => prev.map(sec => ({
         ...sec,
         prompts: sec.prompts.map(p => {
@@ -1029,7 +1104,7 @@ export default function App() {
             };
             return {
               ...p,
-              id: `u-${Date.now()}`,
+              // 🔴 移除 ID 更新，保持原 ID 不变，让后续变体能正确匹配
               similar: [...(p.similar || []), newVariant]
             };
           }
@@ -1265,7 +1340,84 @@ export default function App() {
       setIsLocalEditing(true); // 标记为本地编辑模式
     }
   }, []);
-  const handleModeToggle = () => { if (isAdmin) { setIsAdmin(false); setClickCount(0); } else { const n = clickCount + 1; setClickCount(n); if (n >= 5) { setIsAdmin(true); setClickCount(0); if (navigator.vibrate) navigator.vibrate(50); } } };
+  // 🔴 修复：移除点击5次进入管理员模式的逻辑，只能通过 Google 登录进入管理员模式
+  const handleModeToggle = () => {
+    if (isAdmin) {
+      // 退出管理员模式（保留此功能用于临时退出）
+      setIsAdmin(false);
+      setClickCount(0);
+    }
+    // 🔴 不再允许点击进入管理员模式，必须通过 Google 登录
+  };
+  
+  // 🟢 处理移动提示词到其他分区
+  const handleMovePrompt = useCallback((promptId, fromSectionId, toSectionId) => {
+    setSections(prev => {
+      const newSections = JSON.parse(JSON.stringify(prev));
+      const fromSection = newSections.find(s => s.id === fromSectionId);
+      const toSection = newSections.find(s => s.id === toSectionId);
+      
+      if (!fromSection || !toSection) return prev;
+      
+      const promptIndex = fromSection.prompts.findIndex(p => p.id === promptId);
+      if (promptIndex === -1) return prev;
+      
+      const [movedPrompt] = fromSection.prompts.splice(promptIndex, 1);
+      // 🟢 放到目标分区的第一个位置
+      toSection.prompts.unshift(movedPrompt);
+      
+      return newSections;
+    });
+    alert("✅ 已移动到目标分区！");
+  }, []);
+  
+  // 🟢 软删除：删除提示词时保留到回收站
+  const handleSoftDelete = useCallback((promptId, sectionId) => {
+    // 找到要删除的提示词
+    let deletedPrompt = null;
+    sections.forEach(sec => {
+      if (sec.id === sectionId) {
+        deletedPrompt = sec.prompts.find(p => p.id === promptId);
+      }
+    });
+    
+    if (deletedPrompt) {
+      // 添加到软删除列表
+      setDeletedPrompts(prev => [...prev, {
+        ...deletedPrompt,
+        deletedAt: Date.now(),
+        fromSectionId: sectionId
+      }]);
+    }
+    
+    // 从分区中移除
+    setSections(prev => prev.map(sec => {
+      if (sec.id === sectionId) {
+        return { ...sec, prompts: sec.prompts.filter(p => p.id !== promptId) };
+      }
+      return sec;
+    }));
+  }, [sections]);
+  
+  // 🟢 恢复软删除的提示词
+  const handleRestoreDeleted = useCallback((deletedItem) => {
+    const { deletedAt, fromSectionId, ...prompt } = deletedItem;
+    
+    // 恢复到原分区（如果存在）或第一个分区
+    setSections(prev => {
+      const targetSection = prev.find(s => s.id === fromSectionId) || prev[0];
+      return prev.map(sec => {
+        if (sec.id === targetSection.id) {
+          return { ...sec, prompts: [prompt, ...sec.prompts] };
+        }
+        return sec;
+      });
+    });
+    
+    // 从软删除列表移除
+    setDeletedPrompts(prev => prev.filter(item => item.id !== deletedItem.id));
+    alert("✅ 已恢复！");
+  }, []);
   const handleClipboardImport = async () => { try { const text = await navigator.clipboard.readText(); processImportText(text); } catch(e) { const manualInput = prompt("无法自动读取剪贴板。\n请在此手动粘贴 (Ctrl+V) 代码："); if (manualInput) processImportText(manualInput); } };
   const confirmImportToSection = (sectionId) => { if (!pendingImportPrompt) return; setSections(prev => prev.map(sec => { if (sec.id === sectionId) return { ...sec, prompts: [pendingImportPrompt, ...sec.prompts] }; return sec; })); setIsImportModalOpen(false); setPendingImportPrompt(null); alert(`成功导入到分区！`); };
   const handleSectionToggle = (section) => { if (section.isCollapsed && section.isRestricted && !isAdmin) { setPendingRestrictedSectionId(section.id); return; } setSections(prev => prev.map(s => s.id === section.id ? { ...s, isCollapsed: !s.isCollapsed } : s)); };
@@ -1295,7 +1447,51 @@ export default function App() {
   const handleDragEnter = useCallback((e, targetId) => { e.preventDefault(); e.stopPropagation(); if ((draggedItem?.type === 'SECTION' && targetId.startsWith('sec-')) || draggedItem?.type === 'PROMPT' || draggedItem?.type === 'FAVORITE_ITEM') setDragOverTarget(targetId); }, [draggedItem]);
   const handleDragOver = useCallback((e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; const scrollThreshold = 100; const scrollSpeed = 15; if (e.clientY < scrollThreshold) { window.scrollBy(0, -scrollSpeed); } else if (window.innerHeight - e.clientY < scrollThreshold) { window.scrollBy(0, scrollSpeed); } }, []);
   const handleDrop = useCallback((e, targetId, targetType, targetSecId = null) => { e.preventDefault(); e.stopPropagation(); setDragOverTarget(null); if (!draggedItem) return; if (draggedItem.type === 'FAVORITE_ITEM' && targetType === 'FAVORITE_ITEM') { handleFavoriteDrop(draggedItem.data.id, targetId); return; } if (!isAdmin) return; setSections(prev => { const newSections = JSON.parse(JSON.stringify(prev)); if (draggedItem.type === 'SECTION' && targetType === 'SECTION') { const sIdx = newSections.findIndex(s => s.id === draggedItem.data.id); const tIdx = newSections.findIndex(s => s.id === targetId); if (sIdx !== -1 && tIdx !== -1 && sIdx !== tIdx) { const [moved] = newSections.splice(sIdx, 1); newSections.splice(tIdx, 0, moved); } } else if (draggedItem.type === 'PROMPT') { const sSec = newSections.find(s => s.id === draggedItem.sourceSecId); if (!sSec) return prev; const pIdx = sSec.prompts.findIndex(p => p.id === draggedItem.data.id); if (pIdx === -1) return prev; const [moved] = sSec.prompts.splice(pIdx, 1); if (targetType === 'PROMPT') { const tSec = newSections.find(s => s.id === targetSecId); const tPIdx = tSec.prompts.findIndex(p => p.id === targetId); tSec.prompts.splice(tPIdx, 0, moved); } else if (targetType === 'SECTION_AREA') { const tSec = newSections.find(s => s.id === targetId); tSec.prompts.push(moved); } } return newSections; }); }, [draggedItem, isAdmin, favorites]);
-  const handleSavePrompt = useCallback((promptData) => { const newPrompt = { ...promptData, id: promptData.id || `u-${Date.now()}` }; if (isAdmin) { setSections(prev => { if (editingPrompt && editingPrompt.id) { let found = false; const updated = prev.map(sec => ({ ...sec, prompts: sec.prompts.map(p => { if (p.id === editingPrompt.id) { found = true; return newPrompt; } return p; }) })); if (found) return updated; } const targetId = targetSectionId || prev[0].id; return prev.map(sec => { if (sec.id === targetId) return { ...sec, prompts: [...sec.prompts, newPrompt] }; return sec; }); }); } else { setFavorites(prev => { const exists = prev.find(p => p.id === newPrompt.id); if (exists) return prev.map(p => p.id === newPrompt.id ? newPrompt : p); return [newPrompt, ...prev]; }); if (!isSidebarOpen) setIsSidebarOpen(true); if (isLocalEditing) { alert("本地收藏已更新！"); } else { alert("创作成功！已保存到右侧收藏栏。"); } } setIsPromptModalOpen(false); setEditingPrompt(null); setIsLocalEditing(false); }, [editingPrompt, targetSectionId, isAdmin, isSidebarOpen, isLocalEditing]);
+  // 🟢 修复：管理员新建投稿放在分区第一个（而非最后）
+  const handleSavePrompt = useCallback((promptData) => {
+    const newPrompt = { ...promptData, id: promptData.id || `u-${Date.now()}` };
+    if (isAdmin) {
+      setSections(prev => {
+        if (editingPrompt && editingPrompt.id) {
+          let found = false;
+          const updated = prev.map(sec => ({
+            ...sec,
+            prompts: sec.prompts.map(p => {
+              if (p.id === editingPrompt.id) {
+                found = true;
+                return newPrompt;
+              }
+              return p;
+            })
+          }));
+          if (found) return updated;
+        }
+        const targetId = targetSectionId || prev[0].id;
+        return prev.map(sec => {
+          if (sec.id === targetId) {
+            // 🟢 修复：新建时放到第一个位置
+            return { ...sec, prompts: [newPrompt, ...sec.prompts] };
+          }
+          return sec;
+        });
+      });
+    } else {
+      setFavorites(prev => {
+        const exists = prev.find(p => p.id === newPrompt.id);
+        if (exists) return prev.map(p => p.id === newPrompt.id ? newPrompt : p);
+        return [newPrompt, ...prev];
+      });
+      if (!isSidebarOpen) setIsSidebarOpen(true);
+      if (isLocalEditing) {
+        alert("本地收藏已更新！");
+      } else {
+        alert("创作成功！已保存到右侧收藏栏。");
+      }
+    }
+    setIsPromptModalOpen(false);
+    setEditingPrompt(null);
+    setIsLocalEditing(false);
+  }, [editingPrompt, targetSectionId, isAdmin, isSidebarOpen, isLocalEditing]);
   const handleExport = () => { const blob = new Blob([JSON.stringify({ sections, commonTags, siteNotes }, null, 2)], { type: 'application/json' }); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `data.json`; a.click(); };
   const handleImport = (e) => { const file = e.target.files[0]; if (file) { const reader = new FileReader(); reader.onload = (ev) => { try { const d = JSON.parse(ev.target.result); if(confirm("覆盖当前数据?")) { setSections(d.sections||[]); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); } } catch(err){ alert("文件无效"); } }; reader.readAsText(file); } };
   const handleCreateSection = () => { setEditingSection({ title: '' }); setIsSectionModalOpen(true); };
@@ -1551,7 +1747,18 @@ export default function App() {
           </div>
         </div>
       )}
-      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">本地收藏</span>}</h3></div><button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { setSections(prev => prev.map(s => ({ ...s, prompts: s.prompts.filter(p => p.id !== id) }))); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
+      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">本地收藏</span>}</h3></div>{/* 🟢 管理员模式下显示移动按钮 */}{isAdmin && editingPrompt && editingPrompt.id && (<button onClick={() => { const currentSection = sections.find(s => s.prompts.some(p => p.id === editingPrompt.id)); if(currentSection) setMoveModalData({ prompt: editingPrompt, currentSectionId: currentSection.id }); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 mr-2"><FolderOutput size={14}/> 移动分区</button>)}<button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { const currentSection = sections.find(s => s.prompts.some(p => p.id === id)); if(currentSection) handleSoftDelete(id, currentSection.id); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
+      
+      {/* 🟢 移动提示词到其他分区的弹窗 */}
+      {moveModalData && (
+        <MoveToSectionModal
+          prompt={moveModalData.prompt}
+          sections={sections}
+          currentSectionId={moveModalData.currentSectionId}
+          onMove={handleMovePrompt}
+          onClose={() => setMoveModalData(null)}
+        />
+      )}
       {pendingRestrictedSectionId && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in-up">
               <div className="bg-pink-50 w-full max-w-lg rounded-3xl p-6 shadow-2xl border-2 border-pink-200">
@@ -1570,6 +1777,34 @@ export default function App() {
               </div>
           </div>
       )}
+      {/* 🟢 软删除回收站区域（仅管理员可见） */}
+      {isAdmin && deletedPrompts.length > 0 && (
+        <div className="fixed bottom-4 left-4 z-40">
+          <div className="bg-white/95 backdrop-blur-md rounded-2xl shadow-xl border border-slate-200 p-4 max-w-sm">
+            <h4 className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+              <Archive size={16} className="text-orange-500"/> 回收站 ({deletedPrompts.length})
+              <span className="text-[10px] text-slate-400 font-normal">7天内可恢复</span>
+            </h4>
+            <div className="max-h-[200px] overflow-y-auto custom-scrollbar space-y-2">
+              {deletedPrompts.slice(0, 5).map(item => (
+                <div key={item.id} className="flex items-center justify-between bg-slate-50 p-2 rounded-lg text-xs">
+                  <span className="truncate flex-1 text-slate-600">{item.title}</span>
+                  <button
+                    onClick={() => handleRestoreDeleted(item)}
+                    className="px-2 py-1 bg-green-100 text-green-600 rounded font-bold hover:bg-green-200 transition-colors ml-2"
+                  >
+                    恢复
+                  </button>
+                </div>
+              ))}
+              {deletedPrompts.length > 5 && (
+                <div className="text-xs text-slate-400 text-center">还有 {deletedPrompts.length - 5} 条...</div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* ... Other Modals ... */}
       {isImportModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm animate-fade-in-up"><div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl border border-white/50"><div className="flex justify-between items-center mb-4"><h3 className="text-lg font-bold text-slate-800 flex items-center"><FolderInput className="w-5 h-5 mr-2 text-purple-500"/> 选择导入分区</h3><button onClick={() => { setIsImportModalOpen(false); setPendingImportPrompt(null); }}><X className="text-slate-400 hover:text-slate-600"/></button></div><div className="max-h-[60vh] overflow-y-auto custom-scrollbar space-y-2">{sections.map(section => (<button key={section.id} onClick={() => confirmImportToSection(section.id)} className="w-full text-left px-4 py-3 rounded-xl bg-slate-50 hover:bg-indigo-50 hover:text-indigo-600 transition-colors font-medium text-sm text-slate-600 flex items-center justify-between group"><span>{section.title}</span><span className="text-xs text-slate-400 group-hover:text-indigo-400">{section.prompts.length} 个</span></button>))}</div></div></div>)}
       {isSectionModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 backdrop-blur-sm"><div className="bg-white p-8 rounded-3xl w-96 shadow-2xl animate-fade-in-up ring-1 ring-white/50"><h3 className="font-bold mb-6 text-xl text-slate-800">分区设置</h3><div className="space-y-4 mb-6"><div><label className="text-xs font-bold text-slate-500 block mb-1">分区名称</label><input value={editingSection.title} onChange={e => setEditingSection({...editingSection, title: e.target.value})} className="w-full border-2 border-slate-100 p-3 rounded-xl outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-100 transition-all font-medium text-slate-700" /></div><label className="flex items-center p-3 bg-slate-50 rounded-xl cursor-pointer hover:bg-slate-100 transition-colors"><input type="checkbox" checked={editingSection.defaultCollapsed || false} onChange={e => setEditingSection({...editingSection, defaultCollapsed: e.target.checked})} className="w-4 h-4 text-indigo-600 rounded border-slate-300 focus:ring-indigo-500"/><span className="ml-2 text-sm font-bold text-slate-600">默认折叠 (游客模式)</span></label><label className="flex items-center p-3 bg-pink-50 border border-pink-100 rounded-xl cursor-pointer hover:bg-pink-100 transition-colors"><input type="checkbox" checked={editingSection.isRestricted || false} onChange={e => setEditingSection({...editingSection, isRestricted: e.target.checked})} className="w-4 h-4 text-pink-600 rounded border-pink-300 focus:ring-pink-500"/><span className="ml-2 text-sm font-bold text-pink-600 flex items-center"><AlertTriangle size={14} className="mr-1"/> 设为猎奇/重口分区 (警示)</span></label></div><div className="flex justify-end gap-3"><button onClick={() => setIsSectionModalOpen(false)} className="px-5 py-2 text-sm font-medium text-slate-500 hover:bg-slate-50 rounded-xl transition-colors">取消</button><button onClick={() => { if(editingSection.title) { const isRestricted = editingSection.isRestricted || false; const finalDefaultCollapsed = isRestricted ? true : (editingSection.defaultCollapsed || false); if(editingSection.id) { setSections(prev => prev.map(s => s.id === editingSection.id ? { ...s, title: editingSection.title, defaultCollapsed: finalDefaultCollapsed, isRestricted: isRestricted, isCollapsed: finalDefaultCollapsed ? true : s.isCollapsed } : s)); } else { setSections([...sections, { id: `s-${Date.now()}`, title: editingSection.title, isCollapsed: finalDefaultCollapsed, defaultCollapsed: finalDefaultCollapsed, isRestricted: isRestricted, prompts: [] }]); } setIsSectionModalOpen(false); } }} className="px-6 py-2 text-sm font-bold bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 shadow-lg shadow-indigo-200 transform hover:-translate-y-0.5 transition-all">确定</button></div></div></div>)}
