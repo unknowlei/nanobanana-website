@@ -1155,6 +1155,22 @@ export default function App() {
       setIsPromptModalOpen(false); 
   }, []);
 
+  // 🔴 通过 ID 或标题查找原提示词
+  const findPromptByIdOrTitle = useCallback((targetId, originalTitle) => {
+    for (const section of sections) {
+      // 先按 ID 查找
+      const byId = section.prompts.find(p => p.id === targetId);
+      if (byId) return { prompt: byId, section };
+      
+      // 如果 ID 找不到，尝试按标题查找
+      if (originalTitle) {
+        const byTitle = section.prompts.find(p => p.title === originalTitle);
+        if (byTitle) return { prompt: byTitle, section };
+      }
+    }
+    return null;
+  }, [sections]);
+
   // 🔴 处理批准投稿
   const handleApproveSubmission = useCallback((submission, sectionId) => {
     const newPrompt = {
@@ -1164,7 +1180,7 @@ export default function App() {
       images: submission.images || [],
       tags: submission.tags || [],
       contributor: submission.contributor || "匿名",
-      notes: submission.notes || ""  // 🟢 修复：添加作者备注字段
+      notes: submission.notes || ""
     };
 
     if (submission.action === 'create') {
@@ -1177,30 +1193,92 @@ export default function App() {
       }));
       alert("✅ 投稿已批准并添加到分区！");
     } else if (submission.action === 'edit' && submission.targetId) {
-      // 修改投稿：更新原有提示词到指定分区
-      setSections(prev => prev.map(sec => {
-        if (sec.id === sectionId) {
-          // 先从所有分区移除旧的
-          const withoutOld = prev.map(s => ({
-            ...s,
-            prompts: s.prompts.filter(p => p.id !== submission.targetId)
-          }));
-          // 再添加到目标分区
-          return {
-            ...sec,
-            prompts: [{ ...newPrompt, id: `u-${Date.now()}` }, ...sec.prompts.filter(p => p.id !== submission.targetId)]
+      // 🔴 修复：修改投稿时保持原 ID 不变，只更新内容
+      // 先查找原提示词
+      const found = findPromptByIdOrTitle(submission.targetId, submission.originalTitle);
+      
+      if (!found) {
+        alert("❌ 未找到原提示词，请手动选择目标分区后作为新建处理");
+        // 作为新建处理
+        setSections(prev => prev.map(sec => {
+          if (sec.id === sectionId) {
+            return { ...sec, prompts: [newPrompt, ...sec.prompts] };
+          }
+          return sec;
+        }));
+        return;
+      }
+      
+      const originalId = found.prompt.id; // 保留原 ID
+      const originalSectionId = found.section.id;
+      
+      setSections(prev => {
+        // 如果目标分区与原分区相同，直接原地更新
+        if (sectionId === originalSectionId) {
+          return prev.map(sec => {
+            if (sec.id === sectionId) {
+              return {
+                ...sec,
+                prompts: sec.prompts.map(p => {
+                  if (p.id === originalId) {
+                    // 🔴 关键修复：保持原 ID 不变
+                    return {
+                      ...p,
+                      title: submission.title,
+                      content: submission.content,
+                      images: submission.images || p.images,
+                      tags: submission.tags || p.tags,
+                      contributor: submission.contributor || p.contributor,
+                      notes: submission.notes || p.notes
+                    };
+                  }
+                  return p;
+                })
+              };
+            }
+            return sec;
+          });
+        } else {
+          // 跨分区移动：从原分区移除，添加到目标分区（保持原 ID）
+          const movedPrompt = {
+            ...found.prompt,
+            title: submission.title,
+            content: submission.content,
+            images: submission.images || found.prompt.images,
+            tags: submission.tags || found.prompt.tags,
+            contributor: submission.contributor || found.prompt.contributor,
+            notes: submission.notes || found.prompt.notes
+            // 🔴 ID 保持不变
           };
+          
+          return prev.map(sec => {
+            if (sec.id === originalSectionId) {
+              return { ...sec, prompts: sec.prompts.filter(p => p.id !== originalId) };
+            }
+            if (sec.id === sectionId) {
+              return { ...sec, prompts: [movedPrompt, ...sec.prompts] };
+            }
+            return sec;
+          });
         }
-        return { ...sec, prompts: sec.prompts.filter(p => p.id !== submission.targetId) };
-      }));
+      });
       alert("✅ 修改已批准并更新！");
-    } else if (submission.action === 'variant' && submission.targetId) {
-      // 🟢 变体投稿：添加到原提示词的similar数组，变体图片独立保存
-      // 🔴 修复：不再更新主提示词的 ID，避免后续变体的 targetId 失效
+    } else if ((submission.action === 'variant' || submission.action === 'edit-variant') && submission.targetId) {
+      // 🟢 变体投稿 & 修改变体：添加/更新原提示词的similar数组
+      // 先查找原提示词
+      const found = findPromptByIdOrTitle(submission.targetId, submission.originalTitle);
+      
+      if (!found) {
+        alert("❌ 未找到原提示词！无法添加变体。请检查原提示词是否还存在。");
+        return;
+      }
+      
+      const originalId = found.prompt.id;
+      
       setSections(prev => prev.map(sec => ({
         ...sec,
         prompts: sec.prompts.map(p => {
-          if (p.id === submission.targetId) {
+          if (p.id === originalId) {
             // 计算变体独有的图片（不包含主提示词的图片）
             const mainImages = p.images || [];
             const variantImages = (submission.images || []).filter(img => !mainImages.includes(img));
@@ -1212,18 +1290,31 @@ export default function App() {
               // 🟢 只有当变体有新图片时才保存到变体的 images 字段
               ...(variantImages.length > 0 ? { images: variantImages } : {})
             };
+            
+            // 🔴 处理 edit-variant：更新已有变体
+            if (submission.action === 'edit-variant' && submission.variantIndex !== null && submission.variantIndex !== undefined) {
+              const updatedSimilar = [...(p.similar || [])];
+              if (updatedSimilar[submission.variantIndex]) {
+                updatedSimilar[submission.variantIndex] = newVariant;
+              } else {
+                // 如果索引不存在，作为新变体添加
+                updatedSimilar.push(newVariant);
+              }
+              return { ...p, similar: updatedSimilar };
+            }
+            
+            // 普通变体：追加
             return {
               ...p,
-              // 🔴 移除 ID 更新，保持原 ID 不变，让后续变体能正确匹配
               similar: [...(p.similar || []), newVariant]
             };
           }
           return p;
         })
       })));
-      alert("✅ 变体已批准并添加！");
+      alert(submission.action === 'edit-variant' ? "✅ 变体已更新！" : "✅ 变体已批准并添加！");
     }
-  }, []);
+  }, [findPromptByIdOrTitle]);
 
   // 🔴 处理编辑投稿（保持待处理分区打开）
   const handleEditSubmission = useCallback((submission) => {
@@ -1930,12 +2021,96 @@ export default function App() {
                 </div>
               </div>
 
+              {/* 🔴 变体/修改投稿：显示目标提示词状态 */}
+              {(viewingSubmission.action === 'variant' || viewingSubmission.action === 'edit-variant' || viewingSubmission.action === 'edit') && viewingSubmission.targetId && (() => {
+                const found = findPromptByIdOrTitle(viewingSubmission.targetId, viewingSubmission.originalTitle);
+                const isVariant = viewingSubmission.action === 'variant' || viewingSubmission.action === 'edit-variant';
+                
+                return (
+                  <div className={`border-t border-slate-200 pt-4 ${!found ? 'bg-red-50 -mx-5 px-5 py-4' : ''}`}>
+                    <div className="text-sm font-bold text-slate-700 mb-2 flex items-center gap-2">
+                      {isVariant ? '目标提示词' : '原提示词'}
+                      {!found && <AlertTriangle size={14} className="text-red-500" />}
+                    </div>
+                    
+                    {found ? (
+                      <div className="p-3 bg-green-50 border border-green-200 rounded-lg mb-4">
+                        <div className="flex items-center gap-3">
+                          {found.prompt.images && found.prompt.images.length > 0 && (
+                            <img src={getOptimizedUrl(found.prompt.images[0], 80)} className="w-12 h-12 rounded-lg object-cover" />
+                          )}
+                          <div>
+                            <div className="font-bold text-sm text-green-800">{found.prompt.title}</div>
+                            <div className="text-xs text-green-600">所在分区：{found.section.title}</div>
+                            {found.prompt.similar && found.prompt.similar.length > 0 && (
+                              <div className="text-xs text-green-500">已有 {found.prompt.similar.length} 个变体</div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-3 mb-4">
+                        <div className="p-3 bg-red-100 border border-red-300 rounded-lg text-sm text-red-700">
+                          <div className="font-bold flex items-center gap-1 mb-1">
+                            <AlertCircle size={14} /> 未找到原提示词！
+                          </div>
+                          <div className="text-xs">
+                            原 ID: <code className="bg-red-200 px-1 rounded">{viewingSubmission.targetId}</code>
+                            {viewingSubmission.originalTitle && (
+                              <> | 原标题: <span className="font-medium">{viewingSubmission.originalTitle}</span></>
+                            )}
+                          </div>
+                          <div className="mt-2 text-xs text-red-600">
+                            可能原因：原提示词已被其他修改投稿更新（ID 变化），或已被删除。
+                          </div>
+                        </div>
+                        
+                        {isVariant && (
+                          <div>
+                            <div className="text-xs font-bold text-slate-600 mb-2">手动选择目标提示词：</div>
+                            <select
+                              className="w-full p-2 border-2 border-slate-200 rounded-lg text-sm focus:border-indigo-400 outline-none"
+                              value={viewingSubmission.targetId}
+                              onChange={(e) => {
+                                const newTargetId = e.target.value;
+                                // 找到选中的提示词以获取其标题
+                                let newTitle = '';
+                                sections.forEach(sec => {
+                                  const p = sec.prompts.find(p => p.id === newTargetId);
+                                  if (p) newTitle = p.title;
+                                });
+                                setViewingSubmission({
+                                  ...viewingSubmission,
+                                  targetId: newTargetId,
+                                  originalTitle: newTitle
+                                });
+                              }}
+                            >
+                              <option value="">-- 请选择 --</option>
+                              {sections.map(section => (
+                                <optgroup key={section.id} label={section.title}>
+                                  {section.prompts.map(p => (
+                                    <option key={p.id} value={p.id}>
+                                      {p.title} {p.similar && p.similar.length > 0 ? `(+${p.similar.length}变体)` : ''}
+                                    </option>
+                                  ))}
+                                </optgroup>
+                              ))}
+                            </select>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
+
               <div className="border-t border-slate-200 pt-4">
                 <div className="text-sm font-bold text-slate-700 mb-2">选择目标分区</div>
                 {viewingSubmission.action !== 'create' && viewingSubmission.targetId && (
                   <div className="mb-2 p-2 bg-amber-50 border border-amber-200 rounded-lg text-xs text-amber-700">
                     <span className="font-bold">原分区：</span>
-                    {findOriginalSection(viewingSubmission.targetId)?.title || '未找到原分区'}
+                    {findOriginalSection(viewingSubmission.targetId)?.title || findPromptByIdOrTitle(viewingSubmission.targetId, viewingSubmission.originalTitle)?.section?.title || '未知分区'}
                   </div>
                 )}
                 <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-[150px] overflow-y-auto custom-scrollbar p-1">
