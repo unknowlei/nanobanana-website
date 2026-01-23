@@ -79,21 +79,26 @@ const useImageDimensions = (imageUrl) => {
 
 // 🟢 计算自适应弹出框尺寸 - 确保图片完整显示无需滚动
 // 支持横图（上下布局）和竖图/正方形（左右布局）
+// 📱 手机端强制使用上下布局
 const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight) => {
   const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1200;
   const viewportHeight = typeof window !== 'undefined' ? window.innerHeight : 800;
   
+  // 📱 检测是否是手机端（宽度小于768px）
+  const isMobile = viewportWidth < 768;
+  
   // 弹窗边距：距离视口边缘的最小间距
-  const viewportPadding = 24;
+  const viewportPadding = isMobile ? 12 : 24;
   
   // 弹窗内部 padding
-  const modalPadding = 24; // p-6 = 24px
+  const modalPadding = isMobile ? 16 : 24; // 手机端减少内边距
   
-  // 判断是否使用左右布局（正方形或竖图）
-  const useSideLayout = orientation === 'portrait' || orientation === 'square';
+  // 📱 手机端强制使用上下布局，不使用左右布局
+  // 判断是否使用左右布局（正方形或竖图）- 仅限桌面端
+  const useSideLayout = !isMobile && (orientation === 'portrait' || orientation === 'square');
   
   if (useSideLayout) {
-    // 🟢 左右布局：图片在左，内容在右
+    // 🟢 左右布局：图片在左，内容在右（仅桌面端）
     // 可用的最大高度（留更多空间给图片）
     const maxAvailableHeight = viewportHeight - viewportPadding * 2 - modalPadding * 2 - 80; // 80px 标题栏
     
@@ -132,10 +137,10 @@ const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight
       '--adaptive-image-width': `${calculatedImageWidth}px`,
     };
   } else {
-    // 🟢 上下布局：横图使用传统布局，但放大图片区域
+    // 🟢 上下布局：横图使用传统布局，手机端所有图片都使用此布局
     // 减少固定内容高度估算，给图片更多空间
     // 标题栏: ~60px, 其他内容区: ~200px（减少了）
-    const fixedContentHeight = 260;
+    const fixedContentHeight = isMobile ? 200 : 260;
     
     // 可用于显示图片的最大高度（增加了）
     const maxAvailableImageHeight = viewportHeight - viewportPadding * 2 - fixedContentHeight - modalPadding * 2;
@@ -143,8 +148,11 @@ const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight
     // 可用的最大宽度
     const maxAvailableWidth = viewportWidth - viewportPadding * 2;
     
+    // 📱 手机端图片最大高度限制更小
+    const maxImageHeightLimit = isMobile ? 400 : 700;
+    
     // 根据图片比例计算合适的尺寸
-    let calculatedImageHeight = Math.min(maxAvailableImageHeight, 700); // 限制最大高度
+    let calculatedImageHeight = Math.min(maxAvailableImageHeight, maxImageHeightLimit);
     let calculatedImageWidth = calculatedImageHeight * aspectRatio;
     
     // 如果计算出的宽度超过可用宽度，则以宽度为准重新计算
@@ -154,13 +162,13 @@ const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight
     }
     
     // 图片区域额外需要的宽度（左右内边距）
-    const imageAreaExtraPadding = 32;
+    const imageAreaExtraPadding = isMobile ? 16 : 32;
     
     // 计算弹窗的最终宽度
     let modalWidth = calculatedImageWidth + modalPadding * 2 + imageAreaExtraPadding;
     
-    // 最小宽度限制
-    const minModalWidth = 500;
+    // 📱 手机端最小宽度更小
+    const minModalWidth = isMobile ? 280 : 500;
     modalWidth = Math.max(modalWidth, minModalWidth);
     
     // 最大宽度限制
@@ -168,10 +176,11 @@ const getAdaptiveModalStyle = (orientation, aspectRatio, imageWidth, imageHeight
     modalWidth = Math.min(modalWidth, maxModalWidth);
     
     return {
-      maxWidth: `${modalWidth}px`,
-      width: 'auto',
-      '--adaptive-image-max-height': `${Math.max(calculatedImageHeight, 300)}px`,
+      maxWidth: isMobile ? '100%' : `${modalWidth}px`, // 📱 手机端使用100%宽度
+      width: isMobile ? '100%' : 'auto',
+      '--adaptive-image-max-height': `${Math.max(calculatedImageHeight, isMobile ? 200 : 300)}px`,
       '--adaptive-layout': 'stack', // 标记为上下布局
+      '--is-mobile': isMobile ? 'true' : 'false', // 传递手机端标记
     };
   }
 };
@@ -541,8 +550,18 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
   const [idx, setIdx] = useState(0);
   const [activeTab, setActiveTab] = useState(0);
   
-  // 🟢 判断是否使用左右布局（竖图或正方形）
-  const useSideLayout = orientation === 'portrait' || orientation === 'square';
+  // 📱 检测是否是手机端
+  const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+  
+  // 📱 监听窗口大小变化
+  useEffect(() => {
+    const handleResize = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+  
+  // 🟢 判断是否使用左右布局（竖图或正方形）- 📱 手机端强制使用上下布局
+  const useSideLayout = !isMobile && (orientation === 'portrait' || orientation === 'square');
   
   // 🟢 计算当前 Tab 的图片（变体可能有自己的图片）
   const currentImages = useMemo(() => {
@@ -606,18 +625,18 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
   const ContentSection = () => (
     <div className={`space-y-4 ${useSideLayout ? 'flex-1 min-w-0 flex flex-col' : ''}`}>
       {/* 标签和操作按钮 */}
-      <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex flex-wrap gap-2">
-              {tags.map(t => (typeof t === 'string' ? <span key={t} className="px-3 py-1 bg-indigo-50 text-indigo-600 text-xs font-bold rounded-lg border border-indigo-100">#{t}</span> : null))}
+      <div className={`flex flex-wrap items-center justify-between gap-4 ${isMobile ? 'gap-2' : ''}`}>
+          <div className={`flex flex-wrap gap-2 ${isMobile ? 'gap-1' : ''}`}>
+              {tags.map(t => (typeof t === 'string' ? <span key={t} className={`bg-indigo-50 text-indigo-600 font-bold rounded-lg border border-indigo-100 ${isMobile ? 'px-2 py-0.5 text-[10px]' : 'px-3 py-1 text-xs'}`}>#{t}</span> : null))}
           </div>
           
           {/* 🔴 游客创作入口 - 区分本地收藏和云端提示词 */}
-          <div className="flex gap-2">
+          <div className={`flex gap-2 ${isMobile ? 'gap-1 flex-wrap' : ''}`}>
               {isFromFavorite ? (
                   // 🟢 本地收藏：显示本地操作按钮
                   <>
-                      <button onClick={() => onLocalAction && onLocalAction('local-variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 text-xs font-bold rounded-lg transition-colors border border-green-100">
-                          <CopyPlus size={14}/> 添加变体
+                      <button onClick={() => onLocalAction && onLocalAction('local-variant', prompt)} className={`flex items-center gap-1 bg-green-50 text-green-600 hover:bg-green-100 hover:text-green-700 font-bold rounded-lg transition-colors border border-green-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
+                          <CopyPlus size={isMobile ? 12 : 14}/> 添加变体
                       </button>
                       <button onClick={() => {
                           if (activeTab === 0) {
@@ -628,15 +647,15 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
                                   onLocalAction && onLocalAction('local-edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
                               }
                           }
-                      }} className="flex items-center gap-1 px-3 py-1.5 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 text-xs font-bold rounded-lg transition-colors border border-amber-100">
-                          <Edit3 size={14}/> {activeTab === 0 ? '编辑' : '编辑变体'}
+                      }} className={`flex items-center gap-1 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 font-bold rounded-lg transition-colors border border-amber-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
+                          <Edit3 size={isMobile ? 12 : 14}/> {activeTab === 0 ? '编辑' : '编辑变体'}
                       </button>
                   </>
               ) : (
                   // 🟢 云端提示词：显示投稿按钮
                   <>
-                      <button onClick={() => onSubmissionAction('variant', prompt)} className="flex items-center gap-1 px-3 py-1.5 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 text-xs font-bold rounded-lg transition-colors border border-purple-100">
-                          <CopyPlus size={14}/> 投稿变体
+                      <button onClick={() => onSubmissionAction('variant', prompt)} className={`flex items-center gap-1 bg-purple-50 text-purple-600 hover:bg-purple-100 hover:text-purple-700 font-bold rounded-lg transition-colors border border-purple-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
+                          <CopyPlus size={isMobile ? 12 : 14}/> 投稿变体
                       </button>
                       <button onClick={() => {
                           if (activeTab === 0) {
@@ -647,8 +666,8 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
                                   onSubmissionAction('edit-variant', { ...prompt, variantIndex: activeTab - 1, variantData: variant });
                               }
                           }
-                      }} className="flex items-center gap-1 px-3 py-1.5 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 text-xs font-bold rounded-lg transition-colors border border-blue-100">
-                          <Edit3 size={14}/> {activeTab === 0 ? '修改投稿' : '修改变体'}
+                      }} className={`flex items-center gap-1 bg-blue-50 text-blue-600 hover:bg-blue-100 hover:text-blue-700 font-bold rounded-lg transition-colors border border-blue-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
+                          <Edit3 size={isMobile ? 12 : 14}/> {activeTab === 0 ? '修改投稿' : '修改变体'}
                       </button>
                   </>
               )}
@@ -656,32 +675,32 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
       </div>
 
       {/* 投稿人 */}
-      {currentContributor && (<div className="flex items-center gap-2 text-sm text-indigo-600 bg-indigo-50 px-3 py-2 rounded-lg font-bold"><Smile size={16} /><span>投稿人：{currentContributor}</span></div>)}
+      {currentContributor && (<div className={`flex items-center gap-2 text-indigo-600 bg-indigo-50 rounded-lg font-bold ${isMobile ? 'text-xs px-2 py-1.5' : 'text-sm px-3 py-2'}`}><Smile size={isMobile ? 14 : 16} /><span>投稿人：{currentContributor}</span></div>)}
       
       {/* Prompt 内容 - 当无备注时自动扩展高度 */}
       <div className={currentNotes ? '' : 'flex-1 flex flex-col'}>
-          <div className="text-xs font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1"><FileText size={12}/> PROMPT CONTENT</div>
-          <div className={`p-4 bg-slate-50 rounded-2xl font-mono text-sm border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm whitespace-pre-wrap overflow-y-auto custom-scrollbar ${currentNotes ? 'max-h-[200px]' : 'flex-1 min-h-[150px] max-h-[400px]'}`}>{currentContent}</div>
+          <div className={`font-bold text-slate-400 mb-2 tracking-wider flex items-center gap-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}><FileText size={isMobile ? 10 : 12}/> PROMPT CONTENT</div>
+          <div className={`bg-slate-50 rounded-2xl font-mono border border-slate-200 select-all text-slate-700 leading-relaxed shadow-sm whitespace-pre-wrap overflow-y-auto custom-scrollbar ${isMobile ? 'p-3 text-xs' : 'p-4 text-sm'} ${currentNotes ? (isMobile ? 'max-h-[150px]' : 'max-h-[200px]') : (isMobile ? 'flex-1 min-h-[100px] max-h-[250px]' : 'flex-1 min-h-[150px] max-h-[400px]')}`}>{currentContent}</div>
       </div>
 
       {/* 🟢 作者备注区域 */}
       {currentNotes && (
         <div>
-            <div className="text-xs font-bold text-amber-500 mb-2 tracking-wider flex items-center gap-1"><MessageSquare size={12}/> 作者备注</div>
-            <div className="p-3 bg-amber-50 rounded-xl font-sans text-sm border border-amber-200 text-amber-800 leading-relaxed shadow-sm whitespace-pre-wrap max-h-[100px] overflow-y-auto custom-scrollbar">{currentNotes}</div>
+            <div className={`font-bold text-amber-500 mb-2 tracking-wider flex items-center gap-1 ${isMobile ? 'text-[10px]' : 'text-xs'}`}><MessageSquare size={isMobile ? 10 : 12}/> 作者备注</div>
+            <div className={`bg-amber-50 rounded-xl font-sans border border-amber-200 text-amber-800 leading-relaxed shadow-sm whitespace-pre-wrap overflow-y-auto custom-scrollbar ${isMobile ? 'p-2 text-xs max-h-[80px]' : 'p-3 text-sm max-h-[100px]'}`}>{currentNotes}</div>
         </div>
       )}
     </div>
   );
 
   return (
-    <div className="space-y-4">
+    <div className={`space-y-4 ${isMobile ? 'space-y-3' : ''}`}>
       {/* 变体切换标签 */}
       {prompt.similar && prompt.similar.length > 0 && (
-          <div className="flex space-x-2 overflow-x-auto pb-2 no-scrollbar border-b border-slate-100">
-              <button onClick={() => setActiveTab(0)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === 0 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>主提示词</button>
+          <div className={`flex overflow-x-auto pb-2 no-scrollbar border-b border-slate-100 ${isMobile ? 'space-x-1' : 'space-x-2'}`}>
+              <button onClick={() => setActiveTab(0)} className={`rounded-full font-bold transition-all whitespace-nowrap ${isMobile ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs'} ${activeTab === 0 ? 'bg-indigo-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>主提示词</button>
               {prompt.similar.map((_, i) => (
-                  <button key={i} onClick={() => setActiveTab(i + 1)} className={`px-4 py-1.5 rounded-full text-xs font-bold transition-all whitespace-nowrap ${activeTab === i + 1 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>变体 {i + 1}</button>
+                  <button key={i} onClick={() => setActiveTab(i + 1)} className={`rounded-full font-bold transition-all whitespace-nowrap ${isMobile ? 'px-3 py-1 text-[10px]' : 'px-4 py-1.5 text-xs'} ${activeTab === i + 1 ? 'bg-purple-500 text-white shadow-md' : 'bg-slate-100 text-slate-500 hover:bg-slate-200'}`}>变体 {i + 1}</button>
               ))}
           </div>
       )}
@@ -2150,7 +2169,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] rounded-3xl overflow-hidden flex flex-col p-6 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 border-b border-slate-100 pb-3"><div className="flex items-center gap-3"><div className="w-9 h-9 bg-indigo-50 rounded-xl flex items-center justify-center text-indigo-600"><Edit2 size={18}/></div><h3 className="font-bold text-lg text-slate-800">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs bg-green-100 text-green-600 px-2 py-0.5 rounded-full">本地收藏</span>}</h3></div>{/* 🟢 管理员模式下显示移动按钮 */}{isAdmin && editingPrompt && editingPrompt.id && (<button onClick={() => { const currentSection = sections.find(s => s.prompts.some(p => p.id === editingPrompt.id)); if(currentSection) setMoveModalData({ prompt: editingPrompt, currentSectionId: currentSection.id }); }} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs font-bold rounded-lg transition-colors flex items-center gap-1 mr-2"><FolderOutput size={14}/> 移动分区</button>)}<button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors"><X size={18} className="text-slate-500"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { const currentSection = sections.find(s => s.prompts.some(p => p.id === id)); if(currentSection) handleSoftDelete(id, currentSection.id); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
+      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-4 p-2 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] md:max-h-[94vh] max-h-[90vh] rounded-3xl md:rounded-3xl rounded-2xl overflow-hidden flex flex-col p-6 md:p-6 p-4 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 md:mb-4 mb-3 border-b border-slate-100 pb-3 md:pb-3 pb-2"><div className="flex items-center gap-3 md:gap-3 gap-2 flex-1 min-w-0"><div className="w-9 h-9 md:w-9 md:h-9 w-7 h-7 bg-indigo-50 rounded-xl md:rounded-xl rounded-lg flex items-center justify-center text-indigo-600 flex-shrink-0"><Edit2 size={18} className="md:w-[18px] md:h-[18px] w-4 h-4"/></div><h3 className="font-bold text-lg md:text-lg text-base text-slate-800 truncate">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs md:text-xs text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full hidden sm:inline">本地收藏</span>}</h3></div>{/* 🟢 管理员模式下显示移动按钮 */}{isAdmin && editingPrompt && editingPrompt.id && (<button onClick={() => { const currentSection = sections.find(s => s.prompts.some(p => p.id === editingPrompt.id)); if(currentSection) setMoveModalData({ prompt: editingPrompt, currentSectionId: currentSection.id }); }} className="px-3 py-1.5 md:px-3 md:py-1.5 px-2 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs md:text-xs text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 mr-2 flex-shrink-0"><FolderOutput size={14} className="md:w-[14px] md:h-[14px] w-3 h-3"/> <span className="hidden sm:inline">移动分区</span><span className="sm:hidden">移动</span></button>)}<button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 md:w-8 md:h-8 w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex-shrink-0"><X size={18} className="text-slate-500 md:w-[18px] md:h-[18px] w-4 h-4"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2 md:pr-2 pr-1">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { const currentSection = sections.find(s => s.prompts.some(p => p.id === id)); if(currentSection) handleSoftDelete(id, currentSection.id); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
       
       {/* 🟢 移动提示词到其他分区的弹窗 */}
       {moveModalData && (
