@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc, query, where, orderBy, serverTimestamp } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 
@@ -42,9 +42,10 @@ export const submitPrompt = async (promptData) => {
 };
 
 // 使用 API 路由获取待处理投稿（绕过 CORS）
-export const getPendingSubmissions = async () => {
+export const getPendingSubmissions = async (status = 'pending') => {
   try {
-    const response = await fetch('/api/get-submissions', {
+    const query = status ? `?status=${encodeURIComponent(status)}` : '';
+    const response = await fetch(`/api/get-submissions${query}`, {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
@@ -82,12 +83,31 @@ export const approveSubmission = async (submissionId) => {
 };
 
 export const rejectSubmission = async (submissionId) => {
+  return setSubmissionStatus(submissionId, 'rejected');
+};
+
+export const setSubmissionStatus = async (submissionId, status) => {
+  try {
+    const docRef = doc(db, "pending_submissions", submissionId);
+    const processedAt = status === 'pending' ? null : serverTimestamp();
+    await updateDoc(docRef, {
+      status,
+      processedAt
+    });
+    return { success: true };
+  } catch (error) {
+    console.error("更新投稿状态失败:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const deleteSubmissionForever = async (submissionId) => {
   try {
     const docRef = doc(db, "pending_submissions", submissionId);
     await deleteDoc(docRef);
     return { success: true };
   } catch (error) {
-    console.error("删除失败:", error);
+    console.error("彻底删除投稿失败:", error);
     return { success: false, error: error.message };
   }
 };

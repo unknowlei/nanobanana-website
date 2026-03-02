@@ -1,6 +1,6 @@
-// Vercel Serverless Function - 获取待处理投稿（绕过 CORS）
+﻿// Vercel Serverless Function - get submissions (with pagination and status filter)
 export default async function handler(req, res) {
-  // 设置 CORS 头
+  // CORS
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
@@ -14,55 +14,64 @@ export default async function handler(req, res) {
   }
 
   try {
+    const statusFilter = (req.query?.status || 'pending').toString();
     const projectId = 'nano-banana-d0fe0';
     const apiKey = 'AIzaSyBxkZhzbilg15YFUHdEix2DrXQLEa4rpoQ';
-    
-    // 获取所有文档，然后在服务端过滤
-    const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pending_submissions?key=${apiKey}`;
 
-    const response = await fetch(firestoreUrl, {
-      method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
+    const allDocuments = [];
+    let nextPageToken = '';
+
+    do {
+      const pageTokenQuery = nextPageToken ? `&pageToken=${encodeURIComponent(nextPageToken)}` : '';
+      const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/pending_submissions?key=${apiKey}${pageTokenQuery}`;
+
+      const response = await fetch(firestoreUrl, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('Firestore error:', errorText);
+        return res.status(500).json({ success: false, error: `获取投稿失败: ${errorText}` });
       }
-    });
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error('Firestore error:', errorText);
-      return res.status(500).json({ success: false, error: '获取投稿失败: ' + errorText });
-    }
+      const result = await response.json();
+      allDocuments.push(...(result.documents || []));
+      nextPageToken = result.nextPageToken || '';
+    } while (nextPageToken);
 
-    const result = await response.json();
-    
-    // 解析 Firestore 返回的数据格式
-    const submissions = (result.documents || [])
-      .map(doc => {
+    const submissions = allDocuments
+      .map((doc) => {
         const docId = doc.name.split('/').pop();
         const fields = doc.fields || {};
-        
+
         return {
           id: docId,
           title: fields.title?.stringValue || '',
           content: fields.content?.stringValue || '',
-          tags: fields.tags?.arrayValue?.values?.map(v => v.stringValue) || [],
-          images: fields.images?.arrayValue?.values?.map(v => v.stringValue) || [],
+          tags: fields.tags?.arrayValue?.values?.map((v) => v.stringValue) || [],
+          images: fields.images?.arrayValue?.values?.map((v) => v.stringValue) || [],
           contributor: fields.contributor?.stringValue || '',
           notes: fields.notes?.stringValue || '',
           action: fields.action?.stringValue || 'create',
           targetId: fields.targetId?.stringValue || null,
-          variantIndex: fields.variantIndex?.integerValue !== undefined ? parseInt(fields.variantIndex.integerValue) : null,
+          variantIndex: fields.variantIndex?.integerValue !== undefined ? parseInt(fields.variantIndex.integerValue, 10) : null,
           originalTitle: fields.originalTitle?.stringValue || null,
           submissionType: fields.submissionType?.stringValue || '全新投稿',
           status: fields.status?.stringValue || 'pending',
-          createdAt: fields.createdAt?.timestampValue || null
+          createdAt: fields.createdAt?.timestampValue || null,
+          processedAt: fields.processedAt?.timestampValue || null
         };
       })
-      .filter(sub => sub.status === 'pending') // 只返回待处理的
+      .filter((sub) => statusFilter === 'all' ? true : sub.status === statusFilter)
       .sort((a, b) => {
-        // 按创建时间降序排序
-        const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-        const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        const aSortTime = a.processedAt || a.createdAt;
+        const bSortTime = b.processedAt || b.createdAt;
+        const timeA = aSortTime ? new Date(aSortTime).getTime() : 0;
+        const timeB = bSortTime ? new Date(bSortTime).getTime() : 0;
         return timeB - timeA;
       });
 
@@ -72,3 +81,4 @@ export default async function handler(req, res) {
     return res.status(500).json({ success: false, error: error.message });
   }
 }
+

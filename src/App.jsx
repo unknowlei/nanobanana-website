@@ -9,7 +9,7 @@ import {
   Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput,
   ArrowUpCircle, List, History
 } from 'lucide-react';
-import { submitPrompt, getPendingSubmissions, approveSubmission, rejectSubmission, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
+import { submitPrompt, getPendingSubmissions, setSubmissionStatus, deleteSubmissionForever, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
 
 /**
  * ==============================================================================
@@ -957,6 +957,13 @@ export default function App() {
   const [viewingSubmission, setViewingSubmission] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
   const [pendingRefreshKey, setPendingRefreshKey] = useState(0);
+  const [reviewImageUrlInput, setReviewImageUrlInput] = useState('');
+  const [isReviewImageUploading, setIsReviewImageUploading] = useState(false);
+  const [isReviewImageDragOver, setIsReviewImageDragOver] = useState(false);
+  const [reviewDraggingImageIndex, setReviewDraggingImageIndex] = useState(null);
+  const [rejectedSubmissions, setRejectedSubmissions] = useState([]);
+  const [isRejectedBinOpen, setIsRejectedBinOpen] = useState(false);
+  const [isRejectedBinLoading, setIsRejectedBinLoading] = useState(false);
 
   // 🔴 用户认证状态
   const [currentUser, setCurrentUser] = useState(null);
@@ -1360,27 +1367,128 @@ export default function App() {
     return null;
   }, [sections]);
 
+  const uploadReviewImages = useCallback(async (files) => {
+    if (!files || files.length === 0) return;
+    setIsReviewImageUploading(true);
+    try {
+      const uploadResults = await Promise.all(Array.from(files).map((file) => uploadImageToFirebase(file)));
+      const validUrls = uploadResults.filter((item) => item && item.success && item.url).map((item) => item.url);
+      if (validUrls.length > 0) {
+        setViewingSubmission((prev) => ({
+          ...prev,
+          images: [...(Array.isArray(prev?.images) ? prev.images : []), ...validUrls]
+        }));
+      }
+    } catch (error) {
+      alert("❌ 图片上传失败");
+    } finally {
+      setIsReviewImageUploading(false);
+    }
+  }, []);
+
+  const removeReviewImage = useCallback((idx) => {
+    setViewingSubmission((prev) => ({
+      ...prev,
+      images: (Array.isArray(prev?.images) ? prev.images : []).filter((_, i) => i !== idx)
+    }));
+  }, []);
+
+  const addReviewImageByUrl = useCallback(() => {
+    const url = reviewImageUrlInput.trim();
+    if (!url) return;
+    setViewingSubmission((prev) => ({
+      ...prev,
+      images: [...(Array.isArray(prev?.images) ? prev.images : []), url]
+    }));
+    setReviewImageUrlInput('');
+  }, [reviewImageUrlInput]);
+
+  const loadRejectedSubmissions = useCallback(async () => {
+    if (!isAdmin) return;
+    setIsRejectedBinLoading(true);
+    const result = await getPendingSubmissions('rejected');
+    if (!result.success) {
+      setIsRejectedBinLoading(false);
+      return;
+    }
+
+    const now = Date.now();
+    const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+    const items = Array.isArray(result.data) ? result.data : [];
+
+    const expired = items.filter((item) => {
+      const base = item.processedAt || item.createdAt;
+      const time = base ? new Date(base).getTime() : 0;
+      return time > 0 && (now - time) > oneWeekMs;
+    });
+
+    if (expired.length > 0) {
+      await Promise.all(expired.map((item) => deleteSubmissionForever(item.id)));
+    }
+
+    const valid = items.filter((item) => {
+      const base = item.processedAt || item.createdAt;
+      const time = base ? new Date(base).getTime() : 0;
+      if (!time) return true;
+      return (now - time) <= oneWeekMs;
+    });
+
+    setRejectedSubmissions(valid);
+    setIsRejectedBinLoading(false);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    if (!isAdmin) {
+      setRejectedSubmissions([]);
+      setIsRejectedBinOpen(false);
+      return;
+    }
+    loadRejectedSubmissions();
+  }, [isAdmin, pendingRefreshKey, loadRejectedSubmissions]);
+
   // 🔴 处理批准投稿（带分区选择）
   const handleApproveWithSection = useCallback(async (submission, sectionId) => {
-    // 使用前端 Firebase SDK 删除待处理投稿（管理员已登录，拥有删除权限）
-    const result = await rejectSubmission(submission.id);
+    const result = await setSubmissionStatus(submission.id, 'approved');
     if (!result.success) {
-      alert("❌ 从待处理分区删除失败: " + (result.error || "未知错误"));
-      return; // 失败时不继续执行
+      alert("❌ 更新投稿状态失败: " + (result.error || "未知错误"));
+      return;
     }
-    // 成功后添加到指定分区
     handleApproveSubmission(submission, sectionId);
     setViewingSubmission(null);
     setSelectedSection(null);
-    setPendingRefreshKey(prev => prev + 1); // 刷新待处理列表
+    setPendingRefreshKey(prev => prev + 1);
   }, [handleApproveSubmission]);
 
   // 🔴 处理拒绝投稿
   const handleRejectSubmission = useCallback(async (submissionId) => {
     if (!confirm("确定拒绝此投稿？")) return;
-    await rejectSubmission(submissionId);
+    const result = await setSubmissionStatus(submissionId, 'rejected');
+    if (!result.success) {
+      alert("❌ 更新投稿状态失败: " + (result.error || "未知错误"));
+      return;
+    }
     setViewingSubmission(null);
-    setPendingRefreshKey(prev => prev + 1); // 刷新待处理列表
+    setPendingRefreshKey(prev => prev + 1);
+  }, []);
+
+  const handleRestoreRejectedSubmission = useCallback(async (submissionId) => {
+    const result = await setSubmissionStatus(submissionId, 'pending');
+    if (!result.success) {
+      alert("❌ 恢复失败: " + (result.error || "未知错误"));
+      return;
+    }
+    setRejectedSubmissions((prev) => prev.filter((item) => item.id !== submissionId));
+    setPendingRefreshKey((prev) => prev + 1);
+  }, []);
+
+  const handleDeleteRejectedForever = useCallback(async (submissionId) => {
+    if (!confirm("确定彻底删除该驳回投稿吗？此操作不可恢复。")) return;
+    const result = await deleteSubmissionForever(submissionId);
+    if (!result.success) {
+      alert("❌ 删除失败: " + (result.error || "未知错误"));
+      return;
+    }
+    setRejectedSubmissions((prev) => prev.filter((item) => item.id !== submissionId));
   }, []);
 
   // 🔴 处理登录
@@ -1776,6 +1884,21 @@ export default function App() {
                     </span>
                   </button>
                 )}
+                <button
+                  onClick={() => {
+                    setIsRejectedBinOpen(true);
+                    loadRejectedSubmissions();
+                  }}
+                  className="relative p-2 text-rose-600 bg-rose-50 hover:bg-rose-100 rounded-full transition-colors shadow-sm"
+                  title="驳回垃圾桶"
+                >
+                  <Trash2 size={18} />
+                  {rejectedSubmissions.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-rose-500 text-white text-[10px] font-bold min-w-4 h-4 px-1 rounded-full flex items-center justify-center">
+                      {rejectedSubmissions.length > 9 ? '9+' : rejectedSubmissions.length}
+                    </span>
+                  )}
+                </button>
                 <button onClick={() => setIsPendingPanelOpen(!isPendingPanelOpen)} className={`p-2 rounded-full transition-colors shadow-sm ${isPendingPanelOpen ? 'bg-orange-500 text-white' : 'text-orange-600 bg-orange-50 hover:bg-orange-100'}`} title="待审核投稿"><Clock size={18} /></button>
                 <button onClick={handleClipboardImport} title="剪贴板一键导入" className="p-2 text-purple-600 bg-purple-50 hover:bg-purple-100 rounded-full transition-colors shadow-sm hidden sm:flex"><ClipboardCopy size={18} /></button>
                 <button onClick={handleExport} title="导出" className="p-2 text-slate-600 hover:text-indigo-600 rounded-full hover:bg-indigo-50 transition-colors hidden sm:flex"><Download size={18}/></button>
@@ -1985,20 +2108,109 @@ export default function App() {
             </div>
 
             <div className="p-5 space-y-4">
-              {viewingSubmission.images && viewingSubmission.images.length > 0 && (
-                <div className={`grid gap-3 ${
-                  viewingSubmission.images.length === 1 ? 'grid-cols-1 max-w-xl mx-auto' :
-                  viewingSubmission.images.length === 2 ? 'grid-cols-2' :
-                  viewingSubmission.images.length === 3 ? 'grid-cols-3' :
-                  'grid-cols-2 md:grid-cols-3'
-                }`}>
-                  {viewingSubmission.images.map((img, idx) => (
-                    <div key={idx} className="aspect-square rounded-lg overflow-hidden border-2 border-slate-200 shadow-sm">
-                      <img src={img} className="w-full h-full object-cover" alt={`预览 ${idx + 1}`} />
-                    </div>
-                  ))}
+              <div
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  setIsReviewImageDragOver(true);
+                }}
+                onDragLeave={(e) => {
+                  e.preventDefault();
+                  setIsReviewImageDragOver(false);
+                }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  setIsReviewImageDragOver(false);
+                  uploadReviewImages(e.dataTransfer.files);
+                }}
+                className={`rounded-2xl border-2 border-dashed p-3 transition-all ${
+                  isReviewImageDragOver ? 'border-indigo-400 bg-indigo-50/50' : 'border-slate-200 bg-slate-50/50'
+                }`}
+              >
+                <div className="flex justify-between items-center mb-3">
+                  <div className="text-xs font-bold text-slate-500">
+                    配图 ({Array.isArray(viewingSubmission.images) ? viewingSubmission.images.length : 0})
+                  </div>
+                  <div className="text-[10px] text-slate-400">拖拽上传 / 粘贴链接 / 拖拽排序</div>
                 </div>
-              )}
+
+                {Array.isArray(viewingSubmission.images) && viewingSubmission.images.length > 0 ? (
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-3 mb-3">
+                    {viewingSubmission.images.map((img, idx) => (
+                      <div
+                        key={`${img}-${idx}`}
+                        draggable
+                        onDragStart={() => setReviewDraggingImageIndex(idx)}
+                        onDragOver={(e) => e.preventDefault()}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (reviewDraggingImageIndex === null || reviewDraggingImageIndex === idx) return;
+                          setViewingSubmission((prev) => {
+                            const next = Array.isArray(prev?.images) ? [...prev.images] : [];
+                            const [moved] = next.splice(reviewDraggingImageIndex, 1);
+                            next.splice(idx, 0, moved);
+                            return { ...prev, images: next };
+                          });
+                          setReviewDraggingImageIndex(null);
+                        }}
+                        onDragEnd={() => setReviewDraggingImageIndex(null)}
+                        className="relative aspect-square rounded-lg overflow-hidden border-2 border-slate-200 bg-white"
+                      >
+                        <img src={img} className="w-full h-full object-cover" alt={`preview-${idx}`} />
+                        <button
+                          type="button"
+                          onClick={() => removeReviewImage(idx)}
+                          className="absolute top-1 right-1 p-1 rounded bg-black/60 hover:bg-red-500 text-white"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+
+                    <label className="aspect-square rounded-lg border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center cursor-pointer transition-all hover:border-indigo-400 hover:bg-indigo-50">
+                      {isReviewImageUploading ? <RefreshCw size={20} className="animate-spin mb-1" /> : <Plus size={24} className="mb-1" />}
+                      <span className="text-[10px] font-bold">{isReviewImageUploading ? '上传中...' : '点击添加'}</span>
+                      <input
+                        type="file"
+                        multiple
+                        accept="image/*"
+                        className="hidden"
+                        disabled={isReviewImageUploading}
+                        onChange={(e) => uploadReviewImages(e.target.files)}
+                      />
+                    </label>
+                  </div>
+                ) : (
+                  <label className="h-28 rounded-lg border-2 border-dashed border-slate-300 bg-white flex flex-col items-center justify-center cursor-pointer transition-all mb-3 hover:border-indigo-400 hover:bg-indigo-50">
+                    {isReviewImageUploading ? <RefreshCw size={20} className="animate-spin mb-1" /> : <UploadCloud size={24} className="mb-1" />}
+                    <span className="text-xs font-bold">{isReviewImageUploading ? '上传中...' : '点击或拖拽上传图片'}</span>
+                    <input
+                      type="file"
+                      multiple
+                      accept="image/*"
+                      className="hidden"
+                      disabled={isReviewImageUploading}
+                      onChange={(e) => uploadReviewImages(e.target.files)}
+                    />
+                  </label>
+                )}
+
+                <div className="flex gap-2">
+                  <input
+                    value={reviewImageUrlInput}
+                    onChange={(e) => setReviewImageUrlInput(e.target.value)}
+                    onKeyDown={(e) => e.key === 'Enter' && addReviewImageByUrl()}
+                    placeholder="粘贴图片链接"
+                    className="flex-1 px-3 py-2 text-sm rounded-lg border border-slate-200 focus:border-indigo-400 outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={addReviewImageByUrl}
+                    className="px-3 py-2 text-xs font-bold rounded-lg bg-slate-100 hover:bg-indigo-100 text-slate-600"
+                  >
+                    添加
+                  </button>
+                </div>
+              </div>
 
               <div>
                 <div className="text-xs font-bold text-slate-400 mb-2 uppercase tracking-wide">Prompt 内容</div>
@@ -2200,6 +2412,74 @@ export default function App() {
           </div>
       )}
       {/* 🟢 回收站弹窗（仅管理员可见） */}
+      {isRejectedBinOpen && (
+        <div
+          className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up"
+          onClick={() => setIsRejectedBinOpen(false)}
+        >
+          <div
+            className="bg-white w-full max-w-2xl rounded-3xl shadow-2xl border border-white/50"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-between items-center p-5 border-b border-slate-100">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Trash2 size={20} className="text-rose-500" />
+                驳回投稿 ({rejectedSubmissions.length})
+                <span className="text-xs text-slate-400 font-normal">保留 7 天自动清空</span>
+              </h3>
+              <button
+                onClick={() => setIsRejectedBinOpen(false)}
+                className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                <X size={18} className="text-slate-400" />
+              </button>
+            </div>
+            <div className="p-4 max-h-[65vh] overflow-y-auto custom-scrollbar">
+              {isRejectedBinLoading ? (
+                <div className="py-12 text-center text-slate-400 flex flex-col items-center gap-2">
+                  <RefreshCw size={20} className="animate-spin" />
+                  <span>加载中...</span>
+                </div>
+              ) : rejectedSubmissions.length === 0 ? (
+                <div className="text-center py-12 text-slate-400">
+                  <Trash2 size={40} className="mx-auto mb-2 opacity-30" />
+                  <p>暂无驳回投稿</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {rejectedSubmissions.map((item) => (
+                    <div key={item.id} className="bg-slate-50 rounded-xl p-3 border border-slate-100">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-bold text-sm text-slate-800 truncate">{item.title || '未命名投稿'}</div>
+                          <div className="text-[11px] text-slate-500 mt-1">
+                            投稿人: {item.contributor || '匿名'} | 驳回时间: {item.processedAt ? new Date(item.processedAt).toLocaleString() : '-'}
+                          </div>
+                          <div className="text-xs text-slate-500 mt-2 line-clamp-2">{item.content || ''}</div>
+                        </div>
+                        <div className="flex gap-2 shrink-0">
+                          <button
+                            onClick={() => handleRestoreRejectedSubmission(item.id)}
+                            className="px-3 py-1.5 rounded-lg bg-emerald-100 text-emerald-700 text-xs font-bold hover:bg-emerald-200 transition-colors"
+                          >
+                            恢复待审
+                          </button>
+                          <button
+                            onClick={() => handleDeleteRejectedForever(item.id)}
+                            className="px-3 py-1.5 rounded-lg bg-rose-100 text-rose-700 text-xs font-bold hover:bg-rose-200 transition-colors"
+                          >
+                            彻底删除
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
       {isRecycleBinOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up" onClick={() => setIsRecycleBinOpen(false)}>
           <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-white/50" onClick={(e) => e.stopPropagation()}>
