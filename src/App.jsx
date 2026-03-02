@@ -333,12 +333,24 @@ const GifMakerModule = () => {
 };
 
 // --- 🟢 4. 游客投稿弹窗 (支持 修改 和 变体) ---
-const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialData = null }) => {
+const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialData = null, onLocalSubmit = null }) => {
   const [formData, setFormData] = useState({ title: '', content: '', images: [], tags: [], contributor: '', notes: '' });
   const [isUploading, setIsUploading] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [urlInput, setUrlInput] = useState(''); 
   const [isDragOver, setIsDragOver] = useState(false);
+  const [contributorHistory, setContributorHistory] = useState([]);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('nanobanana_contributor_history');
+    if (!stored) return;
+    try {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed)) {
+        setContributorHistory(parsed.filter(v => typeof v === 'string').slice(0, 3));
+      }
+    } catch (e) {}
+  }, []);
 
   // 初始化表单数据
   useEffect(() => {
@@ -445,6 +457,15 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
       const result = await submitPrompt(submissionData);
       
       if (result.success) { 
+        const trimmedContributor = (formData.contributor || '').trim();
+        if (trimmedContributor) {
+          const nextHistory = [trimmedContributor, ...contributorHistory.filter(v => v !== trimmedContributor)].slice(0, 3);
+          setContributorHistory(nextHistory);
+          localStorage.setItem('nanobanana_contributor_history', JSON.stringify(nextHistory));
+        }
+        if (typeof onLocalSubmit === 'function') {
+          onLocalSubmit(submissionData, initialData);
+        }
         alert("🎉 投稿成功！管理员审核后将生效。"); 
         onClose(); 
       } else { 
@@ -467,7 +488,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
           <div className="flex justify-between items-center mb-6"><h3 className="text-xl font-bold text-slate-800 flex items-center"><Send className="w-5 h-5 mr-2 text-indigo-500"/> {modalTitle}</h3><button onClick={onClose}><X className="text-slate-400 hover:text-slate-600"/></button></div>
           <div className="space-y-5">
              <div><label className="text-xs font-bold text-slate-500 block mb-1">标题 {mode !== 'create' && '(不可修改)'}</label><input value={mode === 'variant' ? initialData.title : formData.title} disabled={mode !== 'create'} onChange={e=>setFormData({...formData, title: e.target.value})} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 disabled:opacity-60 disabled:cursor-not-allowed" placeholder="给你的灵感起个名"/></div>
-             <div><label className="text-xs font-bold text-slate-500 block mb-1">投稿人 ID (选填)</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/><input value={formData.contributor} onChange={e=>setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="无投稿人"/></div></div>
+             <div><label className="text-xs font-bold text-slate-500 block mb-1">投稿人 ID (选填)</label><div className="relative"><Smile className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4"/><input list="contributor-history-list" value={formData.contributor} onChange={e=>setFormData({...formData, contributor: e.target.value})} className="w-full bg-slate-50 border border-slate-200 pl-9 p-2 rounded-xl outline-none focus:border-indigo-500 text-sm" placeholder="无投稿人"/><datalist id="contributor-history-list">{contributorHistory.map((item, idx) => <option key={`${item}-${idx}`} value={item} />)}</datalist></div></div>
              <div><label className="text-xs font-bold text-slate-500 block mb-1">Prompt 内容 <span className="text-red-500">*</span></label><textarea value={formData.content} onChange={e=>setFormData({...formData, content: e.target.value})} rows={4} className="w-full bg-slate-50 border border-slate-200 p-2 rounded-xl outline-none focus:border-indigo-500 font-mono text-sm" placeholder={mode === 'variant' ? "请输入变体 prompt..." : "必填..."}/></div>
              <div><label className="text-xs font-bold text-slate-500 block mb-1">作者备注 (选填)</label><textarea value={formData.notes} onChange={e=>setFormData({...formData, notes: e.target.value})} rows={2} className="w-full bg-amber-50 border border-amber-200 p-2 rounded-xl outline-none focus:border-amber-400 text-sm" placeholder="添加备注说明、使用技巧等..."/></div>
              <div onDragOver={handleDragOver} onDragLeave={handleDragLeave} onDrop={handleDrop} className={`rounded-xl border-2 border-dashed p-2 transition-all ${isDragOver ? 'border-indigo-500 bg-indigo-50' : 'border-slate-200'}`}><label className="text-xs font-bold text-slate-500 block mb-1 px-1">配图 ({formData.images.length}) - {mode==='variant'?'新增图片':'拖拽/多选'}</label><div className="grid grid-cols-3 gap-2 mb-2">{formData.images.map((img, idx) => (<div key={idx} className="relative aspect-square rounded-lg overflow-hidden border group bg-slate-100"><img src={getOptimizedUrl(img, 200)} className="w-full h-full object-cover" /><button onClick={() => removeImage(idx)} className="absolute top-1 right-1 bg-red-500 text-white p-1 rounded opacity-0 group-hover:opacity-100 transition-opacity"><X size={12}/></button></div>))}<label className={`aspect-square bg-indigo-50 text-indigo-600 rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-indigo-100 transition-all border-2 border-dashed border-indigo-200 ${isUploading ? 'opacity-50' : ''}`}>{isUploading ? <Loader2 className="animate-spin w-5 h-5"/> : <Plus className="w-6 h-6"/>}<span className="text-[10px] font-bold mt-1 text-center px-1">{isUploading ? '上传中' : '点击/拖入'}</span><input type="file" accept="image/*" multiple className="hidden" disabled={isUploading} onChange={handleFileSelect}/></label></div><div className="flex gap-2"><input value={urlInput} onChange={e=>setUrlInput(e.target.value)} onKeyDown={e=>e.key==='Enter'&&handleAddUrl()} placeholder="粘贴链接" className="flex-1 bg-slate-50 border border-slate-200 p-2 rounded-lg text-xs outline-none"/><button onClick={handleAddUrl} disabled={!urlInput.trim()} className="px-3 py-1 bg-slate-100 text-slate-600 text-xs font-bold rounded-lg disabled:opacity-50">添加</button></div></div>
@@ -649,6 +670,9 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
                           }
                       }} className={`flex items-center gap-1 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:text-amber-700 font-bold rounded-lg transition-colors border border-amber-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
                           <Edit3 size={isMobile ? 12 : 14}/> {activeTab === 0 ? '编辑' : '编辑变体'}
+                      </button>
+                      <button onClick={() => onLocalAction && onLocalAction('local-delete', prompt)} className={`flex items-center gap-1 bg-rose-50 text-rose-600 hover:bg-rose-100 hover:text-rose-700 font-bold rounded-lg transition-colors border border-rose-100 ${isMobile ? 'px-2 py-1 text-[10px]' : 'px-3 py-1.5 text-xs'}`}>
+                          <Trash2 size={isMobile ? 12 : 14}/> 删除本地
                       </button>
                   </>
               ) : (
@@ -993,6 +1017,7 @@ export default function App() {
   // 🟢 搜索历史记录
   const [searchHistory, setSearchHistory] = useState([]);
   const [isSearchHistoryOpen, setIsSearchHistoryOpen] = useState(false);
+  const [searchMode, setSearchMode] = useState('content'); // content | title | author
   const searchInputRef = useRef(null);
 
   // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
@@ -1196,6 +1221,110 @@ export default function App() {
     }
     return null;
   }, [sections]);
+
+  const applySubmissionToPrompt = useCallback((basePrompt, submission) => {
+    const submissionImages = Array.isArray(submission.images) ? submission.images : [];
+    const submissionTags = Array.isArray(submission.tags) ? submission.tags : [];
+    const mergedBase = {
+      ...basePrompt,
+      images: Array.isArray(basePrompt.images) ? basePrompt.images : [],
+      tags: Array.isArray(basePrompt.tags) ? basePrompt.tags : [],
+      similar: Array.isArray(basePrompt.similar) ? basePrompt.similar : []
+    };
+
+    if (submission.action === 'edit') {
+      return {
+        ...mergedBase,
+        title: submission.title || mergedBase.title,
+        content: submission.content || mergedBase.content || "",
+        images: submissionImages.length > 0 ? submissionImages : mergedBase.images,
+        tags: submissionTags.length > 0 ? submissionTags : mergedBase.tags,
+        contributor: submission.contributor || mergedBase.contributor || "匿名",
+        notes: submission.notes ?? mergedBase.notes ?? ""
+      };
+    }
+
+    if (submission.action === 'variant' || submission.action === 'edit-variant') {
+      const mainImages = mergedBase.images;
+      const variantImages = submissionImages.filter(img => !mainImages.includes(img));
+      const newVariant = {
+        content: submission.content || "",
+        contributor: submission.contributor || "匿名",
+        notes: submission.notes || "",
+        ...(variantImages.length > 0 ? { images: variantImages } : {})
+      };
+      const updatedSimilar = [...mergedBase.similar];
+      if (
+        submission.action === 'edit-variant' &&
+        submission.variantIndex !== null &&
+        submission.variantIndex !== undefined &&
+        updatedSimilar[submission.variantIndex]
+      ) {
+        updatedSimilar[submission.variantIndex] = newVariant;
+      } else {
+        updatedSimilar.push(newVariant);
+      }
+      return { ...mergedBase, similar: updatedSimilar };
+    }
+
+    return {
+      id: `local-sub-${Date.now()}`,
+      title: submission.title || "未命名提示词",
+      content: submission.content || "",
+      images: submissionImages,
+      tags: submissionTags,
+      contributor: submission.contributor || "匿名",
+      notes: submission.notes || "",
+      similar: []
+    };
+  }, []);
+
+  const handleLocalSubmissionSuccess = useCallback((submissionData, sourcePrompt = null) => {
+    const localId = `local-sub-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    let localPrompt;
+    if (submissionData.action === 'create') {
+      localPrompt = {
+        id: localId,
+        title: submissionData.title || "未命名提示词",
+        content: submissionData.content || "",
+        images: Array.isArray(submissionData.images) ? submissionData.images : [],
+        tags: Array.isArray(submissionData.tags) ? submissionData.tags : [],
+        contributor: submissionData.contributor || "匿名",
+        notes: submissionData.notes || "",
+        similar: []
+      };
+    } else {
+      const fallbackPrompt = {
+        id: localId,
+        title: submissionData.originalTitle || submissionData.title || "未命名提示词",
+        content: "",
+        images: [],
+        tags: [],
+        similar: []
+      };
+      const basePrompt = sourcePrompt || fallbackPrompt;
+      localPrompt = applySubmissionToPrompt(basePrompt, submissionData);
+      localPrompt.id = localId;
+    }
+
+    const finalLocalPrompt = {
+      ...localPrompt,
+      _localSubmission: true
+    };
+
+    setFavorites(prev => {
+      const existingIndex = prev.findIndex(item => item.id === finalLocalPrompt.id);
+      if (existingIndex === -1) {
+        return [finalLocalPrompt, ...prev];
+      }
+      const next = [...prev];
+      next[existingIndex] = { ...next[existingIndex], ...finalLocalPrompt };
+      return next;
+    });
+
+    if (!isSidebarOpen) setIsSidebarOpen(true);
+  }, [applySubmissionToPrompt, isSidebarOpen]);
 
   // 🔴 处理批准投稿
   const handleApproveSubmission = useCallback((submission, sectionId) => {
@@ -1639,7 +1768,44 @@ export default function App() {
       return () => { window.removeEventListener('mousemove', handleMouseMove); window.removeEventListener('mouseup', handleMouseUp); };
   }, [isResizingSidebar]);
 
-  const fetchCloudData = async (force = true) => { if (force && !window.confirm("���将强制从 GitHub 拉取最新数据并覆盖本地缓存，确定吗？")) return; setIsLoading(true); try { const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`); if(!res.ok) throw new Error(); const d = await res.json(); const cleanSections = (d.sections || []).map(s => ({ ...s, isCollapsed: (s.isRestricted || s.defaultCollapsed) ? true : s.isCollapsed, prompts: s.prompts.map(p => ({ ...p, tags: Array.isArray(p.tags) ? p.tags : [], images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).filter(url => url.length < 5000) })) })); setSections(cleanSections); setCommonTags(d.commonTags||[]); if(d.siteNotes) setSiteNotes(d.siteNotes); if(force) { try { localStorage.setItem('nanobanana_sections', JSON.stringify(cleanSections)); localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags||[])); localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes||"")); alert("已强制从云端同步最新数据！"); } catch(e) { alert("云端数据太大，无法存入本地缓存。"); } } } catch (err) { if(force) alert("同步失败，请检查配置"); setLoadError("离线模式"); } finally { setIsLoading(false); } };
+  const fetchCloudData = async (force = true) => {
+    if (force && !window.confirm("将强制从 GitHub 拉取最新数据并覆盖本地缓存，确定吗？")) return;
+    setIsLoading(true);
+    try {
+      const res = await fetch(`${DATA_SOURCE_URL}?t=${new Date().getTime()}`);
+      if (!res.ok) throw new Error();
+      const d = await res.json();
+      const cleanSections = (d.sections || []).map(s => ({
+        ...s,
+        isCollapsed: (s.isRestricted || s.defaultCollapsed) ? true : s.isCollapsed,
+        prompts: s.prompts.map(p => ({
+          ...p,
+          tags: Array.isArray(p.tags) ? p.tags : [],
+          images: (Array.isArray(p.images) ? p.images : (p.image ? [p.image] : [])).filter(url => url.length < 5000)
+        }))
+      }));
+
+      setSections(cleanSections);
+      setCommonTags(d.commonTags || []);
+      if (d.siteNotes) setSiteNotes(d.siteNotes);
+
+      if (force) {
+        try {
+          localStorage.setItem('nanobanana_sections', JSON.stringify(cleanSections));
+          localStorage.setItem('nanobanana_tags', JSON.stringify(d.commonTags || []));
+          localStorage.setItem('nanobanana_notes', JSON.stringify(d.siteNotes || ""));
+          alert("已强制从云端同步最新数据！");
+        } catch (e) {
+          alert("云端数据太大，无法存入本地缓存。");
+        }
+      }
+    } catch (err) {
+      if (force) alert("同步失败，请检查配置");
+      setLoadError("离线模式");
+    } finally {
+      setIsLoading(false);
+    }
+  };
   // 🔴 修改 handleCardClick，添加第二个参数标记是否来自本地收藏
   const handleCardClick = useCallback((prompt, fromFavorite = false) => { setEditingPrompt(prompt); setIsViewingFavorite(fromFavorite); setIsPromptModalOpen(true); }, []);
   
@@ -1666,8 +1832,17 @@ export default function App() {
       setEditingPrompt(data);
       setIsViewingFavorite(true);
       setIsLocalEditing(true); // 标记为本地编辑模式
+    } else if (action === 'local-delete') {
+      setFavorites(prev => prev.filter(f => f.id !== data.id));
+      if (editingPrompt?.id === data.id) {
+        setIsPromptModalOpen(false);
+        setEditingPrompt(null);
+        setIsViewingFavorite(false);
+        setIsLocalEditing(false);
+      }
+      alert("已从本地收藏删除");
     }
-  }, []);
+  }, [editingPrompt]);
   // 🔴 修复：移除点击5次进入管理员模式的逻辑，只能通过 Google 登录进入管理员模式
   const handleModeToggle = () => {
     if (isAdmin) {
@@ -1754,7 +1929,35 @@ export default function App() {
   const isFavorite = (promptId) => favorites.some(f => f.id === promptId);
   const isNewItem = useCallback((id) => { if (!id || typeof id !== 'string') return false; let timestamp = null; if (/^\d{13}$/.test(id)) { timestamp = parseInt(id, 10); } else if (id.startsWith('imported-')) { const part = id.split('-')[1]; if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10); } else if (id.startsWith('u-')) { const part = id.split('-')[1]; if (/^\d{13}$/.test(part)) timestamp = parseInt(part, 10); } if (timestamp && timestamp > lastVisit) { return true; } return false; }, [lastVisit]);
   const handleFavoriteDrop = (draggedId, targetId) => { const draggedIndex = favorites.findIndex(f => f.id === draggedId); const targetIndex = favorites.findIndex(f => f.id === targetId); if (draggedIndex === -1 || targetIndex === -1 || draggedIndex === targetIndex) return; const newFavorites = [...favorites]; const [removed] = newFavorites.splice(draggedIndex, 1); newFavorites.splice(targetIndex, 0, removed); setFavorites(newFavorites); };
-  const filteredSections = useMemo(() => { return sections.map(section => ({ ...section, prompts: section.prompts.filter(p => { const q = searchQuery.toLowerCase(); const tags = Array.isArray(p.tags) ? p.tags : []; const contributor = p.contributor || ''; const matchesSearch = p.title.toLowerCase().includes(q) || (Array.isArray(p.content) ? p.content.join(' ') : p.content).toLowerCase().includes(q) || tags.some(t => t.toLowerCase().includes(q)) || contributor.toLowerCase().includes(q); const matchesTags = selectedTags.length === 0 || selectedTags.every(t => tags.includes(t)); return matchesSearch && matchesTags; }) })).filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0)); }, [sections, searchQuery, selectedTags]);
+  const filteredSections = useMemo(() => {
+    return sections
+      .map(section => ({
+        ...section,
+        prompts: section.prompts.filter(p => {
+          const q = searchQuery.toLowerCase();
+          const tags = Array.isArray(p.tags) ? p.tags : [];
+          const titleText = (p.title || '').toLowerCase();
+          const contentText = (Array.isArray(p.content) ? p.content.join(' ') : (p.content || '')).toLowerCase();
+          const contributorText = (p.contributor || '').toLowerCase();
+
+          let matchesSearch = true;
+          if (q) {
+            if (searchMode === 'author') {
+              matchesSearch = contributorText.includes(q);
+            } else if (searchMode === 'title') {
+              matchesSearch = titleText.includes(q);
+            } else {
+              // 按内容搜索：实际匹配标题 + 内容
+              matchesSearch = titleText.includes(q) || contentText.includes(q);
+            }
+          }
+
+          const matchesTags = selectedTags.length === 0 || selectedTags.every(t => tags.includes(t));
+          return matchesSearch && matchesTags;
+        })
+      }))
+      .filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0));
+  }, [sections, searchQuery, selectedTags, searchMode]);
   
   // 🔴 收集所有 NEW 提示词（排除重口/猎奇区）
   const newPrompts = useMemo(() => {
@@ -1915,7 +2118,7 @@ export default function App() {
               <input
                 ref={searchInputRef}
                 type="text"
-                placeholder="搜索..."
+                placeholder={searchMode === 'author' ? '按作者搜索...' : searchMode === 'title' ? '按标题搜索...' : '按内容搜索（标题+内容）...'}
                 value={searchQuery}
                 onChange={e => setSearchQuery(e.target.value)}
                 onFocus={() => setIsSearchHistoryOpen(true)}
@@ -1937,32 +2140,62 @@ export default function App() {
                 </button>
               )}
               {/* 🟢 搜索历史下拉 */}
-              {isSearchHistoryOpen && searchHistory.length > 0 && (
+              {isSearchHistoryOpen && (
                 <div className="absolute top-full left-0 right-0 mt-1 bg-white rounded-xl shadow-lg border border-slate-200 z-50 overflow-hidden">
+                  <div className="px-3 py-2 border-b border-slate-100">
+                    <div className="text-[11px] font-bold text-slate-400 mb-2">搜索类型</div>
+                    <div className="flex gap-2">
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setSearchMode('author')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${searchMode === 'author' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        按作者搜索
+                      </button>
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setSearchMode('title')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${searchMode === 'title' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        按标题搜索
+                      </button>
+                      <button
+                        onMouseDown={(e) => e.preventDefault()}
+                        onClick={() => setSearchMode('content')}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-bold border transition-colors ${searchMode === 'content' ? 'bg-indigo-500 text-white border-indigo-500' : 'bg-white text-slate-600 border-slate-200 hover:bg-slate-50'}`}
+                      >
+                        按内容搜索
+                      </button>
+                    </div>
+                  </div>
                   <div className="px-3 py-2 text-xs font-bold text-slate-400 flex items-center gap-1 border-b border-slate-100">
                     <History size={12} /> 搜索历史
                   </div>
-                  {searchHistory.map((history, idx) => (
-                    <div
-                      key={idx}
-                      className="flex items-center justify-between px-3 py-2 hover:bg-indigo-50 cursor-pointer group"
-                      onClick={() => {
-                        setSearchQuery(history);
-                        setIsSearchHistoryOpen(false);
-                      }}
-                    >
-                      <span className="text-sm text-slate-600 truncate">{history}</span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          removeSearchHistory(history);
+                  {searchHistory.length === 0 ? (
+                    <div className="px-3 py-3 text-xs text-slate-400">暂无搜索历史</div>
+                  ) : (
+                    searchHistory.map((history, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center justify-between px-3 py-2 hover:bg-indigo-50 cursor-pointer group"
+                        onClick={() => {
+                          setSearchQuery(history);
+                          setIsSearchHistoryOpen(false);
                         }}
-                        className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
                       >
-                        <X size={12} />
-                      </button>
-                    </div>
-                  ))}
+                        <span className="text-sm text-slate-600 truncate">{history}</span>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            removeSearchHistory(history);
+                          }}
+                          className="p-1 text-slate-300 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))
+                  )}
                 </div>
               )}
             </div>
@@ -2076,7 +2309,7 @@ export default function App() {
       </main>
 
       {/* Modals */}
-      {isSubmissionOpen && <SubmissionModal onClose={() => setIsSubmissionOpen(false)} commonTags={commonTags} mode={submissionMode} initialData={submissionTarget} />}
+      {isSubmissionOpen && <SubmissionModal onClose={() => setIsSubmissionOpen(false)} commonTags={commonTags} mode={submissionMode} initialData={submissionTarget} onLocalSubmit={handleLocalSubmissionSuccess} />}
       
       {/* 待审核投稿详情弹窗（可编辑） */}
       {viewingSubmission && (
