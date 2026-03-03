@@ -995,15 +995,11 @@ export default function App() {
 
   // 🔴 NEW! 区折叠状态（默认折叠）
   const [isNewSectionCollapsed, setIsNewSectionCollapsed] = useState(true);
-  
-  // 🟢 软删除：存储已删除的提示词（保留一周）
-  const [deletedPrompts, setDeletedPrompts] = useState([]);
+  const [showRestrictedInNew, setShowRestrictedInNew] = useState(() => localStorage.getItem('nanobanana_new_show_restricted') === 'true');
+  const [showNsfwInNew, setShowNsfwInNew] = useState(() => localStorage.getItem('nanobanana_new_show_nsfw') === 'true');
   
   // 🟢 移动提示词弹窗状态
   const [moveModalData, setMoveModalData] = useState(null); // { prompt, currentSectionId }
-  
-  // 🟢 回收站弹窗状态
-  const [isRecycleBinOpen, setIsRecycleBinOpen] = useState(false);
   
   // 🟢 回顶按钮状态
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1045,6 +1041,14 @@ export default function App() {
       if (storedLastVisit) return parseInt(storedLastVisit, 10);
       return Date.now();
   });
+
+  useEffect(() => {
+    localStorage.setItem('nanobanana_new_show_restricted', showRestrictedInNew ? 'true' : 'false');
+  }, [showRestrictedInNew]);
+
+  useEffect(() => {
+    localStorage.setItem('nanobanana_new_show_nsfw', showNsfwInNew ? 'true' : 'false');
+  }, [showNsfwInNew]);
 
   useEffect(() => {
     localStorage.setItem('nanobanana_last_visit', Date.now().toString());
@@ -1159,18 +1163,6 @@ export default function App() {
     } else if (DATA_SOURCE_URL && DATA_SOURCE_URL.includes("http")) fetchCloudData(false); 
     if (localFavorites) setFavorites(JSON.parse(localFavorites));
     
-    // 🟢 加载软删除数据并清理超过一周的
-    const localDeleted = localStorage.getItem('nanobanana_deleted');
-    if (localDeleted) {
-      const parsed = JSON.parse(localDeleted);
-      const oneWeekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-      const validDeleted = parsed.filter(item => item.deletedAt > oneWeekAgo);
-      setDeletedPrompts(validDeleted);
-      // 如果有过期的，更新存储
-      if (validDeleted.length !== parsed.length) {
-        localStorage.setItem('nanobanana_deleted', JSON.stringify(validDeleted));
-      }
-    }
   }, []);
 
   // 🔴 Firebase Authentication 监听器
@@ -1194,9 +1186,7 @@ export default function App() {
       } catch (e) { if (e.name === 'QuotaExceededError') setStorageError(true); }
     }
     localStorage.setItem('nanobanana_favorites', JSON.stringify(favorites));
-    // 🟢 保存软删除数据
-    localStorage.setItem('nanobanana_deleted', JSON.stringify(deletedPrompts));
-  }, [sections, commonTags, siteNotes, isAdmin, favorites, deletedPrompts]);
+  }, [sections, commonTags, siteNotes, isAdmin, favorites]);
 
   // 🔴 打开投稿窗口的处理函数
   const openSubmissionModal = useCallback((mode = 'create', data = null) => {
@@ -1874,52 +1864,13 @@ export default function App() {
     alert("✅ 已移动到目标分区！");
   }, []);
   
-  // 🟢 软删除：删除提示词时保留到回收站
-  const handleSoftDelete = useCallback((promptId, sectionId) => {
-    // 找到要删除的提示词
-    let deletedPrompt = null;
-    sections.forEach(sec => {
-      if (sec.id === sectionId) {
-        deletedPrompt = sec.prompts.find(p => p.id === promptId);
-      }
-    });
-    
-    if (deletedPrompt) {
-      // 添加到软删除列表
-      setDeletedPrompts(prev => [...prev, {
-        ...deletedPrompt,
-        deletedAt: Date.now(),
-        fromSectionId: sectionId
-      }]);
-    }
-    
-    // 从分区中移除
+  const handleDeletePrompt = useCallback((promptId, sectionId) => {
     setSections(prev => prev.map(sec => {
       if (sec.id === sectionId) {
         return { ...sec, prompts: sec.prompts.filter(p => p.id !== promptId) };
       }
       return sec;
     }));
-  }, [sections]);
-  
-  // 🟢 恢复软删除的提示词
-  const handleRestoreDeleted = useCallback((deletedItem) => {
-    const { deletedAt, fromSectionId, ...prompt } = deletedItem;
-    
-    // 恢复到原分区（如果存在）或第一个分区
-    setSections(prev => {
-      const targetSection = prev.find(s => s.id === fromSectionId) || prev[0];
-      return prev.map(sec => {
-        if (sec.id === targetSection.id) {
-          return { ...sec, prompts: [prompt, ...sec.prompts] };
-        }
-        return sec;
-      });
-    });
-    
-    // 从软删除列表移除
-    setDeletedPrompts(prev => prev.filter(item => item.id !== deletedItem.id));
-    alert("✅ 已恢复！");
   }, []);
   const handleClipboardImport = async () => { try { const text = await navigator.clipboard.readText(); processImportText(text); } catch(e) { const manualInput = prompt("无法自动读取剪贴板。\n请在此手动粘贴 (Ctrl+V) 代码："); if (manualInput) processImportText(manualInput); } };
   const confirmImportToSection = (sectionId) => { if (!pendingImportPrompt) return; setSections(prev => prev.map(sec => { if (sec.id === sectionId) return { ...sec, prompts: [pendingImportPrompt, ...sec.prompts] }; return sec; })); setIsImportModalOpen(false); setPendingImportPrompt(null); alert(`成功导入到分区！`); };
@@ -1959,19 +1910,31 @@ export default function App() {
       .filter(section => section.prompts.length > 0 || (searchQuery === '' && selectedTags.length === 0));
   }, [sections, searchQuery, selectedTags, searchMode]);
   
-  // 🔴 收集所有 NEW 提示词（排除重口/猎奇区）
-  const newPrompts = useMemo(() => {
+  // 🔴 收集所有 NEW 提示词（先完整收集，再按筛选显示）
+  const allNewPrompts = useMemo(() => {
     const result = [];
     sections.forEach(section => {
-      if (section.isRestricted) return; // 排除重口/猎奇区
       section.prompts.forEach(prompt => {
         if (isNewItem(prompt.id)) {
-          result.push({ ...prompt, fromSection: section.title });
+          result.push({
+            ...prompt,
+            fromSection: section.title,
+            isRestrictedSection: !!section.isRestricted,
+            isNsfwSection: !section.isRestricted && !!section.defaultCollapsed
+          });
         }
       });
     });
     return result;
   }, [sections, isNewItem]);
+
+  const newPrompts = useMemo(() => {
+    return allNewPrompts.filter(prompt => {
+      if (prompt.isRestrictedSection && !showRestrictedInNew) return false;
+      if (prompt.isNsfwSection && !showNsfwInNew) return false;
+      return true;
+    });
+  }, [allNewPrompts, showRestrictedInNew, showNsfwInNew]);
 
   const handleDragStart = useCallback((e, type, item, sourceSecId = null) => { if (!isAdmin && type !== 'FAVORITE_ITEM') { e.preventDefault(); return; } setDraggedItem({ type, data: item, sourceSecId }); e.dataTransfer.effectAllowed = "move"; setTimeout(() => { if(e.target) e.target.style.opacity = '0.4'; }, 0); }, [isAdmin]);
   const handleDragEnd = useCallback((e) => { e.target.style.opacity = '1'; setDraggedItem(null); setDragOverTarget(null); }, []);
@@ -2074,19 +2037,6 @@ export default function App() {
             )}
             {isAdmin && (
               <>
-                {/* 🟢 回收站按钮 - 移到右上角 */}
-                {deletedPrompts.length > 0 && (
-                  <button
-                    onClick={() => setIsRecycleBinOpen(true)}
-                    className="relative p-2 text-orange-600 bg-orange-50 hover:bg-orange-100 rounded-full transition-colors shadow-sm"
-                    title="回收站"
-                  >
-                    <Archive size={18} />
-                    <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center">
-                      {deletedPrompts.length > 9 ? '9+' : deletedPrompts.length}
-                    </span>
-                  </button>
-                )}
                 <button
                   onClick={() => {
                     setIsRejectedBinOpen(true);
@@ -2248,17 +2198,37 @@ export default function App() {
         {currentView === 'GIF_MAKER' ? (<GifMakerModule />) : (<>
             <div className="mb-10 bg-gradient-to-r from-indigo-50/80 to-purple-50/80 backdrop-blur-md border border-white/50 rounded-2xl p-6 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 animate-fade-in-up"><div className="flex items-start gap-4 relative z-10"><div className="p-3 bg-white rounded-2xl shadow-sm text-indigo-500"><MessageSquare size={24} /></div><div className="flex-1"><div className="flex justify-between items-center mb-2"><h3 className="font-bold text-slate-700 text-lg">关于本站</h3>{isAdmin && !isNotesEditing && (<button onClick={() => setIsNotesEditing(true)} className="text-xs text-indigo-600 hover:underline flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity"><Edit2 size={12}/> 编辑公告</button>)}</div>{isNotesEditing ? (<div className="animate-fade-in-up"><textarea className="w-full bg-white/80 border border-indigo-200 rounded-xl p-3 text-sm focus:ring-2 focus:ring-indigo-500/20 outline-none" rows={3} value={siteNotes} onChange={(e) => setSiteNotes(e.target.value)} /><div className="flex justify-end gap-2 mt-2"><button onClick={() => setIsNotesEditing(false)} className="px-3 py-1 text-xs text-slate-500 hover:bg-white rounded-lg">完成</button></div></div>) : (<div className="text-slate-600 text-sm leading-relaxed whitespace-pre-wrap font-medium">{siteNotes || "暂无公告..."}</div>)}</div></div><FileText className="absolute right-[-20px] bottom-[-20px] text-indigo-100 rotate-12" size={120} /></div>
             
-            {/* 🔴 NEW! 区 - 显示所有新提示词（排除猎奇区） */}
+            {/* 🔴 NEW! 区 - 默认只显示 SFW，可选显示 NSFW/猎奇 */}
             {newPrompts.length > 0 && (
               <div className="mb-8 bg-gradient-to-r from-green-50/80 to-emerald-50/80 backdrop-blur-md border border-green-200/50 rounded-2xl p-6 shadow-sm animate-fade-in-up">
-                <div className="flex justify-between items-center mb-4 cursor-pointer" onClick={() => setIsNewSectionCollapsed(!isNewSectionCollapsed)}>
-                  <div className="flex items-center gap-3">
+                <div className="flex justify-between items-center mb-4">
+                  <div className="flex items-center gap-3 cursor-pointer" onClick={() => setIsNewSectionCollapsed(!isNewSectionCollapsed)}>
                     <div className={`p-1.5 rounded-full bg-white shadow-sm text-green-500 transition-all duration-300 ${isNewSectionCollapsed ? '-rotate-90' : ''}`}>
                       <ChevronDown size={14} />
                     </div>
                     <h3 className="font-bold text-green-700 text-lg flex items-center gap-2">
                       NEW! <span className="bg-green-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-full animate-pulse">{newPrompts.length}</span>
                     </h3>
+                  </div>
+                  <div className="flex items-center gap-3 text-xs text-slate-600" onClick={(e) => e.stopPropagation()}>
+                    <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/70 border border-slate-200 cursor-pointer hover:bg-white">
+                      <input
+                        type="checkbox"
+                        checked={showNsfwInNew}
+                        onChange={(e) => setShowNsfwInNew(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>显示 NSFW</span>
+                    </label>
+                    <label className="inline-flex items-center gap-1.5 px-2 py-1 rounded-lg bg-white/70 border border-slate-200 cursor-pointer hover:bg-white">
+                      <input
+                        type="checkbox"
+                        checked={showRestrictedInNew}
+                        onChange={(e) => setShowRestrictedInNew(e.target.checked)}
+                        className="w-3.5 h-3.5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                      />
+                      <span>显示猎奇</span>
+                    </label>
                   </div>
                 </div>
                 {!isNewSectionCollapsed && (
@@ -2614,7 +2584,7 @@ export default function App() {
           </div>
         </div>
       )}
-      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-4 p-2 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] md:max-h-[94vh] max-h-[90vh] rounded-3xl md:rounded-3xl rounded-2xl overflow-hidden flex flex-col p-6 md:p-6 p-4 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 md:mb-4 mb-3 border-b border-slate-100 pb-3 md:pb-3 pb-2"><div className="flex items-center gap-3 md:gap-3 gap-2 flex-1 min-w-0"><div className="w-9 h-9 md:w-9 md:h-9 w-7 h-7 bg-indigo-50 rounded-xl md:rounded-xl rounded-lg flex items-center justify-center text-indigo-600 flex-shrink-0"><Edit2 size={18} className="md:w-[18px] md:h-[18px] w-4 h-4"/></div><h3 className="font-bold text-lg md:text-lg text-base text-slate-800 truncate">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs md:text-xs text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full hidden sm:inline">本地收藏</span>}</h3></div>{/* 🟢 管理员模式下显示移动按钮 */}{isAdmin && editingPrompt && editingPrompt.id && (<button onClick={() => { const currentSection = sections.find(s => s.prompts.some(p => p.id === editingPrompt.id)); if(currentSection) setMoveModalData({ prompt: editingPrompt, currentSectionId: currentSection.id }); }} className="px-3 py-1.5 md:px-3 md:py-1.5 px-2 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs md:text-xs text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 mr-2 flex-shrink-0"><FolderOutput size={14} className="md:w-[14px] md:h-[14px] w-3 h-3"/> <span className="hidden sm:inline">移动分区</span><span className="sm:hidden">移动</span></button>)}<button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 md:w-8 md:h-8 w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex-shrink-0"><X size={18} className="text-slate-500 md:w-[18px] md:h-[18px] w-4 h-4"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2 md:pr-2 pr-1">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { const currentSection = sections.find(s => s.prompts.some(p => p.id === id)); if(currentSection) handleSoftDelete(id, currentSection.id); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
+      {isPromptModalOpen && (<div className="fixed inset-0 z-50 flex items-center justify-center p-4 md:p-4 p-2 bg-slate-900/40 backdrop-blur-md transition-all duration-300"><div className="bg-white/95 backdrop-blur-md w-full max-h-[94vh] md:max-h-[94vh] max-h-[90vh] rounded-3xl md:rounded-3xl rounded-2xl overflow-hidden flex flex-col p-6 md:p-6 p-4 shadow-2xl ring-1 ring-white/50 animate-fade-in-up transition-all duration-300" style={adaptiveModalStyle}><div className="flex justify-between mb-4 md:mb-4 mb-3 border-b border-slate-100 pb-3 md:pb-3 pb-2"><div className="flex items-center gap-3 md:gap-3 gap-2 flex-1 min-w-0"><div className="w-9 h-9 md:w-9 md:h-9 w-7 h-7 bg-indigo-50 rounded-xl md:rounded-xl rounded-lg flex items-center justify-center text-indigo-600 flex-shrink-0"><Edit2 size={18} className="md:w-[18px] md:h-[18px] w-4 h-4"/></div><h3 className="font-bold text-lg md:text-lg text-base text-slate-800 truncate">{editingPrompt && !isAdmin && !isLocalEditing ? editingPrompt.title : (editingPrompt ? '编辑盒子' : '新建盒子')}{isViewingFavorite && editingPrompt && <span className="ml-2 text-xs md:text-xs text-[10px] bg-green-100 text-green-600 px-2 py-0.5 rounded-full hidden sm:inline">本地收藏</span>}</h3></div>{/* 🟢 管理员模式下显示移动按钮 */}{isAdmin && editingPrompt && editingPrompt.id && (<button onClick={() => { const currentSection = sections.find(s => s.prompts.some(p => p.id === editingPrompt.id)); if(currentSection) setMoveModalData({ prompt: editingPrompt, currentSectionId: currentSection.id }); }} className="px-3 py-1.5 md:px-3 md:py-1.5 px-2 py-1 bg-indigo-50 text-indigo-600 hover:bg-indigo-100 text-xs md:text-xs text-[10px] font-bold rounded-lg transition-colors flex items-center gap-1 mr-2 flex-shrink-0"><FolderOutput size={14} className="md:w-[14px] md:h-[14px] w-3 h-3"/> <span className="hidden sm:inline">移动分区</span><span className="sm:hidden">移动</span></button>)}<button onClick={() => { setIsPromptModalOpen(false); setIsViewingFavorite(false); setIsLocalEditing(false); }} className="w-8 h-8 md:w-8 md:h-8 w-7 h-7 flex items-center justify-center rounded-full bg-slate-100 hover:bg-slate-200 transition-colors flex-shrink-0"><X size={18} className="text-slate-500 md:w-[18px] md:h-[18px] w-4 h-4"/></button></div><div className="flex-1 overflow-y-auto custom-scrollbar pr-2 md:pr-2 pr-1">{isAdmin ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} onDelete={(id) => { const currentSection = sections.find(s => s.prompts.some(p => p.id === id)); if(currentSection) handleDeletePrompt(id, currentSection.id); setIsPromptModalOpen(false); }}/> : (isLocalEditing ? <PromptForm initialData={editingPrompt} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} /> : (editingPrompt && !isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={false} /> : (editingPrompt && isViewingFavorite ? <PromptViewer prompt={editingPrompt} onSubmissionAction={openSubmissionModal} orientation={imageOrientation} isFromFavorite={true} onLocalAction={handleLocalAction} /> : <PromptForm initialData={null} commonTags={commonTags} setCommonTags={setCommonTags} onSave={handleSavePrompt} />)))}</div></div></div>)}
       
       {/* 🟢 移动提示词到其他分区的弹窗 */}
       {moveModalData && (
@@ -2713,61 +2683,6 @@ export default function App() {
           </div>
         </div>
       )}
-      {isRecycleBinOpen && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in-up" onClick={() => setIsRecycleBinOpen(false)}>
-          <div className="bg-white w-full max-w-lg rounded-3xl shadow-2xl border border-white/50" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-center p-5 border-b border-slate-100">
-              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-                <Archive size={20} className="text-orange-500"/> 回收站 ({deletedPrompts.length})
-                <span className="text-xs text-slate-400 font-normal">7天内可恢复</span>
-              </h3>
-              <button onClick={() => setIsRecycleBinOpen(false)} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-                <X size={18} className="text-slate-400" />
-              </button>
-            </div>
-            <div className="p-4 max-h-[60vh] overflow-y-auto custom-scrollbar">
-              {deletedPrompts.length === 0 ? (
-                <div className="text-center py-12 text-slate-400">
-                  <Archive size={48} className="mx-auto mb-2 opacity-30" />
-                  <p>回收站是空的</p>
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {deletedPrompts.map(item => (
-                    <div key={item.id} className="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
-                      <div className="flex items-center gap-3 flex-1 min-w-0">
-                        {item.images && item.images.length > 0 ? (
-                          <img src={getOptimizedUrl(item.images[0], 80)} className="w-10 h-10 rounded-lg object-cover flex-shrink-0" />
-                        ) : (
-                          <div className="w-10 h-10 bg-slate-200 rounded-lg flex items-center justify-center flex-shrink-0">
-                            <ImageIcon size={16} className="text-slate-400" />
-                          </div>
-                        )}
-                        <div className="min-w-0">
-                          <h4 className="font-bold text-sm text-slate-700 truncate">{item.title}</h4>
-                          <p className="text-[10px] text-slate-400">
-                            删除于 {new Date(item.deletedAt).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => {
-                          handleRestoreDeleted(item);
-                          if (deletedPrompts.length <= 1) setIsRecycleBinOpen(false);
-                        }}
-                        className="px-3 py-1.5 bg-green-100 text-green-600 rounded-lg font-bold text-xs hover:bg-green-200 transition-colors ml-2"
-                      >
-                        恢复
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-      
       {/* 🟢 回顶按钮 */}
       {showBackToTop && (
         <button
