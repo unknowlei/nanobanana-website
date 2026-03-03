@@ -5311,7 +5311,7 @@
     {
       "id": "s-1763890751009",
       "title": "动漫（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
         {
           "id": "imported-1764080884109",
@@ -10740,6 +10740,6 @@
     "真人",
     "通用"
   ],
-  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2026-03-03T05:56:45.260Z"
+  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n优化了更新推送，可以自由选择是否展示nsfw内容\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
+  "lastUpdated": "2026-03-03T06:04:38.747Z"
 }
