@@ -3,7 +3,7 @@
     {
       "id": "demo",
       "title": "SFW",
-      "isCollapsed": true,
+      "isCollapsed": false,
       "prompts": [
         {
           "id": "u-1773119398662",
@@ -9704,7 +9704,7 @@
     {
       "id": "s-1763899398740",
       "title": "真人（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
         {
           "id": "imported-1765159971555",
@@ -10345,7 +10345,7 @@
     {
       "id": "s-1763908305060",
       "title": "通用（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
         {
           "id": "u-1772432674366",
@@ -11330,6 +11330,6 @@
     "真人",
     "通用"
   ],
-  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n优化了更新推送，可以自由选择是否展示nsfw内容\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2026-03-10T05:13:03.425Z"
+  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n电脑坏了，所以投稿审核停了两天，正在严肃修电脑中\n\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n优化了更新推送，可以自由选择是否展示nsfw内容\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
+  "lastUpdated": "2026-03-12T16:03:02.345Z"
 }
