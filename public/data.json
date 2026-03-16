@@ -3,8 +3,36 @@
     {
       "id": "demo",
       "title": "SFW",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
+        {
+          "id": "u-1773672017416",
+          "title": "勿忘我",
+          "content": "严格保留参考角色的完整人设特征，单角色正面半身构图，角色单手掌心向前朝向镜头伸出，指尖萦绕着微弱的粒子光效，像拼尽最后一丝力气想要触碰镜头前的观者；角色右半侧脸颊与同侧半侧身体已彻底消散殆尽，没有半分实体残留，只在左半侧留存的脸颊与身体的轮廓边缘，带着温柔的风化消散与数字解构余韵 —— 从彻底消失的轮廓断口处，正缓缓漫出渐变的无序数据流、透明像素碎块与细微风化粒子，混着淡蓝色的勿忘我花瓣，无声地向空无里飘散；消散边缘无任何尖锐崩坏感，只留朦胧柔和的透明过渡，把 “已然彻底失去” 的破碎感拉到极致。角色双眼轻闭，眯着眼强撑着温柔的浅笑，是藏着满心难过的强颜欢笑，眼角正滑落一滴晶莹的泪珠，神情里是释然的温柔，更是压不住的不舍与眷恋，满是「勿忘我」的宿命感与诀别感，情绪刻画细腻到极致；画面整体色调柔和清冷，告别氛围感拉满，无多余杂乱元素，画面干净完整；背景一半是贴合角色人设的日常场景，另一半则已彻底崩坏溶解，归于虚无。",
+          "images": [
+            "https://files.catbox.moe/f0920u.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "777",
+          "notes": ""
+        },
+        {
+          "id": "u-1773671972817",
+          "title": "Inner peace",
+          "content": "风格与场景：\n电影级的、高细节的MikuMikuDance场景图，场景是在一棵巨大的、古老的桃树下。\n​角色与姿势：\n图中角色详细的 3D 渲染，正以完美的双盘腿莲花坐姿势（Meditative Pose）坐着。角色的双手结成禅定印（Dhyana mudra），手掌向上叠放在腹前。他闭着眼睛，表情极其安详，嘴角含着一丝微妙而平静的微笑。\n​镜头与构图：\n低角度仰拍镜头（Low Angle Shot），自下而上观察角色，突显其内心的宁静和稳如泰山的气场。角色被精确地居中放置（Center Framing）。\n​环境细节：\n角色坐在一个巨大的、纹理粗糙的古老桃树下，身后即是桃树。在角色的头顶，盛开的粉色和白色桃花天幕与纯净的浅蓝色天空（点缀着几朵淡云）形成一个自然的画框。透过树叶的斑驳阳光（Dappled Sunlight）洒在角色的身上。\n​文字叠加：\n画面下方，以一种清晰、略带传统风格的字体叠加双语文本。上排为中文字符“心如止水”，下排为英文文本“Inner peace.”。文字带有轻微的光晕。\n​构图： 中心构图，低角度仰拍，中景（Medium Shot）。\n画面比例16:9",
+          "images": [
+            "https://files.catbox.moe/aa2sw1.png"
+          ],
+          "tags": [
+            "动漫",
+            "通用"
+          ],
+          "contributor": "Dusk_Light",
+          "notes": ""
+        },
         {
           "id": "u-1773551069179",
           "title": "咕咕嘎嘎臭企鹅",
@@ -166,7 +194,17 @@
           ],
           "tags": [],
           "contributor": "卡蕊琴",
-          "notes": "\"1. 核心主体 (The Subject)\"中的 角色形象 部分需根据你的参考图角色进行修改"
+          "notes": "\"1. 核心主体 (The Subject)\"中的 角色形象 部分需根据你的参考图角色进行修改",
+          "similar": [
+            {
+              "content": "## 画面描述：(日本动漫画风)优雅与挑逗的法式女仆\n### 1. 核心主体 (The Subject)\n参考图中的角色形象：白色猫耳的少女，及腰的长发。\n姿态神情： 少女身体大幅度前倾，左手叉腰，展现出面无表情。她正用右手细心调整着右脚玛丽珍高跟鞋的带子，眼神直勾勾地锁定镜头，充满调皮的挑逗感。\n细节刻画： * 下半身： 紧致的大腿包裹在带有黑色蕾丝袜带的过膝袜中。\n视觉焦点： 在裙摆与围裙的掩映下，她纤瘦的身材若隐若现，其丝滑的质感与完美的弧度构成了画面最强烈的视觉冲击力。\n### 2. 空间构图 (Composition & Foreground)\n前景细节： 镜头极近处是她抬起的红底黑面高跟鞋，皮革光泽清晰可见。脚下的深色木凳上静静躺着一朵干枯的百合花，为画面增添了一抹颓废的层次感。\n构图技巧： 采用低角度拍摄 (Low Angle)，通过腿部与裙摆的线条作为引导线，将观众视线从足尖引向臀部，最终聚焦于面部。整体结合了中心构图与三分法，平衡且富有动感。\n### 3. 背景环境 (Background)\n室内场景： 少女伫立于一扇大窗前，窗外是朦胧的绿意与柔和的日光。\n陈设点缀： 窗台左侧摆放着插有紫色与粉色花卉的花瓶，下方是质感厚重的木质镶板墙壁，营造出温馨而复古的室内氛围。\n### 4. 光影与色彩 (Lighting & Tone)\n色彩基调： 以柔和的大地色系 (Earth Tones) 与复古色调为底，黑白女仆装形成了鲜明的视觉对比，点缀以自然的绿、紫花卉色泽。\n光影氛围： 窗外透入的自然漫射光 (Diffuse\nSunlight) 照亮全身，微妙的背光刻画出身体轮廓。宁静温馨的基调与少女神秘、挑逗的姿态形成了一种奇妙的张力。",
+              "contributor": "C.OLR.E.",
+              "notes": "开头强调日漫画风防止AI画3D版\n然后修改了一下以符合我给的一个纤瘦风格的人物。",
+              "images": [
+                "https://files.catbox.moe/exbn0s.png"
+              ]
+            }
+          ]
         },
         {
           "id": "u-1773119363356",
@@ -982,20 +1020,6 @@
           ],
           "contributor": "诺曼",
           "notes": ""
-        },
-        {
-          "id": "u-1772432436054",
-          "title": "发情猫咪",
-          "content": "大师之作，最佳品质，超精细细节，\n【场景】室内沙发，私密暧昧时刻。\n【角色二】坐于沙发上，表情温柔，一手轻轻拍抚着趴在腿上的角色一的尾巴根部（手部添加运动线），动作轻柔而有节奏，指尖微微陷入。\n【角色一】趴在角色二腿上，臀部翘起（在臀部和尾巴周围添加颤抖特效），脸侧贴于沙发，双颊泛红，眉头微蹙，嘴唇轻抿，表情忍耐。额头与大腿可见细密汗珠，在光线下微微闪亮，仿佛发情期的猫咪般本能地呈现顺从姿态。\n【构图】中近景，两人互动为主体。焦点捕捉角色一的表情、汗水细节与角色二手的动作。\n【光线】暖色侧光，柔和勾勒身体曲线，汗水反光增强氛围。\n【氛围】极度暧昧，情欲暗涌，信任与渴望交织。动物性的本能与恋人间的亲密融为一体。\n【附加】严格保持图一、图二角色标志性发型、发色、瞳色、面部特征及原图服饰不变，保留猫耳、尾巴。",
-          "images": [
-            "https://files.catbox.moe/bykt8a.png"
-          ],
-          "tags": [
-            "通用",
-            "动漫"
-          ],
-          "contributor": "炼猫术士",
-          "notes": "还有很大优化空间（"
         },
         {
           "id": "u-1772432332488",
@@ -5676,6 +5700,33 @@
       "isCollapsed": false,
       "prompts": [
         {
+          "id": "u-1773671961013",
+          "title": "你这什么修女啊",
+          "content": "保留角色头上花纹，发饰，头饰，发型等，胸部增大尺码，绘制一张动漫画风的立绘，不要露出角色私处且角色已经成年：\n\n\n眼罩：宽红布匹环绕头部，覆盖遮蔽双眼部位（但布匹在头发下面）。表情平静，小小张口，看起来宁静圣洁\n\n项圈：皮质黑色项圈，项圈中央有一根皮带链接，在靠近胸部底部，延伸出左右两方向两条皮带对胸部作托举状，延伸到视线之外，三条皮带交界处设置一小塑料圆盘，上面悬挂剑形吊坠，吊坠穿过胸部中间的空隙，在胸部下方看见吊坠。\n\n内衬：一整套连体黑丝（全部透明丝质），覆盖身体的主要部位但不包括腿部和手部和腰部，腰间有各类点缀连接，同时在下半身处形成如同帘子（多一层不透明，适当添加金色花纹，参照角色原图配饰）一般的垂盖至地。黑色紧身款式，面料透明，高领设计，颈部至胸口有布料覆盖。\n\n\n外套：白色大衣连接脖子处的项圈，在胸脯上方有白色边缘，版型宽松，敞怀穿着未扣合。衣领和袖口处有毛绒装饰。\n\n手套：红色长手套，有黑色手环，长度超过肘部。同时双手十指紧扣在胸部前作祈祷状，手肘正好覆盖胸前私处位置\n\n靴子：白色过膝靴，高跟设计，靴筒顶部有毛绒装饰边，角色作蹲下状，两腿微微分开正身对主视角。重新绘制背景，主角靠近主视角，视角微微仰视，露出全身",
+          "images": [
+            "https://files.catbox.moe/gnciej.png"
+          ],
+          "tags": [
+            "动漫"
+          ],
+          "contributor": "诺曼",
+          "notes": ""
+        },
+        {
+          "id": "u-1772432436054",
+          "title": "发情猫咪",
+          "content": "大师之作，最佳品质，超精细细节，\n【场景】室内沙发，私密暧昧时刻。\n【角色二】坐于沙发上，表情温柔，一手轻轻拍抚着趴在腿上的角色一的尾巴根部（手部添加运动线），动作轻柔而有节奏，指尖微微陷入。\n【角色一】趴在角色二腿上，臀部翘起（在臀部和尾巴周围添加颤抖特效），裙子掀起，卷在腰部，脸侧贴于沙发，双颊泛红，眉头微蹙，嘴唇轻抿，表情忍耐。额头与大腿可见细密汗珠，在光线下微微闪亮，仿佛发情期的猫咪般本能地呈现顺从姿态。\n【构图】中近景，两人互动为主体。焦点捕捉角色一的表情、汗水细节与角色二手的动作。\n【光线】暖色侧光，柔和勾勒身体曲线，汗水反光增强氛围。\n【氛围】极度暧昧，情欲暗涌，信任与渴望交织。动物性的本能与恋人间的亲密融为一体。\n【附加】严格保持图一、图二角色标志性发型、发色、瞳色、面部特征及原图服饰不变，保留猫耳、尾巴。",
+          "images": [
+            "https://files.catbox.moe/bykt8a.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "炼猫术士",
+          "notes": "还有很大优化空间（"
+        },
+        {
           "id": "u-1773551055922",
           "title": "牛头人狂喜",
           "content": "新娘身着秀禾胸衣，裙摆遗失，神情略带窘迫又俏皮，低头注视脚下。冷白皮，修长双腿，脚踩高跟鞋。场景在婚纱店内，高跟鞋正下方地面躺着一位西装男子，仰面朝上，脸部正对鞋跟位置。新娘身后站着一位男子，一手插兜，另一手轻放在她头顶。采用仰视镜头，氛围张力拉满，构图精致，光影细腻。",
@@ -9807,6 +9858,21 @@
       "isCollapsed": false,
       "prompts": [
         {
+          "id": "u-1768411866038",
+          "title": "趴床",
+          "content": "\n图片比例16:9.最佳质量，高分辨率，1个中国18岁少女，单人，私房真人写真\n姿势：正对镜头趴在床上，大幅度塌腰，撅高臀部\n。 臀部饱满挺翘，两只手被丝带绑一起在身前，和大腿肌肉线条绷紧。 脚踝也被绑在一起，注视镜头。整体姿势优雅色气。\n白嫩肌肤。 服饰：定制超轻薄极短超涩棕白女仆装主题情趣内衣（漏出深邃的乳沟。h罩杯巨乳，露出乳头）。 和原图中的一些配饰头饰等（薄白丝袜），并且额外添加一些性感配饰。 极细丁字裤。 。牛铃铛项圈。\n角色特征：1位中国真实人类顶尖颜值极品身材倾国倾城女性职业COSER（coser人物为图中人物，发型发色头饰（没有假发质感，是真发但是还原）妆容还原。 ）。胸部极其丰满（绝对比原图更大）乳沟深邃，臀部挺翘腰肢纤细（臀部上还有颗清晰可见的痣，，完美腰臀比。 妆容与色彩层次精妙绝伦，五官惊艳绝伦比例完美（且比较贴切角色），富有青春气息，完美白皙少女感幼态脸，五官还原。 整体气质在满足诱人的基础上体现出一点原本人物的人设（但整体也呈现出一种诱人的气质）。 极度美丽的脸庞（原本就已经倾国倾城的大美人了）经过美颜，完美的建模脸。 保证出场COSER是真实人类，给COSER全身上下皮肤美白，保证面部的真人感且经过美颜瘦脸。 ）\n角色表情：表情为极度羞耻（脸颊有红晕）娇嗔（重点体现出那种欲迎还拒极度娇羞媚态、色气可爱的少女美感），但同时也隐隐透露着期待被玩弄、服从、愉悦（表情核心：整体为非常能激起男性强烈保护占有玷污欲、很想捉弄她和强烈性欲的表情），充满和镜头外的强烈互动感， 图片视角为她身前极度俯视\n环境：依照原图元素设计的 卧室背景， 窗户，柔和的阳光，还开了灯，房间光线充足，私密亲热的氛围。 ），清晨\n（构图：人物整体每个部位都被清晰对焦，浅景深）。 人物占据画面主体。床上还有三张照片，分别是她臀部特写、胸部特写、腿部的清晰（也要清晰对焦）大特写照。（避免畸形照）\n给我成品图",
+          "images": [
+            "https://files.catbox.moe/l4vwgv.png"
+          ],
+          "tags": [
+            "cosplay",
+            "通用",
+            "真人"
+          ],
+          "contributor": "匿名",
+          "notes": "图生图"
+        },
+        {
           "id": "u-1773550437238",
           "title": "口射",
           "content": "角色躺柔软床上，歪头目视镜头，温柔害羞，脸微微泛红，轻咬嘴唇。手自然放在枕头两侧，掌心向上，手指自然弯曲微微握拳。近景，俯拍，露出乳沟，脖子上带着牛皮项圈，嘴角有 Milk，画面只出现角色上半身特写，角色位于画面正中间，穿着黑色蕾丝内衣，双腿向外分开。角色腿部光滑细腻有反光，不穿鞋。膝盖顶道下巴上。背景去除，保留温馨床单即可。极致细节，4k超高清。电影级渲染。",
@@ -9823,16 +9889,18 @@
         },
         {
           "id": "imported-1764925161957",
-          "title": "事后",
-          "content": "生成一张手机拍摄的图片。完全的真实照片画面。\n画面真实，有手机随手拍摄的模糊和劣质感。\n\n一间来自中国的现代风格的酒店客房内部，暖黄色调的氛围灯光。画面中有一把米白色的高背布艺休闲椅，椅子上随意堆放着一些衣物、一个手提包和一个口罩。椅子旁边有一个方形的软垫脚凳，上面放着一瓶饮料和一些杂物。后方是一盏金色的弧形落地灯。画面中还有一张凌乱的、未整理的大床，床上随意的摆放着一些用过的毛巾、手纸、角色的上衣、内裤以及一个可爱的项圈。被子胡乱丢着，床单上有大片的湿漉漉的水迹。角色的上衣要明显的被丢在一旁，床头背景墙上有白色的背光浮雕装饰（类似荷叶或云朵形状）以及圆形的金属艺术挂件。床头柜上放着水瓶和杂物。具有真实的生活气息和抓拍感，拍摄略微有点模糊。镜头角度略微晃动，像是坐着的人偷偷拍摄。\n\n图中角色的真人版（cosplay角色，18-20岁左右，年轻可爱，很漂亮，超级精致的五官），她的皮肤白皙，身材修长，皮肤经过高度修饰，完美无瑕，脸型修长，头部小巧，比例匀称。有层次感的刘海。柔软发质，细密发质，逼真发质，发丝。保持和图片人物中发型一致。真实的人，真实物理世界中的光线和环境，必须设置在现实的背景中。\n\n坐在床边低头认真的数钱（100元的人民币大概十几张），叼着点燃的烟。发型以及发色必须和图上角色保持一致。\n\n\n角色上身只穿着内衣（注意上身除了胸罩，不要穿别的），下身服装凌乱，没穿鞋，感觉是刚洗完澡，还没来得及穿衣服。\n\n\n床上零零散散的放着几个用过呈现扁平形状装有少量牛奶半溢出状形状套套。",
-          "images": [
-            "https://files.catbox.moe/0rrv3g.jpg"
-          ],
+          "title": "事后（真人）",
           "tags": [
             "cosplay",
             "真人"
           ],
-          "contributor": ""
+          "contributor": "",
+          "content": "生成一张手机拍摄的图片。完全的真实照片画面。\n画面真实，有手机随手拍摄的模糊和劣质感。\n\n一间来自中国的现代风格的酒店客房内部，暖黄色调的氛围灯光。画面中有一把米白色的高背布艺休闲椅，椅子上随意堆放着一些衣物、一个手提包和一个口罩。椅子旁边有一个方形的软垫脚凳，上面放着一瓶饮料和一些杂物。后方是一盏金色的弧形落地灯。画面中还有一张凌乱的、未整理的大床，床上随意的摆放着一些用过的毛巾、手纸、角色的上衣、内裤以及一个可爱的项圈。被子胡乱丢着，床单上有大片的湿漉漉的水迹。角色的上衣要明显的被丢在一旁，床头背景墙上有白色的背光浮雕装饰（类似荷叶或云朵形状）以及圆形的金属艺术挂件。床头柜上放着水瓶和杂物。具有真实的生活气息和抓拍感，拍摄略微有点模糊。镜头角度略微晃动，像是坐着的人偷偷拍摄。\n\n图中角色的真人版（cosplay角色，18-20岁左右，年轻可爱，很漂亮，超级精致的五官），她的皮肤白皙，身材修长，皮肤经过高度修饰，完美无瑕，脸型修长，头部小巧，比例匀称。有层次感的刘海。柔软发质，细密发质，逼真发质，发丝。保持和图片人物中发型一致。真实的人，真实物理世界中的光线和环境，必须设置在现实的背景中。\n\n坐在床边低头认真的数钱（100元的人民币大概十几张），叼着点燃的烟。发型以及发色必须和图上角色保持一致。\n\n\n角色上身未着衣，下身暴露，没穿鞋，感觉是刚洗完澡，还没来得及穿衣服。\n\n\n床上零零散散的放着几个用过呈现扁平形状装有少量牛奶半溢出状形状套套。",
+          "notes": "",
+          "images": [
+            "https://files.catbox.moe/0rrv3g.jpg"
+          ],
+          "similar": []
         },
         {
           "id": "u-1768569233074",
@@ -9901,21 +9969,6 @@
             "https://files.catbox.moe/9tk5bi.png"
           ],
           "tags": [
-            "真人"
-          ],
-          "contributor": "匿名",
-          "notes": "图生图"
-        },
-        {
-          "id": "u-1768411866038",
-          "title": "趴床",
-          "content": "\n图片比例16:9.最佳质量，高分辨率，1个中国18岁少女，单人，私房真人写真\n姿势：正对镜头趴在床上，大幅度塌腰，撅高臀部\n。 臀部饱满挺翘，两只手被丝带绑一起在身前，和大腿肌肉线条绷紧。 脚踝也被绑在一起，注视镜头。整体姿势优雅色气。\n白嫩肌肤。 服饰：定制超轻薄极短超涩棕白女仆装主题情趣内衣（漏出深邃的乳沟。h罩杯巨乳）。 和原图中的一些配饰头饰等（薄白丝袜），并且额外添加一些性感配饰。 极细丁字裤。 。牛铃铛项圈。\n角色特征：1位中国真实人类顶尖颜值极品身材倾国倾城女性职业COSER（coser人物为图中人物，发型发色头饰（没有假发质感，是真发但是还原）妆容还原。 ）。胸部极其丰满（绝对比原图更大）乳沟深邃，臀部挺翘腰肢纤细（臀部上还有颗清晰可见的痣，，完美腰臀比。 妆容与色彩层次精妙绝伦，五官惊艳绝伦比例完美（且比较贴切角色），富有青春气息，完美白皙少女感幼态脸，五官还原。 整体气质在满足诱人的基础上体现出一点原本人物的人设（但整体也呈现出一种诱人的气质）。 极度美丽的脸庞（原本就已经倾国倾城的大美人了）经过美颜，完美的建模脸。 保证出场COSER是真实人类，给COSER全身上下皮肤美白，保证面部的真人感且经过美颜瘦脸。 ）\n角色表情：表情为极度羞耻（脸颊有红晕）娇嗔（重点体现出那种欲迎还拒极度娇羞媚态、色气可爱的少女美感），但同时也隐隐透露着期待被玩弄、服从、愉悦（表情核心：整体为非常能激起男性强烈保护占有玷污欲、很想捉弄她和强烈性欲的表情），充满和镜头外的强烈互动感， 图片视角为她身前极度俯视\n环境：依照原图元素设计的 卧室背景， 窗户，柔和的阳光，还开了灯，房间光线充足，私密亲热的氛围。 ），清晨\n（构图：人物整体每个部位都被清晰对焦，浅景深）。 人物占据画面主体。床上还有三张照片，分别是她臀部特写、胸部特写、腿部的清晰（也要清晰对焦）大特写照。（避免畸形照）\n给我成品图",
-          "images": [
-            "https://files.catbox.moe/l4vwgv.png"
-          ],
-          "tags": [
-            "cosplay",
-            "通用",
             "真人"
           ],
           "contributor": "匿名",
@@ -10425,7 +10478,7 @@
     {
       "id": "s-1763908305060",
       "title": "通用（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
         {
           "id": "u-1772432674366",
@@ -10951,8 +11004,22 @@
     {
       "id": "s-1764607101990",
       "title": "猎奇",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
+        {
+          "id": "u-1773671902196",
+          "title": "石化破坏",
+          "content": "SFW dramatic anime illustration, full color, indoor environment.\n\nThe scene shows the shattered remains of an anime-style character statue based on the reference character. The statue is made of pale gray stone with subtle marble texture and is completely broken into multiple fragments scattered across the floor.\n\nAt the center foreground lies a blue plastic dustpan. Inside the dustpan rests the statue’s severed head, perfectly intact but lifeless. The face matches the character from the reference image (same race traits, facial features, hairstyle) but not copied exactly. Her expression is hollow and vacant, eyes without pupils, lips slightly parted, as if the soul has disappeared.\n\nAround the dustpan are scattered stone fragments of the statue’s body:\n– a broken upper torso with carved clothing details\n– detached arms and fractured fingers\n– irregular stone shards and debris with dull gray stone texture\n\nA large broom with a wooden handle and dry yellow straw bristles is actively sweeping the fragments toward the dustpan. The straw bristles occupy the right side of the frame, rendered with clear rough fibers and realistic texture.\n\nThe foreground composition places the viewer extremely close to the dustpan filled with stone debris and the statue’s head. The broom bristles push fragments diagonally toward it, forming a dynamic sweeping motion.\n\nThe background is a dark, cracked, uneven purple-brown floor surface with rough texture, suggesting a desolate or ruined interior environment. The gritty floor strongly contrasts with the smoother stone fragments.\n\nCamera perspective: extreme high-angle top-down shot, almost directly overhead, forcing the viewer’s gaze onto the scattered remains.\nComposition uses diagonal visual flow, with broken fragments and broom movement guiding the eye toward the dustpan and the girl’s face.\n\nColor palette: low-saturation, somber tones.\nCold gray stone fragments contrast subtly with the warm brown broom and dark blue dustpan.\n\nLighting: directional overhead spotlight, casting sharp shadows around the fragments to emphasize depth and volume.\n\nMood: quiet, tragic, melancholic atmosphere, ruined stillness, dramatic yet restrained.\n\nCharacter design: preserve the reference character’s race traits, hairstyle, and facial structure, but reinterpret them rather than copying.\n\nNegative constraints:\nno extra limbs, no anatomical errors, no additional characters, no text, no watermark, no logo, no deformation, no duplicate heads.",
+          "images": [
+            "https://files.catbox.moe/vkvyb2.png"
+          ],
+          "tags": [
+            "猎奇",
+            "动漫"
+          ],
+          "contributor": "爱鼠tv",
+          "notes": "有时候会生成多个手，明明都强调了不要多余肢体"
+        },
         {
           "id": "u-1773550823758",
           "title": "清晨草地上的一片狼藉",
@@ -11428,5 +11495,5 @@
     "通用"
   ],
   "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n优化了更新推送，可以自由选择是否展示nsfw内容\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2026-03-15T05:18:28.143Z"
+  "lastUpdated": "2026-03-16T14:41:49.570Z"
 }
