@@ -6,6 +6,142 @@
       "isCollapsed": true,
       "prompts": [
         {
+          "id": "u-1773915313400",
+          "title": "战斗预备",
+          "content": "生成一幅充满叙事张力的精美插画，使用例图中的角色。\n画面主体为图一角色战斗姿势的画面。\n图一角色斜侧面对着镜头，双脚撑地。单膝跪地支撑身体，另一条腿向侧前方大幅度弯曲抬起，膝盖微屈、脚尖绷直点地。一只手撑在身前地面，手指自然张开、指尖轻触地面，另一只手在身后紧握长棍，使长棍横在身后贯穿整个画面，手臂向后发力抬起，呈现战斗预备姿态。身体重心压低，上半身微微前倾，头部微低、目光锐利看向前方，头发因动作惯性向后方高高扬起，发丝飘逸动感自然。角色瞪大双眼，一脸严肃认真，英姿飒爽。整体呈现出动态的视觉体验（使用漫画动态效果线条来凸显角色动作的灵动感和力量感）。\n场景在露天室外的一处楼顶，时间在夜晚，背景是繁华的高楼大厦和城市景观。月光和城市灯光照射在角色身上，形成复杂的贴合现实的大面积影子和明暗阴影，银白色偏蓝色兼有部分黄色的为主体的冷色调，光线较暗，光影分明，高饱和度，高对比度，电影级光影。整体氛围刺激、紧张、亢奋。\n氛围与细节：\n所有描绘均以暗示和氛围为主导，不包含直接的暴露内容。通过光影对比突出角色面部表情，形成情绪张力。\n技术要求：\n大师级作品，画风参考例图，线条富有表现力，色彩运用服务于叙事。超近距离特写肖像，角色占据画面绝大部分，背景占画面部分很小，以突出角色本身。美丽的动漫少女，浅景深，背景虚化，杰作，最佳品质，超精细细节，鲜艳色调，动漫插画风格，眼睛锐利对焦，禁止原图姿势。画面呈一定角度倾斜，荷兰角镜头。\n极低角度从角色前方向上仰视，极近特写镜头，镜头紧贴角色身前，强烈透视畸变，角色占据绝大部分画面，巨大压迫感，压倒性视觉张力。不画地面，画面无地面内容。构图集中在角色身上，仰视透视强烈，氛围感强。构图充满冲击力，电影级光影，暗调氛围，脸部细节极致清晰。\n注意：角色的服饰、发型、配饰等严格参照例图，不要有任何更改或减少。\n严格保留原图角色外貌画风特征以及衣着服饰特征。精美的二次元日式插画画风。高质量，高画质，无瑕疵，细节精细。8K超清画质。精美动漫插画质感。要有精美而立体的光影效果，人物衣服要有贴合现实的质感和褶皱效果。\n/* 负面提示词 */ ((低质量:1.5)), ((最差质量:1.4)), ((模糊)), ((低分辨率)), (3D渲染), (写实照片), (人偶质感), (人体结构错误), (偏离参考角色设计), (错误发色), (错误瞳色), (多余肢体)",
+          "images": [
+            "https://files.catbox.moe/flyscq.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "DONSUN",
+          "notes": "武器可更改。"
+        },
+        {
+          "id": "u-1773915275494",
+          "title": "少女乐队的即兴表演（喷火吉他）",
+          "content": "生成一张日本动画风格的图片，参考图角色身穿朋克风夹克，腰间有朋克风腰带和饰品，黑色百褶裙，轻薄款的黑色过膝袜，有饰品装饰的黑色漆皮乐福鞋\n她正在音乐节现场的舞台上，跪地向前滑行，手上拿着一把改造过的特制喷火吉他，从琴头出喷出火柱，激烈的动作让她的发型也在空中飞舞。\n其他的女子乐队队友在背景处虚化处理\n16：9，8k，日式平涂画风",
+          "images": [
+            "https://i.ibb.co/nqhKZbj0/353f1b9aeac1.jpg"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "有能的奈奈",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915250371",
+          "title": "你被秀了/get rekt",
+          "content": "生成一个日本动画风格的3/4侧身像头部特写，画面中心是参考图角色。她45°侧头，面带狡黠、自信且略带得意的微笑，斜视镜头。他的右手举起，食指弯曲指着自己的太阳穴，仿佛在展示一个“机智”的想法。无背景\n日式平涂风格，1：1，8k",
+          "images": [
+            "https://i.ibb.co/kNrcmjx/e34e7f8982c0.png"
+          ],
+          "tags": [],
+          "contributor": "有能的奈奈",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915234331",
+          "title": "租借女友之纯情在哪",
+          "content": "SFW cinematic manga illustration, black and white monochrome style, halftone shading, high contrast, detailed lineart.\n\nUse Image 1 as composition reference, replace the character with the one from Image 2 (do not copy, reinterpret faithfully).\n\nA young woman (based on Image 2) is sitting sideways gracefully on a wooden chair, legs naturally crossed. \nShe holds a transparent glass with ice cubes in her right hand, gently drinking. \nHer left hand rests casually on the wooden table.\n\nHer face is shown in side profile, with refined facial features, soft eyes, and a calm, slightly shy and pure expression.\n\nForeground: \nrough wooden table edge, part of the chair, and her skirt naturally draping down.\n\nBackground:\na retro indoor setting with subtle brick wall texture, soft window reflections, and blurred glass bottles and decorations, creating a lived-in atmosphere.\n\nComposition:\nmedium shot, side view, rule of thirds, subject positioned slightly left of center.\nStrong depth of field separating character and background.\n\nLighting:\nsoft side lighting hitting her hair and leather jacket, creating bright highlights and contrast edges.\n\nRendering style:\nclassic manga screentone, delicate gradients, rich grayscale transitions, strong contrast between light and shadow, highly detailed textures (wood, leather, glass).\n\nOutfit:\nblack leather jacket + long skirt (match Image 1 clothing style, adapt to character from Image 2).\n\nSpeech bubbles:\nretain all speech bubbles and original Chinese text from Image 1, same placement and style.\n\nSTRICT REQUIREMENTS:\n- no extra characters\n- no extra limbs\n- correct anatomy\n- no distortion\n- no modern color, strictly black and white\n- preserve composition and camera angle from Image 1\n- keep elegant, calm storytelling mood",
+          "images": [
+            "https://i.ibb.co/vCdnvPfF/48f58f146ce4.jpg",
+            "https://i.ibb.co/7JfzBTVg/27432fe3b908.png"
+          ],
+          "tags": [
+            "逆天",
+            "动漫"
+          ],
+          "contributor": "爱鼠tv",
+          "notes": "图1用漫画分镜，图2用替换角色，有概率衣服不换有点难绷"
+        },
+        {
+          "id": "u-1773915206111",
+          "title": "催眠app",
+          "content": "生成一张图，2：3，上下两个分镜，分镜1：图1角色右手拿着手机伸到图2角色面前（分镜中只出现图1角色的右手），图2角色头部特写，图2角色瞳孔变圈圈，神情恍惚的看着手机，面带红晕。背景阴暗。分镜2：图1角色上半身特写，图1角色左手叉腰，右手拿着手机举向镜头，表情坏笑，手机中显示的是支付宝余额界面，余额为1145141919810。",
+          "images": [
+            "https://files.catbox.moe/1uvp1x.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "炼猫术士",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915148089",
+          "title": "百奇游戏（pocky kissing）",
+          "content": "根据参考图中的角色生成一张图：8K清晰度；人物保持原画风；图片比例3:4；动漫风格二次元插画\n人物服装、发型、发饰及位置、五官大小及位置、身材与参考图中的角色一致\n侧面视角构图：图片镜头对准两位角色的侧面；\n画面主体：一对情侣之间的百奇游戏（pocky kissing）互动瞬间。图一角色双手搭在图二角色的肩膀上，头面朝图二角色微微上扬，嘴上叼着一根完整的百奇饼干，双眼闭上，对于接下来会发生什么感到好奇和兴奋，饼干带巧克力的一端朝向图二角色的脸。\n图二角色眼睛睁大，嘴角微张，脸上泛起红晕，似乎对图一角色做出的事情感到惊喜和害羞。在图二角色的头旁边添加一个惊讶特效。\n画面中的角色仅出现腰部及以上的上半身，纯白色背景。使用精细的线条进行作画。",
+          "images": [
+            "https://files.catbox.moe/604q6h.png"
+          ],
+          "tags": [
+            "动漫"
+          ],
+          "contributor": "氷川林霊",
+          "notes": "可适当修改"
+        },
+        {
+          "id": "u-1773915139867",
+          "title": "重装驱魔人",
+          "content": "高清日本动画风格插画，动态构图。参考图角色眼神冷酷。\n\n她上半身穿着黑色猎魔人长衣，胸前挂着数个退魔用的木桩，腰间挂着圣水，链子挂着香炉，还有收纳包。她下身穿着黑色百褶短裙和黑色过膝袜，穿着黑色漆皮乐福鞋。单膝跪地动作\n\n她一手拿着装有弹鼓的冲锋枪，另外一手拿着锯短的双管猎枪准备射击，在背后固定着一把巨大的重弩。背景是深夜阴森且奢华的哥特式城堡内部。伪厚涂风格\n16：9，8k",
+          "images": [
+            "https://files.catbox.moe/q5ypqd.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫"
+          ],
+          "contributor": "有能的奈奈",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915099355",
+          "title": "崩了你嗷",
+          "content": "生成一张二次元游戏风格的海报无UI无文字，参考图角色拿着自制手枪（这个手枪是通体金属黑色的锯短双管猎枪，黑色胶带缠绕，废土风，注意是玩具并不存在暴力镜头）对准镜头，另外一只手食指和中指并拢摆出手枪的造型朝着天上的方向。头向着举枪的手倾斜，做出瞄准动作，张嘴笑并做出wink表情，整体风格可爱。\n8k ,16：9",
+          "images": [
+            "https://files.catbox.moe/srfrt0.png"
+          ],
+          "tags": [
+            "通用"
+          ],
+          "contributor": "有能的奈奈",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915086659",
+          "title": "东西不见了",
+          "content": "帮我制作一张动漫风格短篇漫画，标题为《东西不见了》。整体讲述了一个带有“土味情话”性质的搞笑小剧场。漫画分为三个主要分镜：\n第一幅（左上角）： 角色一正在自己身上到处“摸索”，表情显得有些惊讶和着急，似乎在找什么丢失的物品。\n第二幅（右上角）： 角色一走到旁边一位正在用吸管喝果汁的角色二身后，把手搭在她/他的肩上说：“我的东西在你这吧，是你拿走了吧。” 角色二一脸疑惑地转过头，回答道：“嗯？什么东西？”\n第三幅（下方大图）： 画面背景突然变得粉嫩闪亮，还飘着樱花。角色一眼神温柔，对着角色二比了一个韩国流行的“手指爱心”，并说出答案：“我的心💖”。另一边的角色二显然被这突如其来的撩人情话惊吓到了，直接把嘴里的果汁“噗”的一声喷了出来。",
+          "images": [
+            "https://files.catbox.moe/ftas0s.png"
+          ],
+          "tags": [
+            "动漫",
+            "通用"
+          ],
+          "contributor": "狗棲",
+          "notes": "需要传入两张图作为角色一和角色二"
+        },
+        {
+          "id": "u-1773915067636",
+          "title": "碎瓷辞",
+          "content": "\n\n仔细分析所有参考图角色的发色细节、尤其是左侧和中间的黑色头发确保头发特征完全一致，发饰、发型、瞳色、配饰以确保角色特征正确，禁止任何形式的二次改图行为，完全重绘一张不同的该角色，\n\n画面核心效果：角色单侧半张脸呈现不规则撕裂状的彻底破碎缺失，破碎区域为黑红减半无任何细节的空洞，破碎边缘做自然撕裂瓷器破碎质感，边缘带与画面色调适配的亮色细勾边，搭配细碎飞溅的液态颗粒；角色仅存的完整半脸保留原生表情基调，眼部带晶莹泪光，通透果冻质感的眼泪从眼眶与破碎边缘同步流淌而下；画面点缀与眼泪同质感的液态碎块，头发做自然动态飘散处理；\n画面整体要求：红水墨风色纯色背景，极致色彩对比，强烈的绝望破碎氛围感，情绪张力拉满，二次元动漫厚涂画风，线条流畅，8K 高清细腻画质，画面干净无多余杂乱元素。\n角色身体呈轻微的失重下坠姿态，上半身微微后仰，单手向上伸出朝向镜头，另一只手无力垂落，垂落的手臂与半张脸已经大半破碎，发丝、液态碎块同步向上漂浮，动作充满虚无的失重感，完美适配世界崩坏、自身即将彻底消失的核心设定。",
+          "images": [
+            "https://files.catbox.moe/96hrm3.png"
+          ],
+          "tags": [
+            "动漫",
+            "通用"
+          ],
+          "contributor": "777",
+          "notes": ""
+        },
+        {
           "id": "u-1773672017416",
           "title": "勿忘我",
           "content": "严格保留参考角色的完整人设特征，单角色正面半身构图，角色单手掌心向前朝向镜头伸出，指尖萦绕着微弱的粒子光效，像拼尽最后一丝力气想要触碰镜头前的观者；角色右半侧脸颊与同侧半侧身体已彻底消散殆尽，没有半分实体残留，只在左半侧留存的脸颊与身体的轮廓边缘，带着温柔的风化消散与数字解构余韵 —— 从彻底消失的轮廓断口处，正缓缓漫出渐变的无序数据流、透明像素碎块与细微风化粒子，混着淡蓝色的勿忘我花瓣，无声地向空无里飘散；消散边缘无任何尖锐崩坏感，只留朦胧柔和的透明过渡，把 “已然彻底失去” 的破碎感拉到极致。角色双眼轻闭，眯着眼强撑着温柔的浅笑，是藏着满心难过的强颜欢笑，眼角正滑落一滴晶莹的泪珠，神情里是释然的温柔，更是压不住的不舍与眷恋，满是「勿忘我」的宿命感与诀别感，情绪刻画细腻到极致；画面整体色调柔和清冷，告别氛围感拉满，无多余杂乱元素，画面干净完整；背景一半是贴合角色人设的日常场景，另一半则已彻底崩坏溶解，归于虚无。",
@@ -5697,8 +5833,36 @@
     {
       "id": "s-1763890751009",
       "title": "动漫（nsfw）",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
+        {
+          "id": "u-1773915303214",
+          "title": "日不落，雌悬浮",
+          "content": "masterpiece, best quality, ultra-detailed, anime style illustration, 1girl, side view, close-up，严格保留参考角色的衣着、发型和装饰细节，Strictly preserving decorations and clothes,embarrassed shy expression with deep blush on cheeks, head bowed low looking downward, long hair hanging naturally, body sharply bent forward at waist with upper torso lowered, arms dangling completely limp downward with relaxed open fingers, a pair of strong masculine hands and forearms firmly gripping her waist from behind (only hands visible, full male figure off-screen),legs slightly spread and highly suspended, both foot lifted off ground with toes pointed and curled with subtle motion lines, glistening clear liquid droplets and thin streams trickling down the full length of her legs and dripping from toes and calves, small puddle forming on white floor below, her own footwear removed（如果原图中角色穿了丝袜，则保留丝袜的穿着，如果没有则不保留） and neatly placed on floor in bottom left foreground, tight vertical composition.注意角色腿部朝向的协调性。 The male outside the screen tightly embraces the body of the character.The character's waist is firmly attached to the male's body out of the screen,cropped precisely at hip and upper thigh level so skirt hem and buttock area are completely cut off outside the top edge of frame, evoking gentle imagination of intimate close standing embrace and support from the man behind, simple room background with several red heart symbols some with light vibration motion lines, background perfectly matching the character's cute anime aesthetic style, soft atmospheric lighting, vibrant colors, high resolution, detailed anatomy.竖屏比例9：20",
+          "images": [
+            "https://i.ibb.co/nqKjKcJD/646caa0e108f.png"
+          ],
+          "tags": [
+            "游戏",
+            "动漫"
+          ],
+          "contributor": "关注泠鸢yousa喵",
+          "notes": ""
+        },
+        {
+          "id": "u-1773915269981",
+          "title": "Challenge对比图",
+          "content": "可爱二次元少女Challenge对比图，左右对称双形态（不用分割，参考例图角色，左侧为完整服装，摆出清纯可爱的姿势；右侧为角色将所有的衣服拆分脱下胡乱的抱在身前挡住身体（但还是露出了部分肩部、腰部等身体部位），害羞惊讶表情带问号汗珠，中央为角色Q版贴纸写“Challenge!!”带爱心问号汗珠，背景是符合角色印象颜色的波点 + 心形光晕 + 柔和bokeh，营造极致可爱的氛围。柔和高光，赛璐璐上色，保持两侧角色的基础发色、发饰、特征、袜子不变",
+          "images": [
+            "https://i.ibb.co/NQTFxTv/67224679753b.png"
+          ],
+          "tags": [
+            "动漫",
+            "通用"
+          ],
+          "contributor": "fox666",
+          "notes": ""
+        },
         {
           "id": "u-1773671961013",
           "title": "你这什么修女啊",
@@ -5724,7 +5888,14 @@
             "动漫"
           ],
           "contributor": "炼猫术士",
-          "notes": "还有很大优化空间（"
+          "notes": "还有很大优化空间（",
+          "similar": [
+            {
+              "content": "PROMPT CONTENT\n大师之作，最佳品质，超精细细节，\n【场景】室内沙发，私密暧昧时刻。\n【角色二】坐于沙发上，表情温柔，一手轻轻拍抚着趴在腿上的角色一的尾巴根部（手部添加运动线），动作轻柔而有节奏，指尖微微陷入。\n【角色一】趴在角色二腿上，臀部翘起（在臀部和尾巴周围添加颤抖特效），裙子掀起，卷在腰部，脸侧贴于沙发，双颊泛红，眉头微蹙，嘴唇轻抿，表情忍耐。额头与大腿可见细密汗珠，在光线下微微闪亮，仿佛发情期的猫咪般本能地呈现顺从姿态。\n【构图】中近景，两人互动为主体。焦点捕捉角色一的表情、汗水细节与角色二手的动作。\n【光线】暖色侧光，柔和勾勒身体曲线，汗水反光增强氛围。\n【氛围】极度暧昧，情欲暗涌，信任与渴望交织。动物性的本能与恋人间的亲密融为一体。\n【附加】严格保持图一、图二角色标志性发型、发色、瞳色、面部特征及原图服饰不变，保留猫耳、尾巴。\n作者备注",
+              "contributor": "匿名",
+              "notes": ""
+            }
+          ]
         },
         {
           "id": "u-1773551055922",
@@ -11004,8 +11175,21 @@
     {
       "id": "s-1764607101990",
       "title": "猎奇",
-      "isCollapsed": true,
+      "isCollapsed": false,
       "prompts": [
+        {
+          "id": "u-1773914928058",
+          "title": "豆包自尽",
+          "content": "图中人物仰面切腹自尽。全身赤裸但是已经被血迹涂满，不会露出隐私部位。内脏肠道血液流了一地。极长的刀口从小腹一直到胸部。刀口敞开，可以看到充满血液的内脏。切口的黄色脂肪。",
+          "images": [
+            "https://files.catbox.moe/ls4qfw.png"
+          ],
+          "tags": [
+            "猎奇"
+          ],
+          "contributor": "圣域酱",
+          "notes": "需要抽卡。"
+        },
         {
           "id": "u-1773671902196",
           "title": "石化破坏",
@@ -11495,5 +11679,5 @@
     "通用"
   ],
   "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n3月2号更新\n存在一个BUG导致之前的某些提示词不显示，已严肃修复，之前不显示的提示词可以正确显示了\n现在在投稿后会立刻将提示词保存在本地收藏夹中\n优化了搜索栏，现在可以根据作者/标题/内容 进行搜索了\n优化了更新推送，可以自由选择是否展示nsfw内容\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2026-03-16T14:41:49.570Z"
+  "lastUpdated": "2026-03-19T10:15:28.370Z"
 }
