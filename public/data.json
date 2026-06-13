@@ -2,7 +2,7 @@
   "sections": [
     {
       "id": "demo",
-      "title": "SFW动漫",
+      "title": "动漫 SFW",
       "isCollapsed": true,
       "prompts": [
         {
@@ -3549,20 +3549,6 @@
           "notes": ""
         },
         {
-          "id": "u-1775733300235",
-          "title": "穿越阿尔卑斯山",
-          "content": "根据参考图中角色生成一张致敬名画图片：画面比例3：4；致敬雅克-路易·大卫的《跨越阿尔卑斯山圣伯纳隘道的拿破仑》；保留参考图中角色特征\n一幅大师级的油画，画面主体是参考图中角色，骑在一匹肌肉发达、前腿高高跃起的雄伟白马上。角色呈现出充满活力的英雄姿态，自信地回头注视着观者，同时一只手斜向天空上方指引。角色穿着自己的服饰和披风。马匹用后腿站立在陡峭崎岖的岩石山路上。背景是险峻雄伟的高山险峰、戏剧性的暴风雨云层，以及远处山谷中隐约可见的行军军队的剪影。新古典主义艺术风格，戏剧性的明暗对比光影，史诗般的氛围，极其丰富的细节，大师级的构图，",
-          "images": [
-            "https://files.catbox.moe/8h86m8.png"
-          ],
-          "tags": [
-            "说明",
-            "通用"
-          ],
-          "contributor": "Dusk_Light",
-          "notes": "有点吃运气，不知道是不是我关键词搞得不够好还是怎么"
-        },
-        {
           "id": "u-1775479754276",
           "title": "樱落",
           "content": "根据图中角色生成一张充满叙事感和淡雅忧郁氛围的日系动漫插画。图片比例3:4，8K清晰度\n整幅画作采用俯视视角（鸟瞰镜头）\n人物服装、发型、发饰及位置、五官大小及位置、身材与参考图中的角色一致，适当修改动作\n动作：她倾斜着平躺在地上，面带一丝浅浅的、有些空洞的微笑，眼神深邃并直直地看向右侧，给人一种宁静却又若有所失的感觉。脚上穿着袜子，而她的鞋子则被整齐地脱掉，并摆放在脚边。角色的身上和衣摆上也落着零星的花瓣。\n背景：在铺满了一大片粉色花瓣的地上，几乎看不到路面\n在角色右侧的路面有一个与角色轮廓（包括衣服）相同的路面裸露出来，这意味着少女曾在那个位置躺了很久，久到落花足以铺满周围的地面，并在那里留下了一个人形轮廓。\n细节补充：人形轮廓的外围尽量粗糙描绘，使轮廓的形成更加自然；在轮廓里面也有少量花瓣落下，以此表达时间的流逝。\n意境：这张图呈现了一种极具故事性的瞬间。脱掉的鞋子、满地的花瓣、清冷的路面以及人形的轮廓，这种构图创造了一种类似残影的效果，表现出一种孤独徘徊的心境。",
@@ -3761,23 +3747,6 @@
           ],
           "contributor": "有能的奈奈",
           "notes": ""
-        },
-        {
-          "id": "u-1774978178956",
-          "title": "第一枪宣告我的到来，第二枪宣判你的死亡",
-          "content": "写实摄影，新闻纪实风格，手机自拍视角，近景平视镜头，前景是一位【】，右手食指抵在口罩上做出噤声嘘的手势，直视镜头，画面右下角露出一把用黑色电工胶带缠绕的自制枪械，人物斜挎黑色背带，背景为户外城市街道，白天阴天柔和漫射自然光，背景中一位【】背对镜头、手持麦克风进行街头演讲，周围有多名戴口罩的路人围观，浅景深，背景虚化，焦点精准落在前景男性面部，暖黄复古色调，真实皮肤质感，衣物纹理清晰，强烈的画面张力，紧张的纪实氛围感，8K 超高清，原生相机直出质感，真实光影，细节拉满",
-          "images": [
-            "https://files.catbox.moe/yu98mw.png"
-          ],
-          "tags": [
-            "通用",
-            "动漫",
-            "游戏",
-            "说明",
-            "逆天"
-          ],
-          "contributor": "Ivan_Praise255",
-          "notes": "【】可以写任意角色，任意武器"
         },
         {
           "id": "u-1774978170746",
@@ -4622,20 +4591,6 @@
           "notes": ""
         },
         {
-          "id": "u-1773119233901",
-          "title": "囚徒",
-          "content": "masterpiece, best quality, ultra-detailed, 8k, hdr, cinematic lighting, octane render,\nyoung oriental man, messy black hair, determined and forbearing expression, looking up at iron window above,\ntattered dark clothes covered with dark red bloodstains, heavy thick black chains binding wrists and limbs,\ndesperate yet unyielding posture, dark martial arts style,\ndamp medieval stone dungeon, rough mottled stone walls with water stains and bloodstains,\nburning wall torches on both sides, narrow iron-barred window at the top, cramped and oppressive space,\nhigh contrast dramatic lighting, warm orange torchlight, cold white skylight, strong light and shadow contrast,\nfloating sparks, floating blood particles, smoky and dim atmosphere, volumetric fog,\nlow-angle upward shot, wide-angle composition, focus on upper body and upper window,\nthick oil painting style, game concept art, sharp edges, natural light and shadow transition, rich textures, stone wall texture, chain rust, fabric damage, layered bloodstains\nworst quality, low quality, normal quality, blurry, grainy, noisy, pixelated,\nwatermark, text, signature, username, error, cropped, jpeg artifacts,\nbad anatomy, deformed, disfigured, extra limbs, missing limbs, mutated hands,\nbad proportions, ugly, flat lighting, overexposed, underexposed, cartoon, cgi, 3d render",
-          "images": [
-            "https://files.catbox.moe/jwvfwx.png",
-            "https://files.catbox.moe/21u0eo.png"
-          ],
-          "tags": [
-            "动漫"
-          ],
-          "contributor": "星河浩瀚",
-          "notes": ""
-        },
-        {
           "id": "u-1773119224999",
           "title": "小李子敬酒",
           "content": "根据参考图中的角色生成一张“了不起的盖茨比敬酒”meme图:8k画质;人物保持原画风;画面比例3:2\n主体: 参考图中角色\n​服装: 经典1920年代黑色西服套装，白衬衫，黑色领结。\n​动作: 直视镜头，手持宽口香槟杯向镜头举杯敬酒。嘴角带着自信、略带深意的微笑（嘴角微微上扬）。\n​背景: 奢华的夜晚派对，失焦的夜空烟花背景，模糊的派对灯光，美丽的光斑\n细节方面:电影级别中景特写\n​风格与光影: 电影截图，浅景深（背景虚化），戏剧性电影光影，85mm镜头，高清8k。",
@@ -4727,21 +4682,6 @@
           ],
           "tags": [],
           "contributor": "匿名",
-          "notes": ""
-        },
-        {
-          "id": "u-1772899127372",
-          "title": "糖画",
-          "content": "（写实近景美食摄影，竖版3：4，暖色室内灯光。画面主体是一张刚做好的糖画放在不锈钢金属台面上：糖画为该图片内容，整体线条童趣简洁）由透明琥珀金色糖浆勾勒并局部填充，线条有轻微厚薄变化；糖浆表面光泽强，能看见细小气泡与凝固流纹，高光反射明显。糖画中插着一根木签，木签浅黄。金属台面有真实反光与轻微划痕，能看到糖画的倒影与高光。糖画左下角放着一部黑色手机，手机屏幕亮起，显示同一个图片内容的简介线稿参考图（白底或浅色底，黑色描边，可以带腮红点与简化鬓毛线条），构图明确呈现“对照手机图案制作糖画”。背景上方轻微虚化，可见少量春节元素一角（可选：红色年画/生肖盘边框），但背景不抢主体整体对焦在糖画和手机屏幕，清晰锐利，高分辨率，真实质感，干净构图。",
-          "images": [
-            "https://i.ibb.co/467DdN3/79016e4efc44.jpg"
-          ],
-          "tags": [
-            "说明",
-            "动漫",
-            "通用"
-          ],
-          "contributor": "Ivan_Praise255",
           "notes": ""
         },
         {
@@ -10019,13 +9959,75 @@
           ],
           "contributor": "月毒有毒"
         }
-      ]
+      ],
+      "defaultCollapsed": false,
+      "isRestricted": false
     },
     {
       "id": "sfw-real",
-      "title": "SFW真人",
-      "isCollapsed": true,
+      "title": "真人 SFW",
+      "isCollapsed": false,
       "prompts": [
+        {
+          "id": "u-1775733300235",
+          "title": "穿越阿尔卑斯山",
+          "content": "根据参考图中角色生成一张致敬名画图片：画面比例3：4；致敬雅克-路易·大卫的《跨越阿尔卑斯山圣伯纳隘道的拿破仑》；保留参考图中角色特征\n一幅大师级的油画，画面主体是参考图中角色，骑在一匹肌肉发达、前腿高高跃起的雄伟白马上。角色呈现出充满活力的英雄姿态，自信地回头注视着观者，同时一只手斜向天空上方指引。角色穿着自己的服饰和披风。马匹用后腿站立在陡峭崎岖的岩石山路上。背景是险峻雄伟的高山险峰、戏剧性的暴风雨云层，以及远处山谷中隐约可见的行军军队的剪影。新古典主义艺术风格，戏剧性的明暗对比光影，史诗般的氛围，极其丰富的细节，大师级的构图，",
+          "images": [
+            "https://files.catbox.moe/8h86m8.png"
+          ],
+          "tags": [
+            "说明",
+            "通用"
+          ],
+          "contributor": "Dusk_Light",
+          "notes": "有点吃运气，不知道是不是我关键词搞得不够好还是怎么"
+        },
+        {
+          "id": "u-1772899127372",
+          "title": "糖画",
+          "content": "（写实近景美食摄影，竖版3：4，暖色室内灯光。画面主体是一张刚做好的糖画放在不锈钢金属台面上：糖画为该图片内容，整体线条童趣简洁）由透明琥珀金色糖浆勾勒并局部填充，线条有轻微厚薄变化；糖浆表面光泽强，能看见细小气泡与凝固流纹，高光反射明显。糖画中插着一根木签，木签浅黄。金属台面有真实反光与轻微划痕，能看到糖画的倒影与高光。糖画左下角放着一部黑色手机，手机屏幕亮起，显示同一个图片内容的简介线稿参考图（白底或浅色底，黑色描边，可以带腮红点与简化鬓毛线条），构图明确呈现“对照手机图案制作糖画”。背景上方轻微虚化，可见少量春节元素一角（可选：红色年画/生肖盘边框），但背景不抢主体整体对焦在糖画和手机屏幕，清晰锐利，高分辨率，真实质感，干净构图。",
+          "images": [
+            "https://i.ibb.co/467DdN3/79016e4efc44.jpg"
+          ],
+          "tags": [
+            "说明",
+            "动漫",
+            "通用"
+          ],
+          "contributor": "Ivan_Praise255",
+          "notes": ""
+        },
+        {
+          "id": "u-1774978178956",
+          "title": "第一枪宣告我的到来，第二枪宣判你的死亡",
+          "content": "写实摄影，新闻纪实风格，手机自拍视角，近景平视镜头，前景是一位【】，右手食指抵在口罩上做出噤声嘘的手势，直视镜头，画面右下角露出一把用黑色电工胶带缠绕的自制枪械，人物斜挎黑色背带，背景为户外城市街道，白天阴天柔和漫射自然光，背景中一位【】背对镜头、手持麦克风进行街头演讲，周围有多名戴口罩的路人围观，浅景深，背景虚化，焦点精准落在前景男性面部，暖黄复古色调，真实皮肤质感，衣物纹理清晰，强烈的画面张力，紧张的纪实氛围感，8K 超高清，原生相机直出质感，真实光影，细节拉满",
+          "images": [
+            "https://files.catbox.moe/yu98mw.png"
+          ],
+          "tags": [
+            "通用",
+            "动漫",
+            "游戏",
+            "说明",
+            "逆天"
+          ],
+          "contributor": "Ivan_Praise255",
+          "notes": "【】可以写任意角色，任意武器"
+        },
+        {
+          "id": "u-1773119233901",
+          "title": "囚徒",
+          "content": "masterpiece, best quality, ultra-detailed, 8k, hdr, cinematic lighting, octane render,\nyoung oriental man, messy black hair, determined and forbearing expression, looking up at iron window above,\ntattered dark clothes covered with dark red bloodstains, heavy thick black chains binding wrists and limbs,\ndesperate yet unyielding posture, dark martial arts style,\ndamp medieval stone dungeon, rough mottled stone walls with water stains and bloodstains,\nburning wall torches on both sides, narrow iron-barred window at the top, cramped and oppressive space,\nhigh contrast dramatic lighting, warm orange torchlight, cold white skylight, strong light and shadow contrast,\nfloating sparks, floating blood particles, smoky and dim atmosphere, volumetric fog,\nlow-angle upward shot, wide-angle composition, focus on upper body and upper window,\nthick oil painting style, game concept art, sharp edges, natural light and shadow transition, rich textures, stone wall texture, chain rust, fabric damage, layered bloodstains\nworst quality, low quality, normal quality, blurry, grainy, noisy, pixelated,\nwatermark, text, signature, username, error, cropped, jpeg artifacts,\nbad anatomy, deformed, disfigured, extra limbs, missing limbs, mutated hands,\nbad proportions, ugly, flat lighting, overexposed, underexposed, cartoon, cgi, 3d render",
+          "images": [
+            "https://files.catbox.moe/jwvfwx.png",
+            "https://files.catbox.moe/21u0eo.png"
+          ],
+          "tags": [
+            "动漫"
+          ],
+          "contributor": "星河浩瀚",
+          "notes": ""
+        },
         {
           "id": "u-1781358635750",
           "title": "张！力！",
@@ -10249,7 +10251,9 @@
           ],
           "contributor": ""
         }
-      ]
+      ],
+      "defaultCollapsed": false,
+      "isRestricted": false
     },
     {
       "id": "s-1763890751009",
@@ -17996,5 +18000,6 @@
     "真人",
     "通用"
   ],
-  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n\n虽然这个网站已经开了一阵子了，但是我还是要说明一下这个网站是提供提示词的，没有生图能力，如果想玩香蕉建议自寻途径\n每次审核投稿都有人发张图片想让AI帮他生成是何意味啊（\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website"
+  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n\n虽然这个网站已经开了一阵子了，但是我还是要说明一下这个网站是提供提示词的，没有生图能力，如果想玩香蕉建议自寻途径\n每次审核投稿都有人发张图片想让AI帮他生成是何意味啊（\n\n6月13日更新\n将SFW子区分为真人和动漫子区\n更新了拉黑按钮，现在可以删除你不想看到的提示词了，双击隐藏按钮就可以隐藏该提示词\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
+  "lastUpdated": "2026-06-13T15:25:09.293Z"
 }
