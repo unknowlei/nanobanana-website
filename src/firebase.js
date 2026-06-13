@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, updateDoc, deleteDoc, serverTimestamp } from "firebase/firestore";
+import { getFirestore, doc, updateDoc, deleteDoc, serverTimestamp, writeBatch } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from "firebase/auth";
 
@@ -97,6 +97,25 @@ export const setSubmissionStatus = async (submissionId, status) => {
     return { success: true };
   } catch (error) {
     console.error("更新投稿状态失败:", error);
+    return { success: false, error: error.message };
+  }
+};
+
+export const setSubmissionStatuses = async (submissionIds, status) => {
+  try {
+    const ids = Array.isArray(submissionIds) ? submissionIds.filter(Boolean) : [];
+    if (ids.length === 0) return { success: true };
+
+    const batch = writeBatch(db);
+    const processedAt = status === 'pending' ? null : serverTimestamp();
+    ids.forEach((submissionId) => {
+      const docRef = doc(db, "pending_submissions", submissionId);
+      batch.update(docRef, { status, processedAt });
+    });
+    await batch.commit();
+    return { success: true };
+  } catch (error) {
+    console.error("批量更新投稿状态失败:", error);
     return { success: false, error: error.message };
   }
 };

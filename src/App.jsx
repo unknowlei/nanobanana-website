@@ -9,7 +9,7 @@ import {
   Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput,
   ArrowUpCircle, List, History
 } from 'lucide-react';
-import { submitPrompt, getPendingSubmissions, setSubmissionStatus, deleteSubmissionForever, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
+import { submitPrompt, getPendingSubmissions, setSubmissionStatus, setSubmissionStatuses, deleteSubmissionForever, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
 
 /**
  * ==============================================================================
@@ -501,7 +501,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
 };
 
 // --- 5. 提示词卡片 ---
-const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite, isNew }) => {
+const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite, isNew, isSelected = false, onToggleSelect = null }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
@@ -533,6 +533,19 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       onMouseLeave={handleMouseLeave}
       className={`group bg-white rounded-2xl overflow-hidden cursor-pointer transition-all duration-200 ease-out aspect-[3/4] flex flex-col relative ${isDragTarget ? 'ring-2 ring-indigo-500 transform scale-105 z-20 shadow-xl' : 'shadow-sm hover:shadow-lg hover:-translate-y-0.5'} ${isBeingDragged ? 'opacity-30 grayscale' : ''} gpu-accelerated`}
     >
+      {isAdmin && onToggleSelect && (
+        <button
+          onClick={(e) => { e.stopPropagation(); onToggleSelect(prompt.id); }}
+          className={`absolute top-2 left-2 z-20 w-7 h-7 rounded-full border flex items-center justify-center shadow-md transition-all ${
+            isSelected
+              ? 'bg-emerald-500 text-white border-emerald-500'
+              : 'bg-white/90 text-slate-400 border-white hover:text-emerald-500'
+          }`}
+          title={isSelected ? '取消选择' : '选择提示词'}
+        >
+          {isSelected ? <Check size={15} /> : <Square size={15} />}
+        </button>
+      )}
       <div className="flex-1 bg-slate-100 relative overflow-hidden pointer-events-none">
         {images.length > 0 ? (
           <>
@@ -750,7 +763,7 @@ const PromptViewer = memo(({ prompt, onSubmissionAction, orientation = 'landscap
 });
 
 // --- 7. 管理员待审核界面组件 ---
-const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onViewSubmission, refreshKey, listAction }) => {
+const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onViewSubmission, refreshKey, listAction, stagedApprovals = {}, onSubmitApprovedBatch, isSubmittingBatch = false }) => {
   const [submissions, setSubmissions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -773,8 +786,13 @@ const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onView
     if (!listAction) return;
     if (listAction.type === 'remove') {
       setSubmissions(prev => prev.filter(sub => sub.id !== listAction.id));
+    } else if (listAction.type === 'removeMany') {
+      const ids = new Set(listAction.ids || []);
+      setSubmissions(prev => prev.filter(sub => !ids.has(sub.id)));
     }
   }, [listAction]);
+
+  const stagedCount = Object.keys(stagedApprovals).length;
 
   if (isLoading) {
     return (
@@ -792,9 +810,21 @@ const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onView
           <Clock className="w-5 h-5 mr-2 text-orange-500" />
           待处理投稿 ({submissions.length})
         </h3>
-        <button onClick={loadSubmissions} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
-          <RefreshCw className="w-4 h-4 text-slate-500" />
-        </button>
+        <div className="flex items-center gap-2">
+          {stagedCount > 0 && (
+            <button
+              onClick={onSubmitApprovedBatch}
+              disabled={isSubmittingBatch}
+              className="px-3 py-2 bg-emerald-500 hover:bg-emerald-600 disabled:opacity-50 text-white rounded-lg text-xs font-bold flex items-center gap-1 shadow-sm transition-colors"
+            >
+              {isSubmittingBatch ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle className="w-4 h-4" />}
+              提交已确认 ({stagedCount})
+            </button>
+          )}
+          <button onClick={loadSubmissions} className="p-2 hover:bg-slate-100 rounded-lg transition-colors">
+            <RefreshCw className="w-4 h-4 text-slate-500" />
+          </button>
+        </div>
       </div>
 
       {submissions.length === 0 ? (
@@ -808,8 +838,15 @@ const PendingSubmissionsPanel = ({ sections, onApprove, onReject, onEdit, onView
             <div
               key={sub.id}
               onClick={() => onViewSubmission(sub)}
-              className="group relative bg-white rounded-2xl overflow-hidden border-2 border-slate-200 hover:border-indigo-400 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1"
+              className={`group relative bg-white rounded-2xl overflow-hidden border-2 transition-all duration-300 cursor-pointer hover:shadow-xl hover:-translate-y-1 ${
+                stagedApprovals[sub.id] ? 'border-emerald-400 ring-4 ring-emerald-100' : 'border-slate-200 hover:border-indigo-400'
+              }`}
             >
+              {stagedApprovals[sub.id] && (
+                <div className="absolute top-2 left-2 z-20 w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
+                  <Check size={18} />
+                </div>
+              )}
               <div className="aspect-square bg-gradient-to-br from-slate-50 to-slate-100 relative overflow-hidden">
                 {sub.images && sub.images.length > 0 ? (
                   <img src={getOptimizedUrl(sub.images[0], 300)} className="w-full h-full object-cover" alt={sub.title} />
@@ -987,6 +1024,8 @@ export default function App() {
   // 🔴 待审核弹窗状态
   const [viewingSubmission, setViewingSubmission] = useState(null);
   const [selectedSection, setSelectedSection] = useState(null);
+  const [stagedApprovals, setStagedApprovals] = useState({});
+  const [isSubmittingApprovalBatch, setIsSubmittingApprovalBatch] = useState(false);
   const [pendingRefreshKey, setPendingRefreshKey] = useState(0);
   const [pendingListAction, setPendingListAction] = useState(null);
   const [reviewImageUrlInput, setReviewImageUrlInput] = useState('');
@@ -1008,6 +1047,7 @@ export default function App() {
   
   // 🟢 移动提示词弹窗状态
   const [moveModalData, setMoveModalData] = useState(null); // { prompt, currentSectionId }
+  const [selectedPromptIds, setSelectedPromptIds] = useState(() => new Set());
   
   // 🟢 回顶按钮状态
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1324,6 +1364,98 @@ export default function App() {
     if (!isSidebarOpen) setIsSidebarOpen(true);
   }, [applySubmissionToPrompt, isSidebarOpen]);
 
+  const applyApprovedSubmissionToSections = useCallback((sourceSections, submission, sectionId, idSuffix = Date.now()) => {
+    const newPrompt = {
+      id: `u-${idSuffix}`,
+      title: submission.title,
+      content: submission.content,
+      images: submission.images || [],
+      tags: submission.tags || [],
+      contributor: submission.contributor || "匿名",
+      notes: submission.notes || ""
+    };
+
+    const findInSections = (targetId, originalTitle) => {
+      for (const section of sourceSections) {
+        const byId = section.prompts.find(p => p.id === targetId);
+        if (byId) return { prompt: byId, section };
+        if (originalTitle) {
+          const byTitle = section.prompts.find(p => p.title === originalTitle);
+          if (byTitle) return { prompt: byTitle, section };
+        }
+      }
+      return null;
+    };
+
+    if (submission.action === 'create') {
+      return sourceSections.map(sec => sec.id === sectionId ? { ...sec, prompts: [newPrompt, ...sec.prompts] } : sec);
+    }
+
+    if (submission.action === 'edit' && submission.targetId) {
+      const found = findInSections(submission.targetId, submission.originalTitle);
+      if (!found) {
+        return sourceSections.map(sec => sec.id === sectionId ? { ...sec, prompts: [newPrompt, ...sec.prompts] } : sec);
+      }
+
+      const originalId = found.prompt.id;
+      const originalSectionId = found.section.id;
+      const updatedPrompt = {
+        ...found.prompt,
+        title: submission.title,
+        content: submission.content,
+        images: submission.images || found.prompt.images,
+        tags: submission.tags || found.prompt.tags,
+        contributor: submission.contributor || found.prompt.contributor,
+        notes: submission.notes || found.prompt.notes
+      };
+
+      if (sectionId === originalSectionId) {
+        return sourceSections.map(sec => sec.id === sectionId ? {
+          ...sec,
+          prompts: sec.prompts.map(p => p.id === originalId ? updatedPrompt : p)
+        } : sec);
+      }
+
+      return sourceSections.map(sec => {
+        if (sec.id === originalSectionId) return { ...sec, prompts: sec.prompts.filter(p => p.id !== originalId) };
+        if (sec.id === sectionId) return { ...sec, prompts: [updatedPrompt, ...sec.prompts] };
+        return sec;
+      });
+    }
+
+    if ((submission.action === 'variant' || submission.action === 'edit-variant') && submission.targetId) {
+      const found = findInSections(submission.targetId, submission.originalTitle);
+      if (!found) return sourceSections;
+      const originalId = found.prompt.id;
+
+      return sourceSections.map(sec => ({
+        ...sec,
+        prompts: sec.prompts.map(p => {
+          if (p.id !== originalId) return p;
+          const mainImages = p.images || [];
+          const variantImages = (submission.images || []).filter(img => !mainImages.includes(img));
+          const newVariant = {
+            content: submission.content,
+            contributor: submission.contributor,
+            notes: submission.notes || '',
+            ...(variantImages.length > 0 ? { images: variantImages } : {})
+          };
+
+          if (submission.action === 'edit-variant' && submission.variantIndex !== null && submission.variantIndex !== undefined) {
+            const updatedSimilar = [...(p.similar || [])];
+            if (updatedSimilar[submission.variantIndex]) updatedSimilar[submission.variantIndex] = newVariant;
+            else updatedSimilar.push(newVariant);
+            return { ...p, similar: updatedSimilar };
+          }
+
+          return { ...p, similar: [...(p.similar || []), newVariant] };
+        })
+      }));
+    }
+
+    return sourceSections;
+  }, []);
+
   // 🔴 处理批准投稿
   const handleApproveSubmission = useCallback((submission, sectionId) => {
     const newPrompt = {
@@ -1573,18 +1705,46 @@ export default function App() {
     loadRejectedSubmissions();
   }, [isAdmin, pendingRefreshKey, loadRejectedSubmissions]);
 
-  // 🔴 处理批准投稿（带分区选择）
-  const handleApproveWithSection = useCallback(async (submission, sectionId) => {
-    const result = await setSubmissionStatus(submission.id, 'approved');
-    if (!result.success) {
-      alert("❌ 更新投稿状态失败: " + (result.error || "未知错误"));
-      return;
-    }
-    handleApproveSubmission(submission, sectionId);
+  useEffect(() => {
+    if (!viewingSubmission) return;
+    const staged = stagedApprovals[viewingSubmission.id];
+    setSelectedSection(staged?.sectionId || null);
+  }, [viewingSubmission, stagedApprovals]);
+
+  // 🔴 处理批准投稿（先暂存，批量提交）
+  const handleApproveWithSection = useCallback((submission, sectionId) => {
+    setStagedApprovals(prev => ({
+      ...prev,
+      [submission.id]: { submission, sectionId }
+    }));
     setViewingSubmission(null);
     setSelectedSection(null);
-    setPendingListAction({ type: 'remove', id: submission.id, at: Date.now() });
-  }, [handleApproveSubmission]);
+  }, []);
+
+  const handleSubmitApprovalBatch = useCallback(async () => {
+    const items = Object.values(stagedApprovals);
+    if (items.length === 0) return;
+    if (!confirm(`确定一次性提交 ${items.length} 个已确认投稿吗？`)) return;
+
+    setIsSubmittingApprovalBatch(true);
+    const ids = items.map(item => item.submission.id);
+    const result = await setSubmissionStatuses(ids, 'approved');
+    setIsSubmittingApprovalBatch(false);
+
+    if (!result.success) {
+      alert("❌ 批量更新投稿状态失败: " + (result.error || "未知错误"));
+      return;
+    }
+
+    setSections(prev => items.reduce((nextSections, item, index) => {
+      return applyApprovedSubmissionToSections(nextSections, item.submission, item.sectionId, `${Date.now()}-${index}`);
+    }, prev));
+    setStagedApprovals({});
+    setViewingSubmission(null);
+    setSelectedSection(null);
+    setPendingListAction({ type: 'removeMany', ids, at: Date.now() });
+    alert(`✅ 已批量提交 ${items.length} 个投稿！`);
+  }, [stagedApprovals, applyApprovedSubmissionToSections]);
 
   // 🔴 处理拒绝投稿
   const handleRejectSubmission = useCallback(async (submission) => {
@@ -1596,6 +1756,11 @@ export default function App() {
       return;
     }
     setViewingSubmission(null);
+    setStagedApprovals(prev => {
+      const next = { ...prev };
+      delete next[submissionId];
+      return next;
+    });
     setPendingListAction({ type: 'remove', id: submissionId, at: Date.now() });
     if (submission && typeof submission === 'object') {
       setRejectedSubmissions(prev => [{
@@ -1879,6 +2044,46 @@ export default function App() {
     });
     alert("✅ 已移动到目标分区！");
   }, []);
+
+  const togglePromptSelection = useCallback((promptId) => {
+    setSelectedPromptIds(prev => {
+      const next = new Set(prev);
+      next.has(promptId) ? next.delete(promptId) : next.add(promptId);
+      return next;
+    });
+  }, []);
+
+  const clearPromptSelection = useCallback(() => {
+    setSelectedPromptIds(new Set());
+  }, []);
+
+  const handleBulkMovePrompts = useCallback((toSectionId) => {
+    setSections(prev => {
+      const selectedIds = new Set(selectedPromptIds);
+      if (selectedIds.size === 0) return prev;
+
+      const newSections = JSON.parse(JSON.stringify(prev));
+      const toSection = newSections.find(s => s.id === toSectionId);
+      if (!toSection) return prev;
+
+      const movedPrompts = [];
+      newSections.forEach(section => {
+        if (section.id === toSectionId) return;
+        const keptPrompts = [];
+        section.prompts.forEach(prompt => {
+          if (selectedIds.has(prompt.id)) movedPrompts.push(prompt);
+          else keptPrompts.push(prompt);
+        });
+        section.prompts = keptPrompts;
+      });
+
+      if (movedPrompts.length === 0) return prev;
+      toSection.prompts = [...movedPrompts, ...toSection.prompts];
+      return newSections;
+    });
+    setSelectedPromptIds(new Set());
+    alert("✅ 已批量移动到目标分区！");
+  }, [selectedPromptIds]);
   
   const handleDeletePrompt = useCallback((promptId, sectionId) => {
     setSections(prev => prev.map(sec => {
@@ -2282,12 +2487,15 @@ export default function App() {
                   onViewSubmission={setViewingSubmission}
                   refreshKey={pendingRefreshKey}
                   listAction={pendingListAction}
+                  stagedApprovals={stagedApprovals}
+                  onSubmitApprovedBatch={handleSubmitApprovalBatch}
+                  isSubmittingBatch={isSubmittingApprovalBatch}
                 />
               </div>
             )}
             {filteredSections.map(section => (<div id={`section-${section.id}`} key={section.id} className={`group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}`} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION')}><div className="flex justify-between items-center mb-6 select-none"><div className="flex items-center flex-1">{isAdmin && (<div draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd} className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"><GripVertical size={20} /></div>)}
-            <div onClick={() => handleSectionToggle(section)} className="flex items-center cursor-pointer group/title"><div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}><ChevronDown size={14} /></div><h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center">{section.title} {section.isRestricted && <span className="ml-2 text-[9px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded border border-pink-200">重口</span>}</h2><span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span></div></div>{isAdmin && (<div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300"><button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button><button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>)}</div>{!section.isCollapsed && (<div onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')} className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}>{section.prompts.map(prompt => { if (renderedCount >= visibleCount) return null; renderedCount++; return (
-            <PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} isFavorite={isFavorite(prompt.id)} onToggleFavorite={toggleFavorite} isNew={isNewItem(prompt.id)}/> 
+            <div onClick={() => handleSectionToggle(section)} className="flex items-center cursor-pointer group/title"><div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}><ChevronDown size={14} /></div><h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center">{section.title} {section.isRestricted && <span className="ml-2 text-[9px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded border border-pink-200">重口</span>}</h2><span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span></div></div>{isAdmin && (<div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">{selectedPromptIds.size > 0 && (<><button onClick={(e) => { e.stopPropagation(); handleBulkMovePrompts(section.id); }} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"><FolderOutput size={14}/> 移动选中到此分区 ({selectedPromptIds.size})</button><button onClick={(e) => { e.stopPropagation(); clearPromptSelection(); }} className="text-slate-500 bg-slate-50 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition-colors text-xs font-bold">清空选择</button></>)}<button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button><button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>)}</div>{!section.isCollapsed && (<div onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')} className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}>{section.prompts.map(prompt => { if (renderedCount >= visibleCount) return null; renderedCount++; return (
+            <PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} isFavorite={isFavorite(prompt.id)} onToggleFavorite={toggleFavorite} isNew={isNewItem(prompt.id)} isSelected={selectedPromptIds.has(prompt.id)} onToggleSelect={togglePromptSelection}/> 
             ); })}{section.prompts.length === 0 && (<div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/><span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span></div>)}</div>)}</div>))}
             {isAdmin && <button onClick={handleCreateSection} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group mb-8"><div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div><span className="font-medium">新建一个分区</span></button>}
             {renderedCount >= visibleCount && (<div className="text-center py-8 text-slate-400 text-sm animate-pulse">下滑加载更多...</div>)}
@@ -2588,7 +2796,7 @@ export default function App() {
                   disabled={!selectedSection}
                   className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-green-500 hover:bg-green-600 disabled:bg-slate-300 disabled:cursor-not-allowed text-white rounded-lg font-bold transition-all text-sm"
                 >
-                  <CheckCircle size={16} /> 批准到选中分区
+                  <CheckCircle size={16} /> 确认到暂存队列
                 </button>
                 <button
                   onClick={() => handleRejectSubmission(viewingSubmission)}
