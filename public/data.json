@@ -3,7 +3,7 @@
     {
       "id": "demo",
       "title": "动漫 SFW",
-      "isCollapsed": true,
+      "isCollapsed": false,
       "prompts": [
         {
           "id": "u-1787187525120-9",
@@ -11693,7 +11693,7 @@
     {
       "id": "sfw-real",
       "title": "真人 SFW",
-      "isCollapsed": false,
+      "isCollapsed": true,
       "prompts": [
         {
           "id": "u-1783866397304-8",
@@ -21034,6 +21034,6 @@
     "真人",
     "通用"
   ],
-  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n\n虽然这个网站已经开了一阵子了，但是我还是要说明一下这个网站是提供提示词的，没有生图能力，如果想玩香蕉建议自寻途径\n每次审核投稿都有人发张图片想让AI帮他生成是何意味啊（\n\n6月13日更新\n将SFW子区分为真人和动漫子区\n更新了拉黑按钮，现在可以删除你不想看到的提示词了，双击隐藏按钮就可以隐藏该提示词\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
-  "lastUpdated": "2026-08-20T00:58:50.092Z"
+  "siteNotes": "欢迎来到大香蕉提示词收纳盒！\n\n虽然这个网站已经开了一阵子了，但是我还是要说明一下这个网站是提供提示词的，没有生图能力，如果想玩香蕉建议自寻途径\n每次审核投稿都有人发张图片想让AI帮他生成是何意味啊（\n\n8月20日更新\n将拉黑按钮改为了单击\n修复了一个BUG，现在即使加载了很多提示词也不会导致网页开始变卡了\n\n如果你喜欢本网站，可以给我的github项目打个星_(:з」∠)_\nhttps://github.com/unknowlei/nanobanana-website",
+  "lastUpdated": "2026-08-20T07:28:42.297Z"
 }
