@@ -49,10 +49,12 @@ const useImageDimensions = (imageUrl) => {
       return;
     }
 
+    let isActive = true;
     setIsLoading(true);
     const img = new Image();
     
     img.onload = () => {
+      if (!isActive) return;
       const width = img.naturalWidth;
       const height = img.naturalHeight;
       const aspectRatio = width / height;
@@ -66,12 +68,20 @@ const useImageDimensions = (imageUrl) => {
     };
 
     img.onerror = () => {
+      if (!isActive) return;
       setDimensions({ width: 0, height: 0, aspectRatio: 1, orientation: 'square' });
       setIsLoading(false);
     };
 
-    // 使用优化后的 URL 来检测尺寸
-    img.src = imageUrl;
+    // 与详情页复用同一张缩放图，避免额外下载和解码原始大图。
+    img.src = getOptimizedUrl(imageUrl, 1200) || imageUrl;
+
+    return () => {
+      isActive = false;
+      img.onload = null;
+      img.onerror = null;
+      img.removeAttribute('src');
+    };
   }, [imageUrl]);
 
   return { ...dimensions, isLoading };
@@ -530,7 +540,7 @@ const SubmissionModal = ({ onClose, commonTags = [], mode = 'create', initialDat
 };
 
 // --- 5. 提示词卡片 ---
-const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite, isNew, isSelected = false, onToggleSelect = null, onBlacklist = null, isBlacklistArmed = false }) => {
+const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleDragStart, handleDragEnd, handleDragOver, handleDragEnter, handleDrop, onClick, isFavorite, onToggleFavorite, isNew, isSelected = false, onToggleSelect = null, onBlacklist = null }) => {
   const tags = Array.isArray(prompt.tags) ? prompt.tags : [];
   const images = Array.isArray(prompt.images) && prompt.images.length > 0 ? prompt.images : (prompt.image ? [prompt.image] : []);
   const [currentImgIdx, setCurrentImgIdx] = useState(0);
@@ -602,10 +612,8 @@ const PromptCard = memo(({ prompt, isAdmin, draggedItem, dragOverTarget, handleD
       {onBlacklist && (
         <button
           onClick={(e) => { e.stopPropagation(); onBlacklist(prompt); }}
-          className={`absolute bottom-3 right-12 p-2 rounded-full z-20 transition-all active:scale-90 hover:bg-slate-100 ${
-            isBlacklistArmed ? 'text-rose-500 bg-rose-50 ring-2 ring-rose-200' : 'text-slate-300 bg-white/80'
-          }`}
-          title={isBlacklistArmed ? "再次点击拉黑" : "拉黑"}
+          className="absolute bottom-3 right-12 p-2 rounded-full z-20 transition-all active:scale-90 hover:bg-rose-50 hover:text-rose-500 text-slate-300 bg-white/80"
+          title="拉黑"
         >
           <EyeOff size={16} />
         </button>
@@ -1102,8 +1110,6 @@ export default function App() {
   const [blacklistConfirmPrompt, setBlacklistConfirmPrompt] = useState(null);
   const [blacklistConfirmOptOut, setBlacklistConfirmOptOut] = useState(false);
   const [suppressBlacklistConfirm, setSuppressBlacklistConfirm] = useState(() => localStorage.getItem('nanobanana_blacklist_no_confirm') === 'true');
-  const [armedBlacklistPromptId, setArmedBlacklistPromptId] = useState(null);
-  const blacklistArmTimerRef = useRef(null);
   
   // 🟢 回顶按钮状态
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -1122,12 +1128,12 @@ export default function App() {
 
   // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
   const editingPromptFirstImage = useMemo(() => {
-    if (!editingPrompt) return null;
+    if (!isPromptModalOpen || !editingPrompt) return null;
     const images = Array.isArray(editingPrompt.images) && editingPrompt.images.length > 0
       ? editingPrompt.images
       : (editingPrompt.image ? [editingPrompt.image] : []);
     return images.length > 0 ? images[0] : null;
-  }, [editingPrompt]);
+  }, [editingPrompt, isPromptModalOpen]);
 
   // 🟢 自适应弹窗：检测第一张图片的尺寸
   const { orientation: imageOrientation, aspectRatio: imageAspectRatio, isLoading: isImageLoading } = useImageDimensions(editingPromptFirstImage);
@@ -1161,12 +1167,6 @@ export default function App() {
   useEffect(() => {
     localStorage.setItem('nanobanana_blacklist_no_confirm', suppressBlacklistConfirm ? 'true' : 'false');
   }, [suppressBlacklistConfirm]);
-
-  useEffect(() => {
-    return () => {
-      if (blacklistArmTimerRef.current) clearTimeout(blacklistArmTimerRef.current);
-    };
-  }, []);
 
   useEffect(() => {
     localStorage.setItem('nanobanana_last_visit', Date.now().toString());
@@ -2192,22 +2192,13 @@ export default function App() {
 
   const handleBlacklistClick = useCallback((prompt) => {
     if (!prompt?.id) return;
-    if (armedBlacklistPromptId !== prompt.id) {
-      setArmedBlacklistPromptId(prompt.id);
-      if (blacklistArmTimerRef.current) clearTimeout(blacklistArmTimerRef.current);
-      blacklistArmTimerRef.current = setTimeout(() => setArmedBlacklistPromptId(null), 2500);
-      return;
-    }
-
-    setArmedBlacklistPromptId(null);
-    if (blacklistArmTimerRef.current) clearTimeout(blacklistArmTimerRef.current);
     if (suppressBlacklistConfirm) {
       addToBlacklist(prompt);
       return;
     }
     setBlacklistConfirmPrompt(prompt);
     setBlacklistConfirmOptOut(false);
-  }, [armedBlacklistPromptId, suppressBlacklistConfirm, addToBlacklist]);
+  }, [suppressBlacklistConfirm, addToBlacklist]);
 
   const confirmBlacklistPrompt = useCallback(() => {
     if (!blacklistConfirmPrompt) return;
@@ -2589,7 +2580,6 @@ export default function App() {
                         isFavorite={isFavorite(prompt.id)} 
                         onToggleFavorite={toggleFavorite} 
                         onBlacklist={handleBlacklistClick}
-                        isBlacklistArmed={armedBlacklistPromptId === prompt.id}
                         isNew={true}
                       />
                     ))}
@@ -2617,7 +2607,7 @@ export default function App() {
             )}
             {filteredSections.map(section => (<div id={`section-${section.id}`} key={section.id} className={`group mb-8 bg-white/70 backdrop-blur-lg rounded-3xl p-6 border transition-all duration-500 ease-out ${dragOverTarget === section.id && draggedItem?.type === 'SECTION' ? 'border-indigo-400 shadow-[0_0_0_4px_rgba(99,102,241,0.1)] scale-[1.01]' : 'border-white/50 shadow-sm hover:shadow-xl hover:bg-white/80'}`} onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION')}><div className="flex justify-between items-center mb-6 select-none"><div className="flex items-center flex-1">{isAdmin && (<div draggable onDragStart={(e) => handleDragStart(e, 'SECTION', section)} onDragEnd={handleDragEnd} className="mr-3 text-slate-300 hover:text-indigo-400 cursor-grab active:cursor-grabbing p-1 transition-colors"><GripVertical size={20} /></div>)}
             <div onClick={() => handleSectionToggle(section)} className="flex items-center cursor-pointer group/title"><div className={`mr-3 p-1.5 rounded-full bg-white shadow-sm text-slate-400 group-hover/title:text-indigo-500 transition-all duration-300 ${section.isCollapsed ? '-rotate-90' : ''}`}><ChevronDown size={14} /></div><h2 className="text-lg font-bold text-slate-800 tracking-tight flex items-center">{section.title} {section.isRestricted && <span className="ml-2 text-[9px] bg-pink-100 text-pink-600 px-1.5 py-0.5 rounded border border-pink-200">重口</span>}</h2><span className="ml-3 bg-slate-100/80 text-slate-500 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-inner">{section.prompts.length}</span></div></div>{isAdmin && (<div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">{selectedPromptIds.size > 0 && (<><button onClick={(e) => { e.stopPropagation(); handleBulkMovePrompts(section.id); }} className="text-emerald-600 bg-emerald-50 hover:bg-emerald-100 px-2 py-1.5 rounded-lg transition-colors text-xs font-bold flex items-center gap-1"><FolderOutput size={14}/> 移动选中到此分区 ({selectedPromptIds.size})</button><button onClick={(e) => { e.stopPropagation(); clearPromptSelection(); }} className="text-slate-500 bg-slate-50 hover:bg-slate-100 px-2 py-1.5 rounded-lg transition-colors text-xs font-bold">清空选择</button></>)}<button onClick={(e) => { e.stopPropagation(); setEditingSection(section); setIsSectionModalOpen(true); }} className="text-slate-400 hover:text-indigo-600 p-1.5 hover:bg-indigo-50 rounded-lg transition-colors"><Edit2 size={14}/></button><button onClick={(e) => { e.stopPropagation(); if(confirm("删除分区?")) setSections(prev => prev.filter(s => s.id !== section.id)); }} className="text-slate-400 hover:text-red-500 p-1.5 hover:bg-red-50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>)}</div>{!section.isCollapsed && (<div onDragOver={handleDragOver} onDragEnter={(e) => handleDragEnter(e, section.id)} onDrop={(e) => handleDrop(e, section.id, 'SECTION_AREA')} className={`grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 min-h-[120px] transition-all rounded-2xl p-2 -m-2 ${dragOverTarget === section.id && draggedItem?.type === 'PROMPT' ? 'bg-indigo-50/50 ring-2 ring-indigo-200 ring-offset-2' : ''}`}>{section.prompts.map(prompt => { if (renderedCount >= visibleCount) return null; renderedCount++; return (
-            <PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} isFavorite={isFavorite(prompt.id)} onToggleFavorite={toggleFavorite} onBlacklist={handleBlacklistClick} isBlacklistArmed={armedBlacklistPromptId === prompt.id} isNew={isNewItem(prompt.id)} isSelected={selectedPromptIds.has(prompt.id)} onToggleSelect={togglePromptSelection}/> 
+            <PromptCard key={prompt.id} prompt={prompt} isAdmin={isAdmin} draggedItem={draggedItem} dragOverTarget={dragOverTarget} handleDragStart={(e, type, item) => handleDragStart(e, type, item, section.id)} handleDragEnd={handleDragEnd} handleDragOver={handleDragOver} handleDragEnter={handleDragEnter} handleDrop={(e, targetId, type) => handleDrop(e, targetId, type, section.id)} onClick={handleCardClick} isFavorite={isFavorite(prompt.id)} onToggleFavorite={toggleFavorite} onBlacklist={handleBlacklistClick} isNew={isNewItem(prompt.id)} isSelected={selectedPromptIds.has(prompt.id)} onToggleSelect={togglePromptSelection}/>
             ); })}{section.prompts.length === 0 && (<div className="col-span-full flex flex-col items-center justify-center text-slate-400 text-sm pointer-events-none py-8 border-2 border-dashed border-slate-200 rounded-2xl bg-slate-50/50"><UploadCloud size={32} className="mb-2 opacity-50 text-indigo-300"/><span className="text-slate-400">{isAdmin ? '拖拽提示词到这里' : '空空如也'}</span></div>)}</div>)}</div>))}
             {isAdmin && <button onClick={handleCreateSection} className="w-full py-5 border-2 border-dashed border-slate-300/50 rounded-3xl text-slate-400 hover:text-indigo-500 hover:border-indigo-300 hover:bg-indigo-50/50 flex items-center justify-center gap-2 transition-all duration-300 group mb-8"><div className="p-2 bg-white rounded-full shadow-sm group-hover:scale-110 transition-transform"><FolderPlus size={18}/></div><span className="font-medium">新建一个分区</span></button>}
             {renderedCount >= visibleCount && (<div className="text-center py-8 text-slate-400 text-sm animate-pulse">下滑加载更多...</div>)}
@@ -2939,7 +2929,7 @@ export default function App() {
                 <EyeOff size={20} />
               </div>
               <div className="min-w-0">
-                <h3 className="font-bold text-slate-800 text-lg">删除这个提示词？</h3>
+                <h3 className="font-bold text-slate-800 text-lg">拉黑这个提示词？</h3>
                 <p className="text-sm text-slate-500 mt-1 truncate">{blacklistConfirmPrompt.title || '未命名提示词'}</p>
               </div>
             </div>
@@ -2964,7 +2954,7 @@ export default function App() {
                 onClick={confirmBlacklistPrompt}
                 className="px-4 py-2 rounded-xl bg-rose-500 text-white text-sm font-bold hover:bg-rose-600 transition-colors"
               >
-                确认删除
+                确认拉黑
               </button>
             </div>
           </div>
