@@ -49,10 +49,12 @@ const useImageDimensions = (imageUrl) => {
       return;
     }
 
+    let isActive = true;
     setIsLoading(true);
     const img = new Image();
     
     img.onload = () => {
+      if (!isActive) return;
       const width = img.naturalWidth;
       const height = img.naturalHeight;
       const aspectRatio = width / height;
@@ -66,12 +68,20 @@ const useImageDimensions = (imageUrl) => {
     };
 
     img.onerror = () => {
+      if (!isActive) return;
       setDimensions({ width: 0, height: 0, aspectRatio: 1, orientation: 'square' });
       setIsLoading(false);
     };
 
-    // 使用优化后的 URL 来检测尺寸
-    img.src = imageUrl;
+    // 与详情页复用同一张缩放图，避免额外下载和解码原始大图。
+    img.src = getOptimizedUrl(imageUrl, 1200) || imageUrl;
+
+    return () => {
+      isActive = false;
+      img.onload = null;
+      img.onerror = null;
+      img.removeAttribute('src');
+    };
   }, [imageUrl]);
 
   return { ...dimensions, isLoading };
@@ -1118,12 +1128,12 @@ export default function App() {
 
   // 🟢 自适应弹窗：获取 editingPrompt 的第一张图片 URL
   const editingPromptFirstImage = useMemo(() => {
-    if (!editingPrompt) return null;
+    if (!isPromptModalOpen || !editingPrompt) return null;
     const images = Array.isArray(editingPrompt.images) && editingPrompt.images.length > 0
       ? editingPrompt.images
       : (editingPrompt.image ? [editingPrompt.image] : []);
     return images.length > 0 ? images[0] : null;
-  }, [editingPrompt]);
+  }, [editingPrompt, isPromptModalOpen]);
 
   // 🟢 自适应弹窗：检测第一张图片的尺寸
   const { orientation: imageOrientation, aspectRatio: imageAspectRatio, isLoading: isImageLoading } = useImageDimensions(editingPromptFirstImage);
