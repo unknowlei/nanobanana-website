@@ -286,7 +286,7 @@ const LazyImage = memo(({ src, alt, className, width = 400, ...props }) => {
 
   return (
     <div className={`relative overflow-hidden bg-slate-50 ${className}`}>
-      {!isLoaded && <div className="absolute inset-0 bg-slate-100 animate-pulse z-10" />}
+      {!isLoaded && <div className="absolute inset-0 bg-slate-100 z-10" />}
       <img 
         src={optimizedSrc} 
         alt={alt} 
