@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef, useMemo, useCallback, memo } from 'react';
 import {
   Plus, Search, X, Edit2, Trash2, ChevronDown,
   Image as ImageIcon, FolderPlus, Save, Unlock, Lock,
@@ -1031,6 +1031,8 @@ const INITIAL_TAGS = ["示例标签"];
 const INITIAL_SECTIONS = [{ id: 'demo', title: '默认分区', isCollapsed: false, prompts: [] }];
 const INITIAL_NOTES = "欢迎来到大香蕉提示词收纳盒！\n在这里记录你的灵感。";
 const ITEMS_PER_PAGE = 24;
+const LOAD_MORE_SCROLL_THRESHOLD = 0.6;
+const LOAD_MORE_REARM_VIEWPORT_RATIO = 0.25;
 
 export default function App() {
   const [currentView, setCurrentView] = useState('PROMPTS'); 
@@ -1113,8 +1115,14 @@ export default function App() {
   
   // 🟢 回顶按钮状态
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [lastScrollY, setLastScrollY] = useState(0);
-  const [scrollingUp, setScrollingUp] = useState(false);
+  const lastScrollYRef = useRef(0);
+  const lastLoadHeightRef = useRef(0);
+  const lastLoadScrollYRef = useRef(Number.NEGATIVE_INFINITY);
+  const pendingScrollProgressRef = useRef(null);
+  const isRestoringScrollRef = useRef(false);
+  const scrollFrameRef = useRef(null);
+  const scrollRestoreFrameRef = useRef(null);
+  const hideBackToTopTimerRef = useRef(null);
   
   // 🟢 子区跳转下拉菜单状态
   const [isSectionNavOpen, setIsSectionNavOpen] = useState(false);
@@ -1168,31 +1176,83 @@ export default function App() {
     localStorage.setItem('nanobanana_blacklist_no_confirm', suppressBlacklistConfirm ? 'true' : 'false');
   }, [suppressBlacklistConfirm]);
 
+  useLayoutEffect(() => {
+    if (pendingScrollProgressRef.current === null) return;
+
+    const scrollProgress = pendingScrollProgressRef.current;
+    pendingScrollProgressRef.current = null;
+    const scrollableHeight = Math.max(document.documentElement.scrollHeight - window.innerHeight, 0);
+    const restoredScrollY = scrollProgress * scrollableHeight;
+
+    isRestoringScrollRef.current = true;
+    window.scrollTo({ top: restoredScrollY, behavior: 'auto' });
+    lastScrollYRef.current = restoredScrollY;
+    lastLoadScrollYRef.current = restoredScrollY;
+
+    if (scrollRestoreFrameRef.current !== null) {
+      window.cancelAnimationFrame(scrollRestoreFrameRef.current);
+    }
+    scrollRestoreFrameRef.current = window.requestAnimationFrame(() => {
+      isRestoringScrollRef.current = false;
+      scrollRestoreFrameRef.current = null;
+    });
+  }, [visibleCount]);
+
   useEffect(() => {
     localStorage.setItem('nanobanana_last_visit', Date.now().toString());
     const handleScroll = () => {
-      if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 500) setVisibleCount(prev => prev + ITEMS_PER_PAGE);
-      
-      // 🟢 回顶按钮逻辑：向上滚动时显示
-      const currentScrollY = window.scrollY;
-      if (currentScrollY < lastScrollY && currentScrollY > 200) {
-        setScrollingUp(true);
-        setShowBackToTop(true);
-      } else if (currentScrollY > lastScrollY) {
-        setScrollingUp(false);
-        // 延迟隐藏，给用户反应时间
-        setTimeout(() => {
-          if (!scrollingUp) setShowBackToTop(false);
-        }, 1000);
-      }
-      if (currentScrollY <= 100) {
-        setShowBackToTop(false);
-      }
-      setLastScrollY(currentScrollY);
+      if (scrollFrameRef.current !== null) return;
+
+      scrollFrameRef.current = window.requestAnimationFrame(() => {
+        scrollFrameRef.current = null;
+        if (isRestoringScrollRef.current) return;
+
+        const currentScrollY = window.scrollY;
+        const documentHeight = document.documentElement.scrollHeight;
+        const scrollableHeight = Math.max(documentHeight - window.innerHeight, 0);
+        const scrollProgress = documentHeight > 0
+          ? (currentScrollY + window.innerHeight) / documentHeight
+          : 0;
+        const scrollbarProgress = scrollableHeight > 0 ? currentScrollY / scrollableHeight : 0;
+        const hasScrolledFarEnough = currentScrollY - lastLoadScrollYRef.current
+          >= window.innerHeight * LOAD_MORE_REARM_VIEWPORT_RATIO;
+
+        if (scrollProgress >= LOAD_MORE_SCROLL_THRESHOLD && hasScrolledFarEnough && documentHeight !== lastLoadHeightRef.current) {
+          pendingScrollProgressRef.current = scrollbarProgress;
+          lastLoadHeightRef.current = documentHeight;
+          setVisibleCount(prev => prev + ITEMS_PER_PAGE);
+        }
+
+        // 🟢 回顶按钮逻辑：向上滚动时显示
+        if (currentScrollY < lastScrollYRef.current && currentScrollY > 200) {
+          if (hideBackToTopTimerRef.current !== null) {
+            window.clearTimeout(hideBackToTopTimerRef.current);
+            hideBackToTopTimerRef.current = null;
+          }
+          setShowBackToTop(true);
+        } else if (currentScrollY > lastScrollYRef.current) {
+          if (hideBackToTopTimerRef.current !== null) {
+            window.clearTimeout(hideBackToTopTimerRef.current);
+          }
+          hideBackToTopTimerRef.current = window.setTimeout(() => {
+            setShowBackToTop(false);
+            hideBackToTopTimerRef.current = null;
+          }, 1000);
+        }
+        if (currentScrollY <= 100) {
+          setShowBackToTop(false);
+        }
+        lastScrollYRef.current = currentScrollY;
+      });
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, [lastScrollY, scrollingUp]);
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      if (scrollFrameRef.current !== null) window.cancelAnimationFrame(scrollFrameRef.current);
+      if (scrollRestoreFrameRef.current !== null) window.cancelAnimationFrame(scrollRestoreFrameRef.current);
+      if (hideBackToTopTimerRef.current !== null) window.clearTimeout(hideBackToTopTimerRef.current);
+    };
+  }, []);
 
   // 🟢 回顶功能
   const scrollToTop = useCallback(() => {
