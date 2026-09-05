@@ -20,5 +20,25 @@
     "postcss": "^8.4.27",
     "tailwindcss": "^3.3.3",
     "vite": "^4.3.9"
+  },
+  "overrides": {
+    "@firebase/firestore": {
+      "protobufjs": "8.6.6"
+    },
+    "@firebase/firestore-compat": {
+      "protobufjs": "8.6.6"
+    },
+    "@grpc/grpc-js": {
+      "protobufjs": "8.6.6"
+    },
+    "@grpc/proto-loader": {
+      "protobufjs": "8.6.6"
+    },
+    "firebase": {
+      "protobufjs": "8.6.6"
+    },
+    "protobufjs": {
+      "protobufjs": "8.6.6"
+    }
   }
 }
