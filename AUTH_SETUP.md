@@ -97,6 +97,7 @@
 ### 4. 管理员权限修复的必要部署配置
 
 - Vercel 的 Node.js 版本设为 **22 或更高版本**，安装更新后的依赖。
+- 服务端固定使用 `firebase-admin@13.10.0`，部署时保留提交的 `package-lock.json`。
 - Firebase 项目保持为 `nano-banana-d0fe0`；指定管理员 UID 为 `8jD6GqU7D4P7FZ0P05xrtUUK2qJ2`，前端、`lib/admin-auth.js` 和 `firestore.rules` 必须一致。
 - 保持现有 Google 登录提供方、授权域名和 GitHub 环境变量配置。
 - 本次 ID token 验证无需新增环境变量或服务账号密钥。正式环境不得设置 `FIREBASE_AUTH_EMULATOR_HOST`。

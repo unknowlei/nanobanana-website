@@ -167,7 +167,7 @@ describe('real Firebase ID token verification', () => {
     context.mock.method(keyFetcher, 'fetchPublicKeys', async () => { throw new Error('offline fixture failure'); });
     const res = response();
     assert.equal(await requireAdmin(request('POST', `Bearer ${token()}`), res), null);
-    // Firebase Admin 14.5 maps key-fetch errors to auth/argument-error.
+    // Firebase Admin maps key-fetch errors to auth/argument-error.
     assert.equal(res.statusCode, 401);
     assert.equal(fetchCalls.length, 0);
   });
