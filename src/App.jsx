@@ -9,7 +9,7 @@ import {
   Heart, PanelRightOpen, PanelRightClose, GripHorizontal, CopyPlus, Edit3, Clock, CheckCircle, XCircle, Archive, FolderOutput,
   ArrowUpCircle, List, History
 } from 'lucide-react';
-import { submitPrompt, getPendingSubmissions, setSubmissionStatus, setSubmissionStatuses, deleteSubmissionForever, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange } from './firebase';
+import { submitPrompt, getPendingSubmissions, setSubmissionStatus, setSubmissionStatuses, deleteSubmissionForever, uploadImageToFirebase, loginWithGoogle, logout, onAuthChange, getAdminRequestHeaders } from './firebase';
 
 /**
  * ==============================================================================
@@ -1348,9 +1348,7 @@ export default function App() {
   useEffect(() => {
     const unsubscribe = onAuthChange((user, isAdminUser) => {
       setCurrentUser(user);
-      if (isAdminUser) {
-        setIsAdmin(true);
-      }
+      setIsAdmin(isAdminUser);
     });
     return () => unsubscribe();
   }, []);
@@ -1966,9 +1964,7 @@ export default function App() {
     try {
       const response = await fetch('/api/sync-github', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: await getAdminRequestHeaders(),
         body: JSON.stringify({
           sections,
           commonTags,

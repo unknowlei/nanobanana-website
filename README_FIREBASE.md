@@ -49,7 +49,7 @@
 5. 等待管理员审核
 
 ### 管理员端
-1. 切换到管理员模式（点击5次锁图标）
+1. 使用指定管理员的 Google 账号登录
 2. 点击顶部橙色时钟图标打开待审核面板
 3. 查看投稿列表，点击"查看详情"展开
 4. 查看完整的 Prompt 内容和配图预览
@@ -80,30 +80,22 @@ src/
 
 ## 注意事项
 
-1. **Firebase 安全规则**：需要在 Firebase 控制台配置适当的安全规则
+1. **Firebase 安全规则**：在 Firebase 控制台发布仓库根目录 `firestore.rules`，部署步骤见 [AUTH_SETUP.md](./AUTH_SETUP.md)
 2. **图片存储**：当前使用 ImgBB，可选择迁移到 Firebase Storage
 3. **数据持久化**：审核通过的数据存储在本地 localStorage，建议定期导出备份
 
-## Firebase 安全规则建议
+## Firebase 安全规则
 
-```javascript
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /pending_submissions/{document} {
-      // 允许所有人创建投稿
-      allow create: if true;
-      // 只允许读取和删除（管理员操作）
-      allow read, update, delete: if request.auth != null;
-    }
-  }
-}
-```
+以 [firestore.rules](./firestore.rules) 为唯一部署来源，发布到项目 `nano-banana-d0fe0`：
+
+- 普通投稿无需登录，创建状态必须为 `pending`，`processedAt` 必须为 `null`。
+- 投稿的读取、更新和删除仅限管理员 UID `8jD6GqU7D4P7FZ0P05xrtUUK2qJ2`。
+- 管理 API 接收 Firebase ID token，由后端验证所属项目及管理员 UID 后执行操作。
+- 公开浏览保持现有流程。
 
 ## 下一步优化建议
 
-1. 添加管理员身份验证（Firebase Authentication）
-2. 实现图片上传到 Firebase Storage
-3. 添加投稿通知功能
-4. 实现批量审核功能
-5. 添加审核历史记录
+1. 实现图片上传到 Firebase Storage
+2. 添加投稿通知功能
+3. 实现批量审核功能
+4. 添加审核历史记录

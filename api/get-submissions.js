@@ -1,8 +1,10 @@
 // Vercel Serverless Function - get submissions
+import { requireAdmin } from '../lib/admin-auth.js';
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
@@ -13,6 +15,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const idToken = await requireAdmin(req, res);
+    if (!idToken) return;
+
     const statusFilter = (req.query?.status || 'pending').toString();
     const allowedStatuses = new Set(['pending', 'approved', 'rejected', 'all']);
     if (!allowedStatuses.has(statusFilter)) {
@@ -24,8 +29,8 @@ export default async function handler(req, res) {
     const collection = 'pending_submissions';
 
     const documents = statusFilter === 'all'
-      ? await listAllDocuments(projectId, apiKey, collection)
-      : await queryDocumentsByStatus(projectId, apiKey, collection, statusFilter);
+      ? await listAllDocuments(projectId, apiKey, collection, idToken)
+      : await queryDocumentsByStatus(projectId, apiKey, collection, statusFilter, idToken);
 
     const submissions = documents
       .map((doc) => {
@@ -65,7 +70,7 @@ export default async function handler(req, res) {
   }
 }
 
-async function listAllDocuments(projectId, apiKey, collection) {
+async function listAllDocuments(projectId, apiKey, collection, idToken) {
   const documents = [];
   let nextPageToken = '';
 
@@ -76,6 +81,7 @@ async function listAllDocuments(projectId, apiKey, collection) {
       method: 'GET',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
       }
     });
 
@@ -93,12 +99,13 @@ async function listAllDocuments(projectId, apiKey, collection) {
   return documents;
 }
 
-async function queryDocumentsByStatus(projectId, apiKey, collection, status) {
+async function queryDocumentsByStatus(projectId, apiKey, collection, status, idToken) {
   const firestoreUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents:runQuery?key=${apiKey}`;
   const response = await fetch(firestoreUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${idToken}`,
     },
     body: JSON.stringify({
       structuredQuery: {

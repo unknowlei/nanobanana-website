@@ -1,4 +1,6 @@
 // Vercel Serverless Function - 同步数据到 GitHub
+import { requireAdmin } from '../lib/admin-auth.js';
+
 export default async function handler(req, res) {
   // 只允许 POST 请求
   if (req.method !== 'POST') {
@@ -6,6 +8,9 @@ export default async function handler(req, res) {
   }
 
   try {
+    const idToken = await requireAdmin(req, res);
+    if (!idToken) return;
+
     const { sections, commonTags, siteNotes } = req.body;
 
     // 验证数据

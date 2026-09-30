@@ -67,6 +67,8 @@
 
 添加以下 3 个环境变量：
 
+已有线上部署请沿用当前 `GITHUB_TOKEN`、`GITHUB_REPO` 和 `GITHUB_FILE_PATH` 的值，不要用下方示例覆盖现有仓库和文件路径。
+
 #### 变量 1：GITHUB_TOKEN
 - **Key**: `GITHUB_TOKEN`
 - **Value**: 你刚才生成的 GitHub Token（`ghp_xxxxxxxxxxxxxxxxxxxx`）
@@ -92,6 +94,15 @@
 2. 点击最新的部署 → **Redeploy**
 3. 或者推送新的代码到 GitHub 触发自动部署
 
+### 4. 管理员权限修复的必要部署配置
+
+- Vercel 的 Node.js 版本设为 **22 或更高版本**，安装更新后的依赖。
+- Firebase 项目保持为 `nano-banana-d0fe0`；指定管理员 UID 为 `8jD6GqU7D4P7FZ0P05xrtUUK2qJ2`，前端、`lib/admin-auth.js` 和 `firestore.rules` 必须一致。
+- 保持现有 Google 登录提供方、授权域名和 GitHub 环境变量配置。
+- 本次 ID token 验证无需新增环境变量或服务账号密钥。正式环境不得设置 `FIREBASE_AUTH_EMULATOR_HOST`。
+- 将新前端和 API 作为同一次 Vercel 部署发布，随后立即在 Firebase 控制台项目 `nano-banana-d0fe0` 的 **Firestore Database → 规则** 中发布仓库根目录 `firestore.rules` 的完整内容。Vercel 部署不会自动发布 Firestore 规则。
+- 管理员刷新已打开的旧页面，再使用现有 Google 账号登录。公开浏览和普通投稿仍无需登录；普通投稿以 `status: 'pending'`、`processedAt: null` 创建。
+
 ---
 
 ## 第四步：本地测试
@@ -111,10 +122,10 @@ GITHUB_FILE_PATH=data%20(84).json
 ### 2. 启动开发服务器
 
 ```bash
-npm run dev
-# 或
 vercel dev
 ```
+
+`npm run dev` 仅启动 Vite 前端，不执行 `/api/*`；涉及投稿和管理接口时使用 `vercel dev`。
 
 ### 3. 测试功能
 
@@ -167,10 +178,10 @@ vercel dev
 
 ### 管理员验证
 
-- ✅ 使用 Firebase UID 验证（`kt3i3s8SdibmJ81DNGONE6YZUHZ2`）
-- ✅ UID 无法伪造
-- ✅ 只有你的 Google 账号可以成为管理员
-- ✅ 其他人登录会被自动登出
+- 管理请求携带 `Authorization: Bearer <Firebase ID token>`。
+- 后端通过 Firebase Admin SDK 验证 token 的签名、有效期及所属项目，再确认 UID 为 `8jD6GqU7D4P7FZ0P05xrtUUK2qJ2`，通过后才允许管理操作。
+- Firestore 投稿的读取、更新和删除也仅允许该 UID；普通用户仍可创建待审核投稿。
+- Firestore 规则以仓库根目录 `firestore.rules` 为唯一部署来源。
 
 ---
 
@@ -182,7 +193,7 @@ vercel dev
 
 **解决**：
 1. 确保使用正确的 Google 账号登录
-2. 如果需要更换管理员账号，修改 `src/firebase.js` 中的 `ADMIN_UID`
+2. 如果需要更换管理员账号，同步修改 `src/firebase.js`、`lib/admin-auth.js` 的 `ADMIN_UID` 和 `firestore.rules` 中的 UID，并重新部署代码、发布规则
 
 ### Q2: 同步失败，提示"GitHub token not configured"
 
@@ -204,12 +215,12 @@ vercel dev
 
 ### Q4: 本地测试时同步失败
 
-**原因**：本地环境变量未配置
+**原因**：本地环境变量未配置，或仅启动了 Vite 前端
 
 **解决**：
 1. 创建 `.env.local` 文件
 2. 添加 `GITHUB_TOKEN` 等变量
-3. 重启开发服务器
+3. 使用 `vercel dev` 启动包含 API 的开发服务器
 
 ---
 
@@ -227,7 +238,9 @@ vercel dev
 - [ ] 授权域名已添加
 - [ ] GitHub Personal Access Token 已生成
 - [ ] Vercel 环境变量已配置（3个）
+- [ ] Vercel 使用 Node.js 22 或更高版本
 - [ ] 项目已重新部署
+- [ ] 已在正确 Firebase 项目发布 `firestore.rules`
 - [ ] 本地 `.env.local` 已创建（可选）
 - [ ] 登录功能测试通过
 - [ ] 同步到 GitHub 功能测试通过

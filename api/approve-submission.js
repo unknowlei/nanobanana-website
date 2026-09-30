@@ -1,11 +1,13 @@
 // Vercel Serverless Function: 批准投稿
 // 使用 Firebase REST API 删除已批准的投稿，绕过 CORS 问题
 
+import { requireAdmin } from '../lib/admin-auth.js';
+
 export default async function handler(req, res) {
   // 设置 CORS 头
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
 
   // 处理预检请求
   if (req.method === 'OPTIONS') {
@@ -17,10 +19,13 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { submissionId } = req.body;
+    const idToken = await requireAdmin(req, res);
+    if (!idToken) return;
 
-    if (!submissionId) {
-      return res.status(400).json({ error: '缺少 submissionId 参数' });
+    const { submissionId } = req.body || {};
+
+    if (typeof submissionId !== 'string' || !submissionId || submissionId.includes('/') || submissionId === '.' || submissionId === '..') {
+      return res.status(400).json({ error: 'submissionId 参数无效' });
     }
 
     // Firebase 配置
@@ -29,12 +34,13 @@ export default async function handler(req, res) {
     const collection = 'pending_submissions';
     
     // 使用 Firebase REST API 删除文档（批准后从待处理分区移除）
-    const deleteUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${submissionId}?key=${apiKey}`;
+    const deleteUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collection}/${encodeURIComponent(submissionId)}?key=${apiKey}`;
 
     const response = await fetch(deleteUrl, {
       method: 'DELETE',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${idToken}`,
       }
     });
 

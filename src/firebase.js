@@ -22,6 +22,18 @@ const googleProvider = new GoogleAuthProvider();
 // 管理员 UID
 const ADMIN_UID = "8jD6GqU7D4P7FZ0P05xrtUUK2qJ2";
 
+export const getAdminRequestHeaders = async () => {
+  const user = auth.currentUser;
+  if (!user) {
+    throw new Error("请先使用管理员账户登录");
+  }
+  const token = await user.getIdToken();
+  return {
+    'Content-Type': 'application/json',
+    Authorization: `Bearer ${token}`,
+  };
+};
+
 // 使用 API 路由提交投稿（绕过 CORS）
 export const submitPrompt = async (promptData) => {
   try {
@@ -47,9 +59,7 @@ export const getPendingSubmissions = async (status = 'pending') => {
     const query = status ? `?status=${encodeURIComponent(status)}` : '';
     const response = await fetch(`/api/get-submissions${query}`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      }
+      headers: await getAdminRequestHeaders(),
     });
     
     const result = await response.json();
@@ -65,9 +75,7 @@ export const approveSubmission = async (submissionId) => {
   try {
     const response = await fetch('/api/approve-submission', {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: await getAdminRequestHeaders(),
       body: JSON.stringify({ submissionId })
     });
     
